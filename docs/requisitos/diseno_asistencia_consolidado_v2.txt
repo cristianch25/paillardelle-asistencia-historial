@@ -1,0 +1,111 @@
+SISTEMA WEB DE CONTROL DE ASISTENCIA
+I.E. Enrique Paillardelle — Consolidado v2 — 08/11/2026
+Estado: decisiones confirmadas y puntos pendientes identificados; previo al DER y SQL.
+
+1. OBJETIVO Y ALCANCE
+Aplicación web para registrar y consultar asistencias de primaria y secundaria, con visualización oportuna en Subdirección. Sistema independiente de SIAGIE: no lo reemplaza, modifica ni sincroniza. Importación manual de Excel institucional, previa revisión. Sin aplicación para padres, SMS, WhatsApp ni llamadas. Se puede guardar asistencia parcial.
+Tecnologías: React + TypeScript + Vite; Node.js + Express; MySQL (versión objetivo propuesta: 8.4 LTS). Arquitectura modular por funcionalidades.
+
+2. ROLES Y RESPONSABILIDADES
+ADMIN: gestiona aspectos técnicos, usuarios y configuración; no obtiene por ello facultad para justificar faltas.
+SUBDIRECCION: gestiona el ámbito académico y reportes del nivel asignado (primaria o secundaria); exclusivamente regulariza faltas justificadas tras trámite FUT aprobado en Secretaría.
+REGISTRADOR: docente o auxiliar; registra asistencia en secciones asignadas y puede corregir una falta inicial a tardanza por llegada posterior verificada. NO puede justificar faltas. Docente normalmente una sección de primaria; auxiliar puede tener varias de secundaria.
+Los permisos se aplican en el servidor, no solo en la interfaz. QR y bitácora requieren activación global y permiso individual.
+
+3. REGLAS DE NEGOCIO (RN)
+RN-01. La aplicación es independiente de SIAGIE y solo recibe importaciones manuales de Excel.
+RN-02. Cada estudiante tiene una matrícula interna por año; sus cambios de sección conservan fechas e historial, sin períodos superpuestos.
+RN-03. Solo se registra asistencia en fechas lectivas autorizadas del nivel y año escolar abierto.
+RN-04. Hay una asistencia como máximo por matrícula y fecha. PENDIENTE significa que aún no se ha guardado una asistencia en un día lectivo.
+RN-05. Se permite guardar listas incompletas; Subdirección consulta inmediatamente los registros guardados y los pendientes.
+RN-06. Docentes y auxiliares registran PRESENTE, TARDANZA o FALTA solo en sus secciones autorizadas.
+RN-07. Por llegada tardía comprobada, el docente/auxiliar puede corregir FALTA a TARDANZA en su sección; no puede regularizar faltas justificadas.
+RN-08. Solo Subdirección puede marcar una FALTA como justificada, tras aprobación del FUT por el procedimiento externo de Secretaría. El sistema no tramita ni almacena el FUT.
+RN-09. El estado de asistencia es PRESENTE, TARDANZA o FALTA. Una falta justificada sigue siendo FALTA y se distingue mediante justificada = TRUE. En PRESENTE y TARDANZA, justificada = FALSE.
+RN-10. Toda corrección guarda automáticamente valores anteriores/nuevos, responsable y fecha/hora, sin exigir motivo escrito. La auditoría se informa a los usuarios, pero no interrumpe su trabajo.
+RN-11. Cada estudiante tiene como máximo un apoderado activo; un apoderado puede representar a varios estudiantes. Compartir apoderado no demuestra parentesco entre estudiantes.
+RN-12. Solo se importa la columna APODERADO del Excel. No se fusionan contactos por coincidencia de nombre o teléfono; identidades dudosas requieren revisión.
+RN-13. Los registradores autorizados pueden actualizar solo el teléfono del apoderado de sus estudiantes; el cambio se audita y se refleja en todos los vínculos de ese contacto.
+RN-14. Asignaciones de usuarios a una misma sección y períodos de estudiante-sección no pueden solaparse; un auxiliar sí puede atender varias secciones a la vez.
+RN-15. No se modifica normalmente un día lectivo que ya tiene asistencias, ni se edita un año cerrado sin procedimiento excepcional autorizado (autoridad de reapertura pendiente de definir).
+RN-16. QR y bitácora son opcionales, independientes y desactivados inicialmente. El QR registra solo el primer ingreso del día, sin cambiar la asistencia.
+RN-17. La bitácora es informativa y visible a Subdirección de su nivel; no modifica asistencias.
+RN-18. Los cambios administrativos importantes se auditan. El historial y las auditorías no se borran mediante operaciones ordinarias.
+RN-19. Los reportes distinguen faltas justificadas/no justificadas, tardanzas, asistencia y registros pendientes, por fecha, nivel, grado y sección. Ambas clases de falta cuentan como ausencia.
+RN-20. La importación Excel exige vista previa, validación y manejo de duplicados; no se guardan lotes inconsistentes.
+
+4. REQUERIMIENTOS FUNCIONALES (RF)
+RF-01. Iniciar sesión y aplicar permisos según rol, nivel y sección.
+RF-02. Administrar usuarios, roles y asignaciones de secciones.
+RF-03. Administrar años escolares, secciones y calendario lectivo.
+RF-04. Importar y validar Excel de estudiantes, matrículas y apoderados.
+RF-05. Consultar y actualizar datos autorizados de estudiantes y apoderados; auditar cambios de teléfono.
+RF-06. Registrar asistencia individual o por lista y guardar avances parciales.
+RF-07. Corregir FALTA a TARDANZA por llegada posterior, solo para registradores autorizados.
+RF-08. Permitir a Subdirección justificar o retirar la justificación de una FALTA tras el procedimiento institucional.
+RF-09. Registrar automáticamente el historial de cambios de asistencia y la auditoría administrativa.
+RF-10. Consultar asistencias, pendientes y completitud por sección y fecha.
+RF-11. Generar y exportar reportes por período, nivel, grado y sección, distinguiendo faltas justificadas.
+RF-12. Activar/desactivar QR y bitácora, respetando permisos.
+RF-13. Generar/revocar credenciales QR y exportarlas a PDF por sección (opcional).
+RF-14. Registrar el primer ingreso diario mediante QR sin alterar la asistencia (opcional).
+RF-15. Registrar y consultar anotaciones de bitácora por nivel (opcional).
+
+5. REQUERIMIENTOS NO FUNCIONALES (RNF)
+RNF-01. Interfaz web sencilla, adaptable a computadoras y celulares.
+RNF-02. Autorización en backend con acceso restringido por rol, nivel y sección.
+RNF-03. Contraseñas almacenadas como hash seguro, HTTPS y sesiones protegidas.
+RNF-04. Protección de datos personales de menores; recolectar solo lo necesario.
+RNF-05. Integridad mediante claves foráneas, restricciones, transacciones y control de concurrencia.
+RNF-06. Operaciones y consultas ágiles para el volumen escolar previsto; índices apropiados.
+RNF-07. Respaldos cifrados periódicos y pruebas de recuperación.
+RNF-08. Código organizado por módulos, mantenible y con pruebas de funciones críticas.
+RNF-09. Importaciones validadas y con errores comprensibles, sin datos inconsistentes.
+RNF-10. El registro normal funciona sin SIAGIE conectado y sin habilitar QR o bitácora.
+
+6. MODELO DE DATOS — 17 TABLAS
+01 estudiantes: identidad permanente.
+02 anios_escolares: año, fechas, estado PLANIFICADO/ABIERTO/CERRADO.
+03 secciones: año, nivel, grado, letra y turno opcional.
+04 matriculas: vínculo interno estudiante-año, único por estudiante/año.
+05 matricula_secciones: historial de sección con fechas de vigencia.
+06 contactos: apoderado, documento si corresponde y teléfono.
+07 estudiante_contactos: estudiante_id, contacto_id, parentesco, activo. SIN es_principal ni es_apoderado.
+08 usuarios: identidad, credenciales, rol, cargo, nivel y permisos opcionales.
+09 asignaciones: usuario-sección y fechas de vigencia.
+10 asistencias: matricula_id, matricula_seccion_id, fecha, estado (PRESENTE/TARDANZA/FALTA), justificada BOOLEAN NOT NULL DEFAULT FALSE, registrado_por, version, created_at, updated_at. UNIQUE(matricula_id,fecha). CHECK(estado='FALTA' OR justificada=FALSE). Sin fila = PENDIENTE en día lectivo.
+11 historial_asistencias: asistencia_id, estado_anterior, estado_nuevo, justificada_anterior, justificada_nueva, modificado_por, fecha_modificacion. SIN motivo. Cada cambio de estado o justificación genera historial.
+12 calendario_lectivo: año, nivel, fecha, es_lectivo, descripción.
+13 auditoria_administrativa: actor, acción, entidad, registro, antes/después depurados y fecha.
+14 configuracion_sistema: clave única, valor, descripción, actualizador y fecha; QR y bitácora false inicialmente.
+15 credenciales_qr: matrícula, token_hash único, estado, fechas, emisor.
+16 registros_ingreso: matrícula, QR, fecha, primera hora y actor; único por matrícula/fecha.
+17 bitacora_actividades: usuario, nivel, fecha, descripción y fechas de creación/actualización.
+
+7. VALIDACIONES IMPORTANTES PARA MYSQL Y EXPRESS
+- UNIQUE en matrícula por estudiante/año; sección por año/nivel/grado/letra; asistencia por matrícula/fecha; calendario por año/nivel/fecha; ingreso QR por matrícula/fecha; clave de configuración; usuario; token QR.
+- Un solo vínculo activo de apoderado por estudiante: índice único con columna generada para activos y validación transaccional; UNIQUE(estudiante_id,contacto_id) por sí solo no basta.
+- Los períodos superpuestos se comprueban con transacciones y bloqueos adecuados; UNIQUE no compara intervalos.
+- Una asistencia debe corresponder a la matrícula y sección vigentes en su fecha. Aplicar FK compuesta cuando proceda y validación de fechas en backend.
+- Para justificar FALTA se actualiza solo justificada; NO se convierte a PRESENTE. Los reportes suman ambas faltas como ausencias.
+- Al cambiar FALTA a TARDANZA, justificada debe quedar FALSE; no permitir combinaciones incoherentes.
+- Actualización concurrente de asistencias mediante campo version; historial y modificación en la misma transacción.
+- El historial debe registrar cambios en estado y en justificada; no basta con guardar solo el estado.
+- Proteger auditorías, no registrar contraseñas, hashes ni tokens secretos en registros de cambios.
+- Para un QR cuyo token solo se conserva como hash, la reposición implica emitir uno nuevo y revocar el anterior.
+
+8. DECISIONES TODAVÍA POR CONFIRMAR (NO BLOQUEAN EL DER)
+A. Quién autoriza el cierre y la reapertura excepcional de un año escolar.
+B. Qué fechas pasadas pueden corregirse mientras el año está abierto.
+C. Si Subdirección puede corregir también un estado erróneo (por ejemplo PRESENTE a FALTA) además de gestionar justificaciones, y bajo qué autorización.
+D. Cómo actuar cuando el Excel no incluye apoderado y qué campos exactos trae el archivo real.
+E. Quién emite/revoca QR y quién consulta auditoría; edición de bitácora.
+F. Política institucional de conservación de datos personales y respaldos.
+
+9. ORDEN RECOMENDADO
+1) Dibujar DER completo con las 17 tablas, atributos PK/FK y cardinalidades.
+2) Revisar rápidamente las relaciones y los pendientes que afecten permisos.
+3) Crear SQL MySQL: tablas, índices, FKs, CHECK, datos iniciales.
+4) Programar backend Express y frontend React por módulos, con pruebas de permisos y correcciones.
+
+NOTA: Documento de diseño para implementación, no aprobación institucional formal ni script SQL.

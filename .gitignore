@@ -1,0 +1,33 @@
+# Dependencias
+node_modules/
+
+# Salidas y cobertura
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
+
+# Registros
+logs/
+*.log
+
+# Datos locales, importaciones y respaldos con información personal
+/backend/uploads/
+/backend/backups/
+/backend/tmp/
+*.sql.gz
+*.sql.zip
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Caché local de npm
+.npm-cache/

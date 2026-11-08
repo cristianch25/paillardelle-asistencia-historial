@@ -1,0 +1,10 @@
+# Configuración local y secretos
+.env
+.env.*
+!.env.example
+
+# Cachés locales (se conservan en disco)
+.npm-cache/
+.cache/
+.npm/
+node_modules/
