@@ -1,5 +1,6 @@
 import { HttpError } from '../../shared/http-error.js';
 import { isValidPassword } from '../../shared/passwords.js';
+export { validateId as validateUserId } from '../../shared/query-validation.js';
 
 const roles = ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'];
 const levels = ['PRIMARIA', 'SECUNDARIA'];
@@ -74,12 +75,4 @@ export function validateRoleLevel(user) {
   if (user.rol === 'SUBDIRECCION' && !levels.includes(user.nivel_asignado)) {
     invalid('SUBDIRECCION requiere nivel_asignado.');
   }
-}
-
-export function validateUserId(id) {
-  if (typeof id !== 'string' || !/^[1-9]\d{0,19}$/.test(id)
-    || BigInt(id) > 18446744073709551615n) {
-    invalid('ID inválido: se requiere un entero positivo dentro del rango BIGINT UNSIGNED.');
-  }
-  return id;
 }

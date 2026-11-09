@@ -4,6 +4,7 @@ import { validateNewUser, validateUserId, validateUserPatch, validateRoleLevel }
 import { hashPassword } from '../../shared/passwords.js';
 import { peruDate } from '../../shared/peru-date.js';
 import { unauthorized } from '../auth/auth.errors.js';
+import { validatePagination } from '../../shared/query-validation.js';
 
 export function publicUser(user) {
   return {
@@ -57,15 +58,6 @@ function updateConflict(error) {
   return error;
 }
 
-function positiveInteger(value, fallback, max = Number.MAX_SAFE_INTEGER) {
-  if (value === undefined) return fallback;
-  if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value)
-    || !Number.isSafeInteger(Number(value)) || Number(value) > max) {
-    throw new HttpError(400, 'Paginación inválida: page debe ser positivo y limit debe estar entre 1 y 100.');
-  }
-  return Number(value);
-}
-
 function userDetails(user) {
   return {
     ...publicUser(user),
@@ -102,12 +94,7 @@ export function createUsuariosService({ repository = createUsuariosRepository(),
       }
     },
     async list(query = {}) {
-      const page = positiveInteger(query.page, 1);
-      const limit = positiveInteger(query.limit, 20, 100);
-      const offset = (page - 1) * limit;
-      if (!Number.isSafeInteger(offset)) {
-        throw new HttpError(400, 'La página solicitada está fuera del rango admitido.');
-      }
+      const { page, limit, offset } = validatePagination(query);
       // Una fila extra permite informar si hay otra página, sin contar toda la tabla.
       const rows = await repository.list({ limit: limit + 1, offset });
       return {
