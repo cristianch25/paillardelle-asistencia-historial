@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import { Router, json } from 'express';
+import { requireAdmin } from '../../middlewares/require-admin.js';
 import { authenticate } from '../../middlewares/authenticate.js';
 import { HttpError } from '../../shared/http-error.js';
 import { createAniosEscolaresController } from './anios-escolares.controller.js';
@@ -17,6 +18,7 @@ export function createAniosEscolaresRoutes(authService, service = createAniosEsc
     }
     next();
   });
+  router.post('/', requireAdmin, json({ limit: '8kb' }), controller.create);
   router.get('/', controller.list);
   router.get('/:id', controller.findById);
   return router;

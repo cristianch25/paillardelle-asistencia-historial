@@ -135,9 +135,9 @@ test('fallos internos responden JSON genérico sin SQL ni credenciales', async (
   } finally { databaseFails = false; }
 });
 
-test('no existen operaciones POST, PATCH ni DELETE de años escolares', async () => {
+test('no existen PATCH ni DELETE de años escolares ni POST sobre un ID', async () => {
   const prior = queries;
-  for (const method of ['POST', 'PATCH', 'DELETE']) for (const path of ['', '/1']) {
+  for (const [method, path] of [['POST', '/1'], ['PATCH', ''], ['PATCH', '/1'], ['DELETE', ''], ['DELETE', '/1']]) {
     const response = await request(path, tokens.issue('1').access_token, method);
     assert.equal(response.status, 404);
     await response.text();

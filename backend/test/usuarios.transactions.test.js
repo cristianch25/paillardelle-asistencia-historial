@@ -55,11 +55,33 @@ function scenario(operation, options = {}) {
 }
 
 for (const operation of ['create', 'update']) {
+  test(`${operation}: COMMIT exitoso libera la conexión una sola vez`, async () => {
+    const { run, events } = scenario(operation);
+    await run();
+    assert.deepEqual(events.slice(-2), ['commit', 'release']);
+    assert.equal(events.filter(event => event === 'acquire').length, 1);
+    assert.equal(events.includes('rollback'), false);
+    assert.equal(events.includes('destroy'), false);
+  });
+
+  test(`${operation}: COMMIT fallido siempre descarta, preserva error y no reintenta`, async () => {
+    for (const options of [{}, { rollbackFails: true }, { destroyFails: true },
+      { rollbackFails: true, destroyFails: true }]) {
+      const { run, events, primary } = scenario(operation, { failAt: 'commit', ...options });
+      await assert.rejects(run, error => error === primary);
+      assert.deepEqual(events.slice(-3), ['commit', 'rollback', 'destroy']);
+      assert.equal(events.includes('release'), false);
+      assert.equal(events.filter(event => event === 'commit').length, 1);
+      assert.equal(events.filter(event => event === 'acquire').length, 1);
+    }
+  });
+
   test(`${operation}: adquisición, BEGIN, escritura, auditoría y COMMIT preservan el error principal`, async () => {
     for (const failAt of ['acquire', 'begin', 'write', 'audit', 'commit']) {
       const { run, events, primary } = scenario(operation, { failAt });
       await assert.rejects(run, error => error === primary);
       if (failAt === 'acquire') assert.deepEqual(events, ['acquire']);
+      else if (failAt === 'commit') assert.deepEqual(events.slice(-2), ['rollback', 'destroy']);
       else assert.deepEqual(events.slice(-2), ['rollback', 'release']);
       if (['begin', 'write', 'audit'].includes(failAt)) assert.equal(events.includes('commit'), false);
     }

@@ -1,6 +1,6 @@
-# Organización escolar — etapa 6A
+# Organización escolar — etapas 6A y 6B
 
-Solo consulta de años escolares. ADMIN, SUBDIRECCION y REGISTRADOR autenticados
+En las consultas, ADMIN, SUBDIRECCION y REGISTRADOR autenticados
 pueden consultar todos los años, incluidos PLANIFICADO, ABIERTO y CERRADO.
 Se utiliza el JWT Bearer y la comprobación actual de usuario activo existentes.
 No se exige nivel ni asignación de sección para estas consultas globales.
@@ -28,7 +28,48 @@ Errores: 400 por ID/paginación inválidos, 401 por autenticación inválida o u
 inactivo, 403 por rol fuera de los tres autorizados, 404 por año inexistente y
 500 genérico por fallos internos, sin SQL, credenciales ni mensajes de MySQL.
 
-Se aplican RF-01/RF-03 y RNF-02/04/05/08. Esta etapa no cambia estados ni fechas,
-no añade secciones/calendario ni endpoints de escritura. No requiere auditorías
-de modificaciones ni nuevas dependencias. Las pruebas HTTP, de servicio y de
-repositorio usan datos y conexiones simulados; no acceden a MySQL institucional.
+Las pruebas HTTP, de servicio y de repositorio usan datos y conexiones simulados;
+no acceden a MySQL institucional.
+
+## Crear año escolar (6B)
+
+`POST /api/anios-escolares` requiere ADMIN activo y JSON con exactamente los campos
+`anio` (número entero 2000–2200), `fecha_inicio` y `fecha_fin` (texto YYYY-MM-DD).
+Se validan fechas reales, incluidos bisiestos, dentro del rango DATE de MySQL
+1000-01-01 a 9999-12-31; inicio debe ser menor o igual a fin. No se convierten
+textos a números ni se recortan fechas. Se rechazan campos desconocidos, incluido
+`estado`, incluso si es PLANIFICADO. El INSERT fija PLANIFICADO desde el servidor.
+
+Ejemplo: `{ "anio": 2026, "fecha_inicio": "2026-03-01", "fecha_fin": "2026-12-20" }`.
+Respuesta 201: `{ anio_escolar: { ... } }`, con los mismos campos públicos del GET
+y cabecera `Location: /api/anios-escolares/<id>`. SUBDIRECCION y REGISTRADOR reciben
+403; autenticación inválida o usuario inactivo recibe 401; validación inválida,
+400. Se conserva el límite JSON de 8 KB y sus errores seguros 400/413.
+
+Una conexión y transacción: BEGIN, lectura actual del actor con FOR UPDATE,
+revalidación de activo/ADMIN en el servicio, INSERT del año, SELECT de campos
+públicos, INSERT de auditoría y COMMIT. El bloqueo del actor se conserva hasta
+terminar; un cambio de rol o estado previo a obtenerlo produce 403 o 401 antes
+de insertar. Solo se bloquea ese usuario, sin adquirir después otros usuarios.
+
+Auditoría: CREAR_ANIO_ESCOLAR, entidad anios_escolares, actor autenticado, ID como
+texto, datos anteriores null y datos nuevos limitados a los siete campos públicos.
+Se aplica RN-18/RF-09, junto con RF-01/RF-03 y RNF-02/04/05/08.
+
+UNIQUE(anio) es la garantía contra duplicados, también concurrentes: ER_DUP_ENTRY
+devuelve 409. Deadlock/timeout de bloqueo devuelve 409. No se prohíben otros años
+abiertos, intervalos superpuestos ni fechas que pertenezcan a otro año numérico.
+
+Ambos repositorios usan `shared/transaction.js` para adquisición, BEGIN, COMMIT,
+ROLLBACK y limpieza; el SQL, autorización y auditoría permanecen en los módulos.
+Fallos previos al COMMIT intentan ROLLBACK. Si este falla, se descarta la conexión;
+fallos de limpieza no ocultan el error principal. Un fallo de release tras COMMIT
+no revierte la creación confirmada. Una desconexión durante COMMIT puede dejar
+incierto su resultado: no se reintenta automáticamente y requiere comprobarlo.
+Si COMMIT falla, la conexión se descarta siempre, aunque el ROLLBACK posterior
+resuelva; ese ROLLBACK no demuestra que la creación no haya sido confirmada.
+Los demás errores reciben 500 genérico, sin SQL ni datos internos.
+
+No se implementan edición, transiciones de estado, secciones ni calendario.
+No hay nuevas dependencias ni cambios en usuarios. Los casos concurrentes y de
+fallos usan conexiones simuladas; no equivalen a validación en MySQL real.

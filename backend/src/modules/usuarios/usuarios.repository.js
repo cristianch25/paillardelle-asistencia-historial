@@ -1,4 +1,5 @@
 import { getPool } from '../../config/database.js';
+import { inTransaction } from '../../shared/transaction.js';
 
 const columns = `id, nombres, apellidos, usuario, rol, cargo, nivel_asignado,
   puede_escanear_qr, puede_usar_bitacora, activo, created_at, updated_at`;
@@ -26,35 +27,6 @@ async function writeUserAudit(connection, actorId, action, before, after) {
     [actorId, action, 'usuarios', String(after.id),
       before ? JSON.stringify(publicRow(before)) : null, JSON.stringify(publicRow(after))],
   );
-}
-
-function discard(connection) {
-  try { connection.destroy(); } catch { /* La limpieza no debe ocultar el error principal. */ }
-}
-
-// Una política de cierre para ambas escrituras, privada de este repositorio.
-async function inTransaction(pool, work) {
-  const connection = await pool.getConnection();
-  let reusable = true;
-  let failed = false;
-  try {
-    await connection.beginTransaction();
-    const result = await work(connection);
-    await connection.commit();
-    return result;
-  } catch (error) {
-    failed = true;
-    try { await connection.rollback(); } catch { reusable = false; }
-    throw error;
-  } finally {
-    if (!reusable) discard(connection);
-    else {
-      try { connection.release(); } catch (error) {
-        discard(connection);
-        if (!failed) throw error;
-      }
-    }
-  }
 }
 
 export function createUsuariosRepository(poolProvider = getPool) {

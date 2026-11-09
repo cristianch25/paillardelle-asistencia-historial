@@ -243,3 +243,7 @@ El módulo separa rutas, controlador, validaciones, servicio y repositorio.
 La etapa 6A añade `GET /api/anios-escolares` (también con barra final) y
 `GET /api/anios-escolares/:id`, disponibles para los tres roles autenticados.
 Consulta los [contratos y pruebas de organización escolar](src/modules/organizacion-escolar/README.md).
+
+La etapa 6B añade `POST /api/anios-escolares`, exclusivo de ADMIN activo, con
+estado inicial PLANIFICADO y auditoría en la misma transacción. No incluye edición
+ni apertura/cierre de años; los contratos y límites se detallan en el enlace anterior.

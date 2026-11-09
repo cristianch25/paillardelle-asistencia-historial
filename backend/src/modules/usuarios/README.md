@@ -119,13 +119,17 @@ UPDATE ni auditoría, con HTTP 200 y `{ "user": { ... } }`.
 
 Si falla la liberación después de un COMMIT exitoso, la operación ya está
 confirmada: el error se informa y la conexión se descarta. Un fallo de comunicación
-durante COMMIT puede dejar incierta su confirmación. No reintentar automáticamente
+durante COMMIT puede dejar incierta su confirmación. Si COMMIT falla, se descarta
+siempre la conexión, incluso si el ROLLBACK posterior resuelve; esto no demuestra
+que el COMMIT anterior no se haya ejecutado. No reintentar automáticamente
 una escritura en esos casos.
 
 Rutas, controlador y validaciones permanecen separados. `usuarios.service.js`
 concentra las reglas y la representación pública, reutilizada por autenticación.
 `usuarios.repository.js` concentra consultas, bloqueos, filtrado de auditoría y
-funciones privadas para selección por ID y cierre transaccional compartido.
+funciones privadas para selección por ID. El cierre transaccional técnico se
+comparte con organización escolar mediante `shared/transaction.js`; el SQL,
+los bloqueos, las decisiones y las auditorías específicas permanecen en el módulo.
 
 Errores: 400 por validación, 401 por autenticación o actor desactivado, 403 por rol,
 404 por destino inexistente, 409 por duplicado, protecciones o incompatibilidades
