@@ -4,8 +4,8 @@ import { after, before, test } from 'node:test';
 import { createApp } from '../src/app.js';
 import { createAuthService } from '../src/modules/auth/auth.service.js';
 import { createTokenService } from '../src/modules/auth/auth.tokens.js';
-import { createAniosEscolaresRepository } from '../src/modules/organizacion-escolar/anios-escolares.repository.js';
-import { createAniosEscolaresService } from '../src/modules/organizacion-escolar/anios-escolares.service.js';
+import { createAniosEscolaresRepository } from '../src/modules/organizacion-escolar/anios-escolares/repository.js';
+import { createAniosEscolaresService } from '../src/modules/organizacion-escolar/anios-escolares/service.js';
 import { payload, yearPool } from '../test-support/anios-create-pool.js';
 
 const tokens = createTokenService(() => ({

@@ -1,8 +1,8 @@
-import { HttpError } from '../../shared/http-error.js';
-import { validateId, validatePagination } from '../../shared/query-validation.js';
-import { createAniosEscolaresRepository } from './anios-escolares.repository.js';
-import { validateNewYear } from './anios-escolares.validation.js';
-import { unauthorized } from '../auth/auth.errors.js';
+import { HttpError } from '../../../shared/http-error.js';
+import { validateId, validatePagination } from '../../../shared/query-validation.js';
+import { createAniosEscolaresRepository } from './repository.js';
+import { validateNewYear } from './validation.js';
+import { unauthorized } from '../../auth/auth.errors.js';
 
 function publicYear(row) {
   return {

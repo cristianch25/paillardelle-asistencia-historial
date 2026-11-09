@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { validateNewYear } from '../src/modules/organizacion-escolar/anios-escolares.validation.js';
-import { createAniosEscolaresService } from '../src/modules/organizacion-escolar/anios-escolares.service.js';
+import { validateNewYear } from '../src/modules/organizacion-escolar/anios-escolares/validation.js';
+import { createAniosEscolaresService } from '../src/modules/organizacion-escolar/anios-escolares/service.js';
 import { payload } from '../test-support/anios-create-pool.js';
 
 test('valida extremos del año, bisiestos, igualdad y rango DATE sin convertir entradas', () => {

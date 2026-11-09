@@ -4,7 +4,7 @@ import { after, before, test } from 'node:test';
 import { createApp } from '../src/app.js';
 import { createAuthService } from '../src/modules/auth/auth.service.js';
 import { createTokenService } from '../src/modules/auth/auth.tokens.js';
-import { createAniosEscolaresService } from '../src/modules/organizacion-escolar/anios-escolares.service.js';
+import { createAniosEscolaresService } from '../src/modules/organizacion-escolar/anios-escolares/service.js';
 
 // JWT reales y repositorios ficticios: ninguna conexión MySQL.
 const users = new Map(['ADMIN', 'SUBDIRECCION', 'REGISTRADOR', 'OTRO'].map((rol, i) => {

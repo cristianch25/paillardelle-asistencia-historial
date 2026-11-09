@@ -1,0 +1,66 @@
+import { HttpError } from '../../../shared/http-error.js';
+import { validateId } from '../../../shared/query-validation.js';
+import { peruDate } from '../../../shared/peru-date.js';
+import { unauthorized } from '../../auth/auth.errors.js';
+import { createUsuariosService } from '../../usuarios/usuarios.service.js';
+import { createSeccionesRepository } from './repository.js';
+import { levels, validateNewSection, validateSectionQuery } from './validation.js';
+
+function publicSection(row) {
+  return { id: String(row.id), anio_escolar_id: String(row.anio_escolar_id), nivel: row.nivel,
+    grado: row.grado, letra: row.letra, turno: row.turno, activo: Boolean(row.activo) };
+}
+function authorize(actor, level, writing = false) {
+  if (!actor) throw unauthorized();
+  if (actor.rol === 'ADMIN') return;
+  if (actor.rol === 'SUBDIRECCION' && levels.includes(actor.nivel_asignado)
+    && (level === undefined || actor.nivel_asignado === level)) return;
+  if (!writing && actor.rol === 'REGISTRADOR') return;
+  throw new HttpError(403, 'No tienes permiso para esta operación o nivel.');
+}
+
+export function createSeccionesService({ repository = createSeccionesRepository(),
+  usuariosService = createUsuariosService(), getToday = peruDate } = {}) {
+  async function scope(actor, level) {
+    authorize(actor, level);
+    if (actor.rol === 'SUBDIRECCION') return { nivel: actor.nivel_asignado };
+    if (actor.rol === 'REGISTRADOR') {
+      return { ids: await usuariosService.currentSectionIds(actor.id, getToday()) };
+    }
+    return {};
+  }
+  return {
+    async list(query, actor) {
+      const { page, limit, offset, filters } = validateSectionQuery(query);
+      const access = await scope(actor, filters.nivel);
+      const rows = await repository.list({ filters, access, limit: limit + 1, offset });
+      return { secciones: rows.slice(0, limit).map(publicSection),
+        pagination: { page, limit, has_more: rows.length > limit } };
+    },
+    async findById(id, actor) {
+      validateId(id);
+      const row = await repository.findById(id, await scope(actor));
+      if (!row) throw new HttpError(404, 'Sección no encontrada.');
+      return publicSection(row);
+    },
+    async create(body, actor) {
+      const data = validateNewSection(body);
+      authorize(actor, data.nivel, true);
+      try {
+        const row = await repository.create(data, actor.id, (current, year) => {
+          if (!current || !(current.activo === 1 || current.activo === true)) throw unauthorized();
+          authorize(current, data.nivel, true);
+          if (!year) throw new HttpError(404, 'Año escolar no encontrado.');
+          if (year.estado === 'CERRADO') throw new HttpError(409, 'El año escolar está cerrado.');
+        });
+        return publicSection(row);
+      } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') throw new HttpError(409, 'La sección ya está registrada.');
+        if (['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT'].includes(error.code)) {
+          throw new HttpError(409, 'Conflicto concurrente: vuelve a intentar la operación.');
+        }
+        throw error;
+      }
+    },
+  };
+}

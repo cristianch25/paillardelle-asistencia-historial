@@ -1,9 +1,9 @@
 import { Router, json } from 'express';
-import { requireAdmin } from '../../middlewares/require-admin.js';
-import { authenticate } from '../../middlewares/authenticate.js';
-import { HttpError } from '../../shared/http-error.js';
-import { createAniosEscolaresController } from './anios-escolares.controller.js';
-import { createAniosEscolaresService } from './anios-escolares.service.js';
+import { requireAdmin } from '../../../middlewares/require-admin.js';
+import { authenticate } from '../../../middlewares/authenticate.js';
+import { HttpError } from '../../../shared/http-error.js';
+import { createAniosEscolaresController } from './controller.js';
+import { createAniosEscolaresService } from './service.js';
 
 export function createAniosEscolaresRoutes(authService, service = createAniosEscolaresService()) {
   const router = Router();

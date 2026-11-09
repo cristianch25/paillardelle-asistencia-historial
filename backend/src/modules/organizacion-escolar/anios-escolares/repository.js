@@ -1,5 +1,5 @@
-import { getPool } from '../../config/database.js';
-import { inTransaction } from '../../shared/transaction.js';
+import { getPool } from '../../../config/database.js';
+import { inTransaction } from '../../../shared/transaction.js';
 
 const columns = 'id, anio, fecha_inicio, fecha_fin, estado, created_at, updated_at';
 

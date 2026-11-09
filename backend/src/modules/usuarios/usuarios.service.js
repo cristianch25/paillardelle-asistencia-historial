@@ -69,6 +69,11 @@ function userDetails(user) {
 
 export function createUsuariosService({ repository = createUsuariosRepository(), getToday = peruDate } = {}) {
   return {
+    async currentSectionIds(id, today = getToday()) {
+      validateUserId(id);
+      const rows = await repository.currentSectionIds(id, today);
+      return rows.map(row => String(row.seccion_id));
+    },
     async update(id, body, actorId, stateOnly = false) {
       validateUserId(id);
       const patch = validateUserPatch(body, stateOnly);

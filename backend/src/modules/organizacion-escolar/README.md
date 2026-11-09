@@ -1,4 +1,11 @@
-# Organización escolar — etapas 6A y 6B
+# Organización escolar — etapas 6A, 6B y 6C
+
+El módulo agrupa dos funcionalidades en `anios-escolares/` y `secciones/`.
+Cada carpeta contiene `controller.js`, `repository.js`, `routes.js`, `service.js`
+y `validation.js`. Este README conserva los contratos de ambas funcionalidades.
+`app.js` compone sus rutas; se conservan los nombres de exports existentes.
+Secciones consulta las asignaciones mediante el servicio de usuarios; el SQL
+permanece en su repositorio, sin dependencia de usuarios hacia este módulo.
 
 En las consultas, ADMIN, SUBDIRECCION y REGISTRADOR autenticados
 pueden consultar todos los años, incluidos PLANIFICADO, ABIERTO y CERRADO.
@@ -70,6 +77,63 @@ Si COMMIT falla, la conexión se descarta siempre, aunque el ROLLBACK posterior
 resuelva; ese ROLLBACK no demuestra que la creación no haya sido confirmada.
 Los demás errores reciben 500 genérico, sin SQL ni datos internos.
 
-No se implementan edición, transiciones de estado, secciones ni calendario.
-No hay nuevas dependencias ni cambios en usuarios. Los casos concurrentes y de
+En años escolares no se implementan edición ni transiciones de estado.
+La etapa 6B no añadió dependencias ni cambios funcionales en usuarios. Los casos concurrentes y de
 fallos usan conexiones simuladas; no equivalen a validación en MySQL real.
+
+## Secciones (6C)
+
+- `GET /api/secciones` (también con barra final):
+  `{ secciones: [...], pagination: { page, limit, has_more } }`.
+- `GET /api/secciones/:id`: `{ seccion: { ... } }`.
+- `POST /api/secciones`: 201, `{ seccion: { ... } }` y `Location: /api/secciones/<id>`.
+
+Todos requieren JWT y usuario activo. ADMIN consulta todas las secciones y crea
+en ambos niveles. SUBDIRECCION consulta y crea únicamente en su nivel asignado;
+un filtro por otro nivel recibe 403. REGISTRADOR consulta solo las secciones de
+asignaciones vigentes hoy en America/Lima: inicio <= hoy y fin null o fin >= hoy.
+Ambos extremos son inclusivos; asignaciones futuras o vencidas no conceden acceso.
+Sin asignaciones, el listado queda vacío y el detalle devuelve 404.
+REGISTRADOR no puede crear; roles desconocidos reciben 403.
+
+La consulta admite años PLANIFICADO, ABIERTO y CERRADO. No se filtra implícitamente
+por activo. Un detalle inexistente o fuera del ámbito autorizado devuelve el mismo
+404 para no revelar secciones ajenas. El ámbito se aplica antes de la paginación.
+
+Filtros opcionales únicos: `anio_escolar_id` (ID decimal como texto), `nivel`
+(PRIMARIA/SECUNDARIA), `grado` (entero decimal 1–6; secundaria 1–5 cuando se indica
+nivel) y `activo` (texto exacto true/false). Page/limit siguen el contrato de años.
+Se rechazan filtros desconocidos o repetidos. Orden id ASC con una fila adicional.
+Los filtros se intersectan con el ámbito: no lo sustituyen ni amplían.
+
+El POST acepta únicamente `anio_escolar_id` (BIGINT como texto), `nivel`, `grado`
+(número entero), `letra` (texto hasta 5 caracteres Unicode) y `turno` opcional
+(texto hasta 20 caracteres o null). Se conserva el texto literal, sin normalizar,
+crear catálogos ni limitar letra a un carácter; el esquema admite cadenas vacías.
+No se aceptan `activo`, `id`, timestamps ni actor: activo se establece en TRUE.
+No hay restricciones nuevas por cantidad de secciones, capacidad ni turnos.
+
+Campos públicos: id, anio_escolar_id (ambos texto), nivel, grado, letra, turno y
+activo (booleano). No se inventan timestamps ausentes en la tabla secciones.
+El SQL es parametrizado y usa columnas explícitas. Cache-Control: no-store.
+
+Creación: shared/transaction.js, bloqueo del actor y después del año con FOR UPDATE,
+revalidación del rol/nivel/activo y estado actual del año. Solo PLANIFICADO/ABIERTO
+permiten crear; año inexistente devuelve 404 y CERRADO 409. Se mantiene el bloqueo
+del año hasta terminar, coordinando con futuras escrituras de su estado sobre esa
+misma fila. No se adquieren otros usuarios después de bloquear el año.
+
+INSERT, lectura de resultado y auditoría CREAR_SECCION, entidad secciones, ID creado,
+actor autenticado, anteriores null y siete campos públicos nuevos se confirman juntos.
+UNIQUE(anio_escolar_id,nivel,grado,letra) resuelve duplicados concurrentes con 409,
+respetando la colación MySQL. Turno no forma parte de la unicidad.
+Rollback, descarte tras fallo de COMMIT y ausencia de reintentos usan la política
+compartida; un fallo de COMMIT puede dejar incierto el resultado persistido.
+
+La lectura de asignaciones se solicita al servicio de usuarios mediante el método
+interno currentSectionIds; no añade endpoints de asignaciones ni altera sus reglas
+de edición. Su SQL permanece en usuarios. La consulta no modifica asignaciones.
+Errores: 400 por datos inválidos, 401 sin autenticación, 403 por permisos, 404 por
+recurso inexistente/no visible, 409 por duplicado/cierre/deadlock/timeout y 500 genérico.
+Se aplican RF-01/03/09, RN-14/15/18 y RNF-02/04/05/08.
+No hay PATCH/DELETE, desactivación, calendario, matrícula, asistencia ni frontend.

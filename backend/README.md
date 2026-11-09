@@ -247,3 +247,12 @@ Consulta los [contratos y pruebas de organización escolar](src/modules/organiza
 La etapa 6B añade `POST /api/anios-escolares`, exclusivo de ADMIN activo, con
 estado inicial PLANIFICADO y auditoría en la misma transacción. No incluye edición
 ni apertura/cierre de años; los contratos y límites se detallan en el enlace anterior.
+
+La etapa 6C añade `GET /api/secciones`, `GET /api/secciones/:id` y `POST /api/secciones`.
+ADMIN tiene ámbito global, SUBDIRECCION su nivel y REGISTRADOR solo consulta sus
+asignaciones vigentes en America/Lima. Las consultas admiten cualquier estado del
+año; crear requiere PLANIFICADO o ABIERTO y se audita en una misma transacción.
+
+El código de organización escolar se organiza en `anios-escolares/` y `secciones/`,
+cada una con controller, repository, routes, service y validation. Los contratos
+se documentan en el README común del módulo.

@@ -31,6 +31,14 @@ async function writeUserAudit(connection, actorId, action, before, after) {
 
 export function createUsuariosRepository(poolProvider = getPool) {
   return {
+    async currentSectionIds(id, today) {
+      const [rows] = await poolProvider().execute(
+        `SELECT DISTINCT seccion_id FROM asignaciones WHERE usuario_id = ?
+         AND fecha_inicio <= ? AND (fecha_fin IS NULL OR fecha_fin >= ?) ORDER BY seccion_id ASC`,
+        [id, today, today],
+      );
+      return rows;
+    },
     update(id, actorId, patch, decide) {
       return inTransaction(poolProvider(), async connection => {
         // Orden común: ADMIN activos, actor, destino, asignaciones; lecturas actuales.

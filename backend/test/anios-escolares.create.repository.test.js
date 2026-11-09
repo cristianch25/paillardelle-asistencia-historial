@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createAniosEscolaresRepository } from '../src/modules/organizacion-escolar/anios-escolares.repository.js';
-import { createAniosEscolaresService } from '../src/modules/organizacion-escolar/anios-escolares.service.js';
+import { createAniosEscolaresRepository } from '../src/modules/organizacion-escolar/anios-escolares/repository.js';
+import { createAniosEscolaresService } from '../src/modules/organizacion-escolar/anios-escolares/service.js';
 import { payload, yearPool } from '../test-support/anios-create-pool.js';
 
 function fixture(options) {

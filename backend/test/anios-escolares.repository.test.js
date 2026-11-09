@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createAniosEscolaresRepository } from '../src/modules/organizacion-escolar/anios-escolares.repository.js';
-import { createAniosEscolaresService } from '../src/modules/organizacion-escolar/anios-escolares.service.js';
+import { createAniosEscolaresRepository } from '../src/modules/organizacion-escolar/anios-escolares/repository.js';
+import { createAniosEscolaresService } from '../src/modules/organizacion-escolar/anios-escolares/service.js';
 
 test('repositorio: SELECT parametrizados, campos explícitos, orden estable y ausencia de escrituras', async () => {
   const calls = [];

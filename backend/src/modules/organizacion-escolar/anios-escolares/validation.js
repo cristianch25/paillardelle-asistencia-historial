@@ -1,4 +1,4 @@
-import { HttpError } from '../../shared/http-error.js';
+import { HttpError } from '../../../shared/http-error.js';
 
 function validDate(value) {
   if (typeof value !== 'string' || value.length !== 10
