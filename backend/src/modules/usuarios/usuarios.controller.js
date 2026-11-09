@@ -1,5 +1,11 @@
 export function createUsuariosController(service) {
   return {
+    async getAdditionalLevels(req, res) {
+      res.json(await service.getAdditionalLevels(req.params.id));
+    },
+    async updateAdditionalLevels(req, res) {
+      res.json(await service.updateAdditionalLevels(req.params.id, req.body, req.authUser.id));
+    },
     async update(req, res) {
       res.json({ user: await service.update(req.params.id, req.body, req.authUser.id) });
     },

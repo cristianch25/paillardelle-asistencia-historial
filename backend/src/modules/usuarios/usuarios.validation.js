@@ -1,9 +1,9 @@
 import { HttpError } from '../../shared/http-error.js';
 import { isValidPassword } from '../../shared/passwords.js';
+import { educationLevels as levels } from '../../shared/education-levels.js';
 export { validateId as validateUserId } from '../../shared/query-validation.js';
 
 const roles = ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'];
-const levels = ['PRIMARIA', 'SECUNDARIA'];
 const booleanFields = ['puede_escanear_qr', 'puede_usar_bitacora', 'activo'];
 const allowedFields = ['nombres', 'apellidos', 'usuario', 'password', 'rol',
   'cargo', 'nivel_asignado', ...booleanFields];
@@ -44,7 +44,7 @@ function validateFields(body, partial = false) {
   }
   if (Object.hasOwn(body, 'nivel_asignado')) {
     if (body.nivel_asignado !== null && !levels.includes(body.nivel_asignado)) {
-      invalid('nivel_asignado debe ser PRIMARIA, SECUNDARIA o null.');
+      invalid('nivel_asignado debe ser PRIMARIA, SECUNDARIA, INICIAL o null.');
     }
     user.nivel_asignado = body.nivel_asignado;
   }
@@ -75,4 +75,14 @@ export function validateRoleLevel(user) {
   if (user.rol === 'SUBDIRECCION' && !levels.includes(user.nivel_asignado)) {
     invalid('SUBDIRECCION requiere nivel_asignado.');
   }
+}
+
+export function validateAdditionalLevels(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length !== 1
+    || !Object.hasOwn(body, 'niveles_adicionales') || !Array.isArray(body.niveles_adicionales)
+    || body.niveles_adicionales.some(level => !levels.includes(level))
+    || new Set(body.niveles_adicionales).size !== body.niveles_adicionales.length) {
+    invalid('Envía únicamente niveles_adicionales como lista de niveles válidos sin duplicados.');
+  }
+  return levels.filter(level => body.niveles_adicionales.includes(level));
 }

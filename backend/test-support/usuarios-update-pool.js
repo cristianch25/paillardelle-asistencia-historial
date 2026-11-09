@@ -12,15 +12,25 @@ export function updatePool(initial = [testUser('1'), testUser('2'), testUser('3'
   const audits = [];
   const transactions = [];
   const assignments = [];
+  const additional = new Map();
   let tail = Promise.resolve();
-  const state = { users, audits, transactions, assignments, failAt: undefined };
+  const state = { users, audits, transactions, assignments, additional, failAt: undefined };
   state.pool = {
+    async execute(sql, params) {
+      if (!sql.startsWith('SELECT u.id')) throw new Error('Consulta de lectura inesperada');
+      const user = users.get(params[0]);
+      if (!user) return [[]];
+      const levels = additional.get(params[0]) ?? [];
+      return [(levels.length ? levels : [null]).map(nivel => ({ ...user, nivel }))];
+    },
     async getConnection() {
       const events = [];
       transactions.push(events);
       let unlock;
       let snapshot;
       let auditCount;
+      let levelsSnapshot;
+      let committed = false;
       const releaseLock = () => { unlock?.(); unlock = undefined; };
       return {
         async beginTransaction() { events.push('begin'); },
@@ -34,12 +44,27 @@ export function updatePool(initial = [testUser('1'), testUser('2'), testUser('3'
             events.push('lock-acquired');
             snapshot = structuredClone([...users]);
             auditCount = audits.length;
+            levelsSnapshot = structuredClone([...additional]);
             if (state.failAt === 'deadlock') throw Object.assign(new Error(), { code: 'ER_LOCK_DEADLOCK' });
             if (state.failAt === 'timeout') throw Object.assign(new Error(), { code: 'ER_LOCK_WAIT_TIMEOUT' });
             return [[...users.values()].filter(user => user.rol === 'ADMIN' && user.activo).map(({ id }) => ({ id }))];
           }
           if (sql.includes('FROM asignaciones a')) {
             return [assignments.filter(item => item.usuario_id === params[0]).map(item => ({ ...item }))];
+          }
+          if (sql.startsWith('SELECT nivel FROM usuario_niveles_adicionales')) {
+            return [(additional.get(params[0]) ?? []).map(nivel => ({ nivel }))];
+          }
+          if (sql.startsWith('DELETE FROM usuario_niveles_adicionales')) {
+            if (state.failAt === 'levels-delete') throw new Error('Fallo privado de permisos');
+            additional.delete(params[0]);
+            return [{ affectedRows: 1 }];
+          }
+          if (sql.startsWith('INSERT INTO usuario_niveles_adicionales')) {
+            if (state.failAt === 'levels-insert') throw new Error('Fallo privado de permisos');
+            const levels = additional.get(params[0]) ?? [];
+            additional.set(params[0], [...levels, params[1]]);
+            return [{ affectedRows: 1 }];
           }
           if (sql.startsWith('SELECT')) {
             const user = users.get(params[0]);
@@ -61,19 +86,31 @@ export function updatePool(initial = [testUser('1'), testUser('2'), testUser('3'
           }
           throw new Error('Consulta inesperada en doble de prueba');
         },
-        async commit() { events.push('commit'); releaseLock(); },
+        async commit() {
+          events.push('commit');
+          if (state.failAt === 'commit') throw new Error('COMMIT privado incierto');
+          committed = true;
+          releaseLock();
+          if (state.failAt === 'commit-after') throw new Error('COMMIT confirmado sin respuesta');
+        },
         async rollback() {
           events.push('rollback');
-          if (state.failAt === 'audit-and-rollback') throw new Error('Conexión perdida ficticia');
-          if (snapshot) {
+          if (state.failAt === 'audit-and-rollback' || state.rollbackFails) throw new Error('Conexión perdida ficticia');
+          if (snapshot && !committed) {
             users.clear();
             for (const [id, row] of snapshot) users.set(id, row);
             audits.length = auditCount;
+            additional.clear();
+            for (const [id, levels] of levelsSnapshot) additional.set(id, levels);
           }
           releaseLock();
         },
-        release() { events.push('release'); releaseLock(); },
-        destroy() { events.push('destroy'); releaseLock(); },
+        release() {
+          events.push('release'); releaseLock(); if (state.releaseFails) throw new Error('release privado');
+        },
+        destroy() {
+          events.push('destroy'); releaseLock(); if (state.destroyFails) throw new Error('destroy privado');
+        },
       };
     },
   };

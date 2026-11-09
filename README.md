@@ -1,7 +1,7 @@
 # paillardelle-asistencia
 
-Sistema web de control de asistencia de la I.E. Enrique Paillardelle para primaria
-y secundaria. Independiente de SIAGIE, con importación manual de Excel institucional.
+Sistema web de control de asistencia de la I.E. Enrique Paillardelle para inicial,
+primaria y secundaria. Independiente de SIAGIE, con importación manual de Excel institucional.
 
 ## Estado inicial
 
@@ -18,6 +18,8 @@ de relleno; Git incorporará esas carpetas cuando tengan código real.
 - [Esquema MySQL existente](docs/database/asistencia_paillardelle_mysql_v1.sql).
 - [Requisitos consolidados](docs/requisitos/diseno_asistencia_consolidado_v2.txt).
 - [Instrucciones para agentes](AGENTS.md).
+- [Adenda 6C-A: INICIAL y supervisión multinivel](docs/requisitos/adenda_6c_a_inicial_supervision.md).
+- [Migración 002 preparada, no ejecutada](docs/database/migrations/README.md).
 
 El esquema define 17 tablas, relaciones, restricciones y valores iniciales.
 Las reglas de permisos, intervalos y concurrencia también requieren lógica

@@ -13,15 +13,15 @@ test('SQL secciones: filtros y ámbito se intersectan antes de LIMIT, sin SELECT
   } }));
   const id = '18446744073709551615';
   await repo.list({ filters: { anio_escolar_id: id, nivel: 'SECUNDARIA', grado: 5, activo: false },
-    access: { nivel: 'PRIMARIA' }, limit: 21, offset: 20 });
+    access: { levels: ['PRIMARIA'] }, limit: 21, offset: 20 });
   assert.deepEqual(calls[0].params, [id, 'SECUNDARIA', 5, false, 'PRIMARIA', 21, 20]);
-  assert.match(calls[0].sql, /s.nivel = \?.*s.nivel = \?.*ORDER BY s.id ASC LIMIT \? OFFSET \?$/);
+  assert.match(calls[0].sql, /s.nivel = \?.*s.nivel IN \(\?\).*ORDER BY s.id ASC LIMIT \? OFFSET \?$/);
   await repo.findById(id, { ids: ['1', '2'] });
   assert.match(calls[1].sql, /s.id = \? AND s.id IN \(\?, \?\) LIMIT 1$/);
   assert.deepEqual(calls[1].params, [id, '1', '2']);
   await repo.list({ filters: {}, access: { ids: [] }, limit: 21, offset: 0 });
   assert.match(calls[2].sql, /WHERE 1 = 0 ORDER BY/);
-  await repo.findById(id, { nivel: 'PRIMARIA' });
+  await repo.findById(id, { levels: ['PRIMARIA'] });
   assert.deepEqual(calls[3].params, [id, 'PRIMARIA']);
   for (const { sql } of calls) {
     assert.equal(/SELECT \*|INSERT|UPDATE|DELETE|anios_escolares|asignaciones/.test(sql), false);

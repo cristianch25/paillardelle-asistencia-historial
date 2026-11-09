@@ -1,7 +1,8 @@
 import { HttpError } from '../../../shared/http-error.js';
 import { validateId, validatePagination } from '../../../shared/query-validation.js';
+export { educationLevels as levels } from '../../../shared/education-levels.js';
+import { educationLevels as levels } from '../../../shared/education-levels.js';
 
-export const levels = ['PRIMARIA', 'SECUNDARIA'];
 function invalid() { throw new HttpError(400, 'Datos o filtros de sección inválidos.'); }
 function text(value, max) {
   if (typeof value !== 'string' || !value.isWellFormed() || Array.from(value).length > max) invalid();
@@ -9,6 +10,7 @@ function text(value, max) {
 }
 function grade(value, level) {
   if (!Number.isInteger(value) || value < 1 || value > (level === 'SECUNDARIA' ? 5 : 6)) invalid();
+  if (level === 'INICIAL' && ![4, 5].includes(value)) invalid();
   return value;
 }
 
@@ -19,7 +21,7 @@ export function validateNewSection(body) {
   validateId(body.anio_escolar_id);
   if (!levels.includes(body.nivel)) invalid();
   const data = { anio_escolar_id: body.anio_escolar_id, nivel: body.nivel,
-    grado: grade(body.grado, body.nivel), letra: text(body.letra, 5) };
+    grado: grade(body.grado, body.nivel), letra: text(body.letra, 30) };
   if (Object.hasOwn(body, 'turno')) data.turno = body.turno === null ? null : text(body.turno, 20);
   return data;
 }

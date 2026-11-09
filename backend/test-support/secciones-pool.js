@@ -17,6 +17,9 @@ export function sectionsPool(options = {}) {
       async beginTransaction() { step('begin'); },
       async execute(sql, params) {
         events.push({ sql, params });
+        if (sql.includes('FROM usuario_niveles_adicionales')) {
+          return [(state.additionalLevels ?? []).map(nivel => ({ nivel }))];
+        }
         if (sql.includes('FROM usuarios')) {
           const prior = tail;
           tail = new Promise(resolve => { unlock = resolve; });

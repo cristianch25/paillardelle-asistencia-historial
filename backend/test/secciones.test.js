@@ -34,12 +34,13 @@ before(async () => {
     readCalls++;
     if (state.readFails) throw new Error('SQL, contraseña y conexión privados');
     return records.filter(row => Object.entries(filters).every(([key, value]) => row[key] === value)
-      && (access.nivel === undefined || access.nivel === row.nivel)
+      && (access.levels === undefined || access.levels.includes(row.nivel))
       && (access.ids === undefined || access.ids.includes(row.id)));
   }
   const writes = createSeccionesRepository(() => state.pool);
   const seccionesService = createSeccionesService({ getToday: () => today,
-    usuariosService: { async currentSectionIds(id, date) {
+    usuariosService: { async supervisionLevels(user) { return [user.nivel_asignado]; },
+      async currentSectionIds(id, date) {
       return id === '3' ? assignments.filter(a => a.fecha_inicio <= date
         && (a.fecha_fin === null || a.fecha_fin >= date)).map(a => a.seccion_id) : [];
     } },

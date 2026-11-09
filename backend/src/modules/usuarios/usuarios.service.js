@@ -5,6 +5,7 @@ import { hashPassword } from '../../shared/passwords.js';
 import { peruDate } from '../../shared/peru-date.js';
 import { unauthorized } from '../auth/auth.errors.js';
 import { validatePagination } from '../../shared/query-validation.js';
+import { createSupervisionService } from './usuarios.supervision.service.js';
 
 export function publicUser(user) {
   return {
@@ -67,8 +68,12 @@ function userDetails(user) {
   };
 }
 
-export function createUsuariosService({ repository = createUsuariosRepository(), getToday = peruDate } = {}) {
+export function createUsuariosService({ repository = createUsuariosRepository(), getToday = peruDate,
+  supervision = createSupervisionService() } = {}) {
   return {
+    supervisionLevels: (user, connection) => supervision.levelsFor(user, connection),
+    getAdditionalLevels: id => supervision.get(id),
+    updateAdditionalLevels: (id, body, actorId) => supervision.update(id, body, actorId),
     async currentSectionIds(id, today = getToday()) {
       validateUserId(id);
       const rows = await repository.currentSectionIds(id, today);

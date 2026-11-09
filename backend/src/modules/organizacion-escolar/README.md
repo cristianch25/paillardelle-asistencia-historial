@@ -1,4 +1,4 @@
-# Organización escolar — etapas 6A, 6B y 6C
+# Organización escolar — etapas 6A, 6B, 6C y 6C-A
 
 El módulo agrupa dos funcionalidades en `anios-escolares/` y `secciones/`.
 Cada carpeta contiene `controller.js`, `repository.js`, `routes.js`, `service.js`
@@ -89,8 +89,8 @@ fallos usan conexiones simuladas; no equivalen a validación en MySQL real.
 - `POST /api/secciones`: 201, `{ seccion: { ... } }` y `Location: /api/secciones/<id>`.
 
 Todos requieren JWT y usuario activo. ADMIN consulta todas las secciones y crea
-en ambos niveles. SUBDIRECCION consulta y crea únicamente en su nivel asignado;
-un filtro por otro nivel recibe 403. REGISTRADOR consulta solo las secciones de
+en los tres niveles. SUBDIRECCION consulta y crea únicamente en sus niveles efectivos;
+un filtro por un nivel no autorizado recibe 403. REGISTRADOR consulta solo las secciones de
 asignaciones vigentes hoy en America/Lima: inicio <= hoy y fin null o fin >= hoy.
 Ambos extremos son inclusivos; asignaciones futuras o vencidas no conceden acceso.
 Sin asignaciones, el listado queda vacío y el detalle devuelve 404.
@@ -101,13 +101,13 @@ por activo. Un detalle inexistente o fuera del ámbito autorizado devuelve el mi
 404 para no revelar secciones ajenas. El ámbito se aplica antes de la paginación.
 
 Filtros opcionales únicos: `anio_escolar_id` (ID decimal como texto), `nivel`
-(PRIMARIA/SECUNDARIA), `grado` (entero decimal 1–6; secundaria 1–5 cuando se indica
-nivel) y `activo` (texto exacto true/false). Page/limit siguen el contrato de años.
+(PRIMARIA/SECUNDARIA/INICIAL), `grado` (primaria 1–6, secundaria 1–5, inicial 4/5
+cuando se indica nivel) y `activo` (texto exacto true/false). Page/limit siguen el contrato de años.
 Se rechazan filtros desconocidos o repetidos. Orden id ASC con una fila adicional.
 Los filtros se intersectan con el ámbito: no lo sustituyen ni amplían.
 
 El POST acepta únicamente `anio_escolar_id` (BIGINT como texto), `nivel`, `grado`
-(número entero), `letra` (texto hasta 5 caracteres Unicode) y `turno` opcional
+(número entero), `letra` (texto hasta 30 caracteres Unicode) y `turno` opcional
 (texto hasta 20 caracteres o null). Se conserva el texto literal, sin normalizar,
 crear catálogos ni limitar letra a un carácter; el esquema admite cadenas vacías.
 No se aceptan `activo`, `id`, timestamps ni actor: activo se establece en TRUE.
@@ -137,3 +137,13 @@ Errores: 400 por datos inválidos, 401 sin autenticación, 403 por permisos, 404
 recurso inexistente/no visible, 409 por duplicado/cierre/deadlock/timeout y 500 genérico.
 Se aplican RF-01/03/09, RN-14/15/18 y RNF-02/04/05/08.
 No hay PATCH/DELETE, desactivación, calendario, matrícula, asistencia ni frontend.
+
+6C-A incorpora INICIAL reutilizando REGISTRADOR/asignaciones: grupo 4 CREATIVOS y
+grupo 5 GENIALES son datos institucionales, no se insertan automáticamente ni se
+codifican sus nombres. No se evalúa grado como edad calculada por cumpleaños.
+La supervisión utiliza `usuariosService.supervisionLevels`: principal + adicionales
+explícitos, sin excepción automática PRIMARIA/INICIAL. La lectura consulta estado
+persistido actual; la escritura lee adicionales con la misma conexión bajo el
+bloqueo del actor, coordinándose con concesiones y revocaciones administrativas.
+Ver [adenda 6C-A](../../../../docs/requisitos/adenda_6c_a_inicial_supervision.md) y
+[migración pendiente](../../../../docs/database/migrations/README.md).

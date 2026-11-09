@@ -1,5 +1,6 @@
 import { getPool } from '../../config/database.js';
 import { inTransaction } from '../../shared/transaction.js';
+import { reconcileSupervision } from './usuarios.supervision.repository.js';
 
 const columns = `id, nombres, apellidos, usuario, rol, cargo, nivel_asignado,
   puede_escanear_qr, puede_usar_bitacora, activo, created_at, updated_at`;
@@ -66,6 +67,7 @@ export function createUsuariosRepository(poolProvider = getPool) {
         if (result.affectedRows !== 1) throw new Error('No se actualizó un único usuario.');
         const updated = await selectUser(connection, id, true);
         if (!updated) throw new Error('No se pudo consultar el usuario actualizado.');
+        await reconcileSupervision(connection, current, updated, actorId);
         const action = Object.hasOwn(changes, 'activo') ? 'CAMBIAR_ESTADO_USUARIO' : 'ACTUALIZAR_USUARIO';
         await writeUserAudit(connection, actorId, action, current, updated);
         return updated;

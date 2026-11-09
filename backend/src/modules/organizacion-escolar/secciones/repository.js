@@ -10,7 +10,10 @@ function conditions(filters, access) {
     clauses.push(`s.${field} = ?`);
     params.push(value);
   }
-  if (access.nivel !== undefined) { clauses.push('s.nivel = ?'); params.push(access.nivel); }
+  if (access.levels !== undefined) {
+    clauses.push(access.levels.length ? `s.nivel IN (${access.levels.map(() => '?').join(', ')})` : '1 = 0');
+    params.push(...access.levels);
+  }
   if (access.ids !== undefined) {
     clauses.push(access.ids.length ? `s.id IN (${access.ids.map(() => '?').join(', ')})` : '1 = 0');
     params.push(...access.ids);
@@ -44,7 +47,7 @@ export function createSeccionesRepository(poolProvider = getPool) {
         const [years] = await connection.execute(
           'SELECT id, estado FROM anios_escolares WHERE id = ? LIMIT 1 FOR UPDATE', [data.anio_escolar_id],
         );
-        decide(actors[0] ?? null, years[0] ?? null);
+        await decide(actors[0] ?? null, years[0] ?? null, connection);
         const [result] = await connection.execute(
           `INSERT INTO secciones (anio_escolar_id, nivel, grado, letra, turno, activo) VALUES (?, ?, ?, ?, ?, ?)`,
           [data.anio_escolar_id, data.nivel, data.grado, data.letra, data.turno ?? null, true],

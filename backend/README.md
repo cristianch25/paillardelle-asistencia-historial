@@ -256,3 +256,16 @@ año; crear requiere PLANIFICADO o ABIERTO y se audita en una misma transacción
 El código de organización escolar se organiza en `anios-escolares/` y `secciones/`,
 cada una con controller, repository, routes, service y validation. Los contratos
 se documentan en el README común del módulo.
+
+## INICIAL y supervisión multinivel (6C-A)
+
+INICIAL admite grupos 4 y 5; letra admite hasta 30 caracteres para nombres de salón.
+GET/PUT `/api/usuarios/:id/niveles-adicionales` permite a ADMIN administrar niveles
+adicionales de SUBDIRECCION con auditoría. La API de usuarios ordinaria conserva sus
+contratos y la autenticación sigue sin almacenar permisos de nivel en JWT.
+Consultar la [adenda y decisiones](../docs/requisitos/adenda_6c_a_inicial_supervision.md).
+
+La [migración 002](../docs/database/migrations/README.md) está preparada y NO ejecutada.
+Antes de desplegar este backend contra MySQL institucional se requiere inspección
+del esquema real, respaldo y ensayo autorizado. El arranque y las pruebas no migran
+ni precargan datos institucionales. Calendario lectivo 6D permanece pendiente.

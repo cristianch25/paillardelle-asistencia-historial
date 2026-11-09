@@ -14,6 +14,8 @@ export function createUsuariosRoutes(authService, service = createUsuariosServic
   });
   router.use(authenticate(authService), requireAdmin);
   router.post('/', json({ limit: '8kb' }), controller.create);
+  router.get('/:id/niveles-adicionales', controller.getAdditionalLevels);
+  router.put('/:id/niveles-adicionales', json({ limit: '8kb' }), controller.updateAdditionalLevels);
   router.patch('/:id/estado', json({ limit: '8kb' }), controller.setState);
   router.patch('/:id', json({ limit: '8kb' }), controller.update);
   router.get('/', controller.list);

@@ -44,7 +44,7 @@ estar vacíos. Se admiten caracteres Unicode; no se transforma ni normaliza el
 identificador. Su unicidad respeta la colación y la restricción UNIQUE de MySQL.
 
 Opcionales: `cargo` (texto de hasta 30 caracteres o null), `nivel_asignado`
-(`PRIMARIA`, `SECUNDARIA` o null), `puede_escanear_qr`, `puede_usar_bitacora`
+(`PRIMARIA`, `SECUNDARIA`, `INICIAL` o null), `puede_escanear_qr`, `puede_usar_bitacora`
 y `activo` (booleanos JSON estrictos). SUBDIRECCION requiere un nivel. Si se omiten
 opcionales, el INSERT conserva los defaults de MySQL: cargo y nivel null,
 permisos false y activo true. No se aceptan campos internos como `id`,
@@ -73,7 +73,7 @@ no insertan, modifican ni eliminan registros en la base institucional.
 - `nombres`, `apellidos`, `usuario`: mismos tipos y longitudes que en el alta.
 - `cargo`: texto de hasta 30 caracteres o null.
 - `rol`: ADMIN, SUBDIRECCION o REGISTRADOR.
-- `nivel_asignado`: PRIMARIA, SECUNDARIA o null.
+- `nivel_asignado`: PRIMARIA, SECUNDARIA, INICIAL o null (nivel principal).
 - `puede_escanear_qr`, `puede_usar_bitacora`: booleanos estrictos.
 
 Se rechazan activo, contraseñas, hashes, ID, fechas y cualquier campo no permitido.
@@ -139,3 +139,40 @@ Las pruebas usan conexiones simuladas con espera de bloqueos y reversión de
 datos ficticios. No equivalen a una prueba concurrente en MySQL real; no se
 realizan escrituras de prueba en la base institucional. Referencia técnica:
 [lecturas con bloqueo de MySQL 8.4](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html).
+
+## Niveles adicionales de supervisión (6C-A)
+
+GET y PUT `/api/usuarios/:id/niveles-adicionales` requieren ADMIN activo.
+PUT recibe exclusivamente `{ "niveles_adicionales": ["INICIAL"] }` y reemplaza toda
+la configuración adicional; `[]` revoca todos. No se permiten duplicados, niveles
+desconocidos ni el nivel principal como adicional. No se aceptan estos campos en
+POST/PATCH ordinarios. El destino debe existir y ser SUBDIRECCION con principal válido.
+
+Respuesta 200: `{ usuario_id, nivel_principal, niveles_adicionales, niveles_efectivos }`.
+ID como texto, Cache-Control no-store, tipos estrictos. Errores 400 por forma/ID,
+401 por autenticación, 403 por rol, 404 por destino inexistente, 409 por destino
+incompatible/principal redundante/conflicto de bloqueo y 500 genérico por otros fallos.
+No hay escritura ni auditoría cuando la lista ya coincide.
+
+`usuarios.supervision.service.js` centraliza alcance y reglas; su repositorio
+concentra SQL de configuración/auditoría. Principal y adicionales pertenecen a la
+misma cuenta y no conceden administración de usuarios. Dos SUBDIRECCION con principal
+SECUNDARIA tienen ámbito completo independiente. No se amplía REGISTRADOR ni se
+concede automáticamente INICIAL a PRIMARIA. No hay nuevos roles ni claims JWT.
+
+Las ediciones adicionales bloquean ADMIN activos, actor, destino y adicionales en
+la misma transacción compartida. Revalidan al ADMIN y al destino. Secciones usa la
+misma fila de usuario para bloquear/revalidar el alcance antes de crear.
+Cambio de rol que abandone SUBDIRECCION elimina y audita los adicionales en la
+transacción del usuario. Cambio de principal retira el adicional que lo duplique;
+no concede el principal anterior como adicional. La desactivación conserva la
+configuración pero impide todo acceso; reactivar explícitamente la habilita de
+nuevo si el rol sigue siendo SUBDIRECCION. No hay permisos latentes tras abandonar
+el rol. Toda auditoría de permisos guarda rol, principal y lista anterior/nueva.
+
+La tabla nueva representa configuración vigente; retirar sus filas no borra
+historial ni auditorías. CHECK SQL no valida rol cruzando tablas: el backend aplica
+esa regla y la exclusión del principal. La migración requiere un usuario SQL con
+SELECT/INSERT/DELETE sobre esta tabla; los privilegios DDL son solo para el operador.
+Ver [adenda](../../../../docs/requisitos/adenda_6c_a_inicial_supervision.md) y
+[procedimiento de migración pendiente](../../../../docs/database/migrations/README.md).

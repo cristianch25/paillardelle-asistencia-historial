@@ -20,7 +20,7 @@ test('secciones: rechaza campos internos, tipos incorrectos, grados y longitudes
     { ...sectionBody, nivel: 'INICIAL' }, { ...sectionBody, nivel: 'SECUNDARIA', grado: 6 }];
   for (const [field, values] of Object.entries({
     anio_escolar_id: [1, null, '0', '01', '1\n', '1\r', '18446744073709551616'],
-    grado: ['1', null, true, 0, 7, 1.5], letra: [undefined, null, 1, true, 'abcdef', '\ud800'],
+    grado: ['1', null, true, 0, 7, 1.5], letra: [undefined, null, 1, true, 'a'.repeat(31), '\ud800'],
     turno: [1, false, [], 'x'.repeat(21), '\ud800'],
   })) for (const value of values) bad.push({ ...sectionBody, [field]: value });
   for (const field of ['id', 'activo', 'estado', 'created_at', 'usuario_id', 'extra']) {
