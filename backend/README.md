@@ -1,4 +1,4 @@
-# Backend — autenticación básica
+# Backend — consulta de usuarios (etapa 5A)
 
 JavaScript con módulos ES, Node.js 22 o superior, Express, mysql2, dotenv,
 bcrypt y jsonwebtoken.
@@ -63,7 +63,8 @@ otro servidor. Health solo indica que Express responde: no comprueba MySQL.
 
 ## Alcance
 
-Endpoints: `GET /api/health`, `POST /api/auth/login` y `GET /api/auth/me`.
+Endpoints: `GET /api/health`, `POST /api/auth/login`, `GET /api/auth/me`,
+`GET /api/usuarios` y `GET /api/usuarios/:id`.
 El pool MySQL se crea bajo demanda; health sigue independiente de MySQL y puede
 funcionar sin credenciales. El módulo health no
 necesita servicios ni repositorios porque no tiene reglas de negocio ni SQL.
@@ -230,3 +231,33 @@ Si falla una prueba después del COMMIT, el usuario permanece creado. El script
 no lo elimina ni cambia su contraseña. No reintentar automáticamente ante un
 fallo de COMMIT cuya confirmación resulte incierta; solicitar revisión primero.
 Este procedimiento no añade endpoints ni administración de usuarios.
+
+## Consultar usuarios (solo ADMIN)
+
+Ambos endpoints requieren `Authorization: Bearer <access_token>` y utilizan el
+middleware de autenticación existente. El rol actual se consulta en MySQL, por
+lo que un token emitido antes de perder el rol ADMIN no conserva ese acceso.
+
+- `GET /api/usuarios?page=1&limit=20`: devuelve `users` y
+  `pagination: { page, limit, has_more }`. Predeterminados: página 1 y límite 20;
+  límite máximo 100. Los parámetros deben ser enteros positivos y únicos.
+  Se ordena por `id ASC`, con LIMIT/OFFSET parametrizados. Se consulta como máximo
+  una fila adicional para calcular `has_more`; no se calcula un total.
+- `GET /api/usuarios/:id`: devuelve `{ "user": { ... } }`. El ID se conserva como
+  texto y debe ser decimal positivo, sin ceros iniciales, dentro del rango BIGINT
+  UNSIGNED (hasta 18446744073709551615).
+
+La representación segura reutiliza los campos públicos de autenticación y añade
+`activo`, `created_at` y `updated_at`. Incluye usuarios activos e inactivos; no se
+aplican filtros implícitos. Nunca se selecciona `password_hash` en este módulo y
+la respuesta utiliza una lista explícita de campos. Se envía `Cache-Control: no-store`.
+
+Respuestas: 200 en éxito (también para listas vacías), 400 por parámetros inválidos,
+401 sin autenticación válida o usuario inactivo, 403 sin rol ADMIN, 404 si el ID
+válido no existe y 500 genérico ante errores internos. Una página fuera de los
+resultados devuelve `users: []` y `has_more: false`.
+
+Rutas, controlador, servicio y repositorio están en `src/modules/usuarios/`.
+Las pruebas HTTP usan JWT reales con secretos ficticios y repositorios en memoria;
+las pruebas de repositorio verifican SELECT parametrizados sin escribir datos.
+No se añaden altas, actualizaciones ni eliminación de usuarios.

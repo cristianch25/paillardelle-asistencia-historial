@@ -4,7 +4,7 @@ import { AuthError, unauthorized } from './auth.errors.js';
 import { createAuthRepository } from './auth.repository.js';
 import { createTokenService } from './auth.tokens.js';
 
-function publicUser(user) {
+export function publicUser(user) {
   return {
     id: String(user.id),
     nombres: user.nombres,
