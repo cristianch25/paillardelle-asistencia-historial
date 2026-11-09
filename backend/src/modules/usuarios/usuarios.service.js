@@ -1,6 +1,8 @@
 import { publicUser } from '../auth/auth.service.js';
 import { HttpError } from '../../shared/http-error.js';
 import { createUsuariosRepository } from './usuarios.repository.js';
+import { validateNewUser } from './usuarios.validation.js';
+import { hashPassword } from '../../shared/passwords.js';
 
 function positiveInteger(value, fallback, max = Number.MAX_SAFE_INTEGER) {
   if (value === undefined) return fallback;
@@ -22,6 +24,22 @@ function userDetails(user) {
 
 export function createUsuariosService({ repository = createUsuariosRepository() } = {}) {
   return {
+    async create(body, actorId) {
+      const data = validateNewUser(body);
+      if (await repository.findByUsername(data.usuario)) {
+        throw new HttpError(409, 'El identificador de usuario ya está registrado.');
+      }
+      data.password_hash = await hashPassword(body.password);
+      try {
+        return userDetails(await repository.create(data, actorId));
+      } catch (error) {
+        // La restricción UNIQUE es la garantía final, también con peticiones concurrentes.
+        if (error.code === 'ER_DUP_ENTRY') {
+          throw new HttpError(409, 'El identificador de usuario ya está registrado.');
+        }
+        throw error;
+      }
+    },
     async list(query = {}) {
       const page = positiveInteger(query.page, 1);
       const limit = positiveInteger(query.limit, 20, 100);

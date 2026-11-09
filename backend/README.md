@@ -1,4 +1,4 @@
-# Backend — consulta de usuarios (etapa 5A)
+# Backend — registro de usuarios (etapa 5B)
 
 JavaScript con módulos ES, Node.js 22 o superior, Express, mysql2, dotenv,
 bcrypt y jsonwebtoken.
@@ -64,7 +64,7 @@ otro servidor. Health solo indica que Express responde: no comprueba MySQL.
 ## Alcance
 
 Endpoints: `GET /api/health`, `POST /api/auth/login`, `GET /api/auth/me`,
-`GET /api/usuarios` y `GET /api/usuarios/:id`.
+`GET /api/usuarios`, `GET /api/usuarios/:id` y `POST /api/usuarios`.
 El pool MySQL se crea bajo demanda; health sigue independiente de MySQL y puede
 funcionar sin credenciales. El módulo health no
 necesita servicios ni repositorios porque no tiene reglas de negocio ni SQL.
@@ -190,8 +190,8 @@ del repositorio con un doble de pool, los casos de JWT inválido, la desactivaci
 de usuarios, el contrato HTTP y la protección de los errores. La prueba MySQL real
 sigue separada en `npm.cmd run db:check` y ejecuta solo la consulta de conexión.
 
-Esta etapa no incluye altas de usuarios, recuperación o actualización de
-contraseñas, logout, refresh tokens ni revocación individual. Un token robado
+No se incluyen recuperación o actualización de contraseñas, logout,
+refresh tokens ni revocación individual. Un token robado
 puede usarse hasta vencer mientras el usuario siga activo; el cliente debe
 protegerlo. No se implementa aún limitación de intentos de login. El despliegue
 debe usar HTTPS antes de enviar contraseñas o tokens fuera del entorno local.
@@ -260,4 +260,36 @@ resultados devuelve `users: []` y `has_more: false`.
 Rutas, controlador, servicio y repositorio están en `src/modules/usuarios/`.
 Las pruebas HTTP usan JWT reales con secretos ficticios y repositorios en memoria;
 las pruebas de repositorio verifican SELECT parametrizados sin escribir datos.
-No se añaden altas, actualizaciones ni eliminación de usuarios.
+La consulta permanece independiente del registro. No se implementan actualización
+ni eliminación de usuarios.
+
+## Registrar usuarios (solo ADMIN)
+
+`POST /api/usuarios` requiere JWT Bearer válido y rol ADMIN actual. Recibe JSON
+con `nombres` (hasta 100 caracteres), `apellidos` (120), `usuario` (60), `password`
+y `rol` (`ADMIN`, `SUBDIRECCION` o `REGISTRADOR`). Los textos obligatorios no pueden
+estar vacíos. Se admiten caracteres Unicode; no se transforma ni normaliza el
+identificador. Su unicidad respeta la colación y la restricción UNIQUE de MySQL.
+
+Opcionales: `cargo` (texto de hasta 30 caracteres o null), `nivel_asignado`
+(`PRIMARIA`, `SECUNDARIA` o null), `puede_escanear_qr`, `puede_usar_bitacora`
+y `activo` (booleanos JSON estrictos). SUBDIRECCION requiere un nivel. Si se omiten
+opcionales, el INSERT conserva los defaults de MySQL: cargo y nivel null,
+permisos false y activo true. No se aceptan campos internos como `id`,
+`password_hash`, fechas ni actor de auditoría.
+
+La política de contraseña se comparte con login: de 1 a 72 bytes UTF-8, sin
+normalización ni requisitos adicionales. Se almacena bcrypt con coste 12. La
+comprobación previa de duplicados se complementa con el manejo de `ER_DUP_ENTRY`
+en el INSERT para responder 409 incluso ante solicitudes concurrentes.
+
+La creación y su auditoría administrativa se confirman en una misma transacción
+(RN-18). Se utiliza como actor el ADMIN autenticado; la auditoría guarda los datos
+públicos y excluye contraseña y hash. Si falla la auditoría, se revierte el alta.
+No se añade una API de consulta de auditoría.
+
+En éxito: 201, cabecera `Location: /api/usuarios/<id>` y `{ "user": { ... } }`, con
+la misma representación pública del detalle. Errores: 400 por validación, 401 por
+autenticación, 403 por permisos, 409 por duplicado y 500 genérico por fallo interno.
+Las pruebas de registro y transacciones usan repositorios y conexiones simulados;
+no insertan, modifican ni eliminan registros en la base institucional.

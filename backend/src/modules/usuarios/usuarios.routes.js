@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, json } from 'express';
 import { authenticate } from '../../middlewares/authenticate.js';
 import { requireAdmin } from '../../middlewares/require-admin.js';
 import { createUsuariosController } from './usuarios.controller.js';
@@ -13,6 +13,7 @@ export function createUsuariosRoutes(authService, service = createUsuariosServic
     next();
   });
   router.use(authenticate(authService), requireAdmin);
+  router.post('/', json({ limit: '8kb' }), controller.create);
   router.get('/', controller.list);
   router.get('/:id', controller.findById);
 

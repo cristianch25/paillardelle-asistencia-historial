@@ -22,15 +22,40 @@ informar la discrepancia antes de implementar una solución.
 - Monolito modular: un backend, un frontend y una base de datos.
 - Organizar por funcionalidades según el mapa de `README.md`.
 - En backend, añadir rutas, controladores, servicios y repositorios dentro del
-  módulo cuando sean necesarios: HTTP, reglas de negocio y SQL separados.
+  módulo cuando sean necesarios: HTTP en rutas y controladores, reglas de negocio
+  en servicios y consultas SQL en repositorios.
 - En frontend, mantener páginas, componentes, llamadas a API y tipos dentro
   de la funcionalidad correspondiente. Añadir subcarpetas solo cuando aporten claridad.
 - Usar `shared/` solo para código realmente reutilizado y sin reglas de un módulo.
 - No acceder a MySQL desde el frontend. Evitar dependencias circulares y consultar
   otros módulos mediante sus servicios, sin duplicar reglas ni SQL.
-- Mantener archivos pequeños y con una responsabilidad clara. Si un archivo
-  crece excesivamente o mezcla responsabilidades, evaluar su división; no imponer
-  un límite arbitrario de líneas ni crear capas vacías.
+
+## Arquitectura modular y calidad del código
+
+Estas reglas se aplican tanto al backend como al frontend, respetando las
+responsabilidades y particularidades de cada tecnología.
+
+- Mantener una separación clara de responsabilidades y funciones pequeñas,
+  descriptivas y enfocadas en una sola tarea.
+- Procurar entre 50 y 100 líneas por archivo de implementación cuando la
+  funcionalidad lo permita. Los archivos más cortos también son válidos.
+- Al superar las 100 líneas, evaluar si la extensión está justificada.
+- Al superar las 150 líneas, revisar si existen responsabilidades independientes
+  que puedan separarse. Informar al usuario y justificar brevemente si se mantiene
+  esa extensión.
+- Evitar superar las 300 líneas por archivo, salvo necesidad técnica justificada.
+- No fragmentar artificialmente archivos ni crear clases, funciones o capas
+  innecesarias únicamente para reducir el número de líneas.
+- Priorizar legibilidad, cohesión y mantenibilidad por encima del número exacto
+  de líneas. Los umbrales orientan la revisión; no justifican crear capas vacías.
+- Evitar código duplicado, abstracciones prematuras, sobreingeniería y archivos
+  sin una necesidad concreta. Reutilizar servicios, middlewares, validaciones y
+  utilidades existentes antes de crear otros nuevos.
+- No crear archivos `model.js` ni modelos equivalentes únicamente para repetir
+  los atributos del esquema MySQL. Incorporar modelos explícitos solo si aportan
+  una responsabilidad concreta.
+- No introducir nuevas dependencias sin justificar su necesidad y obtener
+  autorización del usuario.
 
 ## Reglas que deben preservarse
 
@@ -61,11 +86,22 @@ Subdirección, formato real de Excel y ausencia de apoderado, permisos de QR y
 consulta de auditoría, edición de bitácora, conservación de datos y respaldos.
 Solicitar definición antes de implementar comportamiento que dependa de ellas.
 
-Trabajar únicamente dentro de esta carpeta. En esta etapa solo se autoriza la
-estructura: no implementar funcionalidades completas, instalar dependencias,
-iniciar servidores, operar en GitHub ni configurar remotos. Esperar aprobación
-del usuario para continuar con la implementación.
+Trabajar únicamente dentro de la carpeta del proyecto y respetar los límites de
+archivos y carpetas indicados por el usuario en cada etapa. Se permiten
+implementaciones por etapas expresamente autorizadas, incluyendo las acciones
+necesarias dentro de su alcance. No añadir funcionalidades no solicitadas ni
+configurar repositorios remotos sin autorización.
 
-En etapas posteriores autorizadas, verificar cambios con pruebas de reglas
-críticas, especialmente permisos, vigencias, concurrencia y transacciones.
-No generar archivos ni abstracciones sin una necesidad concreta.
+## Verificación y entrega de cada etapa
+
+- Revisar la estructura existente antes de crear archivos e implementar
+  únicamente las funcionalidades autorizadas.
+- Ejecutar las pruebas correspondientes al cambio y comprobar que las
+  funcionalidades anteriores continúen funcionando. Incluir pruebas de reglas
+  críticas cuando corresponda: permisos, vigencias, concurrencia y transacciones.
+- Informar los resultados de las pruebas y qué archivos se crearon o modificaron.
+- Indicar qué archivos de implementación creados o modificados superan las
+  100 líneas y justificar los que superen las 150, conforme a las reglas de tamaño.
+- No realizar commits, subir código ni operar en GitHub u otros repositorios
+  remotos sin autorización.
+- Esperar la aprobación del usuario antes de comenzar la siguiente etapa.
