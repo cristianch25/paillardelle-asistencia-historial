@@ -1,8 +1,61 @@
-import { publicUser } from '../auth/auth.service.js';
 import { HttpError } from '../../shared/http-error.js';
 import { createUsuariosRepository } from './usuarios.repository.js';
-import { validateNewUser } from './usuarios.validation.js';
+import { validateNewUser, validateUserId, validateUserPatch, validateRoleLevel } from './usuarios.validation.js';
 import { hashPassword } from '../../shared/passwords.js';
+import { peruDate } from '../../shared/peru-date.js';
+import { unauthorized } from '../auth/auth.errors.js';
+
+export function publicUser(user) {
+  return {
+    id: String(user.id),
+    nombres: user.nombres,
+    apellidos: user.apellidos,
+    usuario: user.usuario,
+    rol: user.rol,
+    cargo: user.cargo,
+    nivel_asignado: user.nivel_asignado,
+    puede_escanear_qr: Boolean(user.puede_escanear_qr),
+    puede_usar_bitacora: Boolean(user.puede_usar_bitacora),
+  };
+}
+
+function planUserUpdate({ current, actor, adminIds, assignments }, patch, actorId, today) {
+  // Revalidar al actor después de esperar los bloqueos de otras peticiones.
+  if (!actor || !(actor.activo === 1 || actor.activo === true)) throw unauthorized();
+  if (actor.rol !== 'ADMIN') throw new HttpError(403, 'Acceso reservado a ADMIN.');
+  if (!current) throw new HttpError(404, 'Usuario no encontrado.');
+  const next = { ...current, ...patch };
+  validateRoleLevel(next);
+  const changes = Object.fromEntries(Object.entries(patch).filter(([key, value]) =>
+    (typeof value === 'boolean' ? Boolean(current[key]) : current[key]) !== value));
+  if (Object.keys(changes).length === 0) return changes;
+  if (String(current.id) === String(actorId)
+    && (changes.activo === false || (changes.rol && changes.rol !== 'ADMIN'))) {
+    throw new HttpError(409, 'No puedes desactivar tu cuenta ni reducir tu propio rol.');
+  }
+  if (current.rol === 'ADMIN' && current.activo
+    && (next.rol !== 'ADMIN' || !next.activo) && adminIds.length <= 1) {
+    throw new HttpError(409, 'Debe conservarse al menos un ADMIN activo.');
+  }
+  const pendingAssignments = assignments.filter(item => item.fecha_fin === null || item.fecha_fin >= today);
+  if (changes.rol && current.rol === 'REGISTRADOR' && next.rol !== 'REGISTRADOR'
+    && pendingAssignments.length) {
+    throw new HttpError(409, 'Regulariza las asignaciones actuales o futuras antes de cambiar el rol.');
+  }
+  if (Object.hasOwn(changes, 'nivel_asignado') && next.nivel_asignado !== null
+    && pendingAssignments.some(item => item.nivel !== next.nivel_asignado)) {
+    throw new HttpError(409, 'El nivel no coincide con las asignaciones actuales o futuras.');
+  }
+  return changes;
+}
+
+function updateConflict(error) {
+  if (error.code === 'ER_DUP_ENTRY') return new HttpError(409, 'El identificador de usuario ya está registrado.');
+  if (['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT'].includes(error.code)) {
+    return new HttpError(409, 'Conflicto concurrente: vuelve a intentar la operación.');
+  }
+  return error;
+}
 
 function positiveInteger(value, fallback, max = Number.MAX_SAFE_INTEGER) {
   if (value === undefined) return fallback;
@@ -22,8 +75,18 @@ function userDetails(user) {
   };
 }
 
-export function createUsuariosService({ repository = createUsuariosRepository() } = {}) {
+export function createUsuariosService({ repository = createUsuariosRepository(), getToday = peruDate } = {}) {
   return {
+    async update(id, body, actorId, stateOnly = false) {
+      validateUserId(id);
+      const patch = validateUserPatch(body, stateOnly);
+      try {
+        return userDetails(await repository.update(id, actorId, patch,
+          context => planUserUpdate(context, patch, actorId, getToday())));
+      } catch (error) {
+        throw updateConflict(error);
+      }
+    },
     async create(body, actorId) {
       const data = validateNewUser(body);
       if (await repository.findByUsername(data.usuario)) {
@@ -34,9 +97,7 @@ export function createUsuariosService({ repository = createUsuariosRepository() 
         return userDetails(await repository.create(data, actorId));
       } catch (error) {
         // La restricción UNIQUE es la garantía final, también con peticiones concurrentes.
-        if (error.code === 'ER_DUP_ENTRY') {
-          throw new HttpError(409, 'El identificador de usuario ya está registrado.');
-        }
+        if (error.code === 'ER_DUP_ENTRY') throw updateConflict(error);
         throw error;
       }
     },
@@ -55,10 +116,7 @@ export function createUsuariosService({ repository = createUsuariosRepository() 
       };
     },
     async findById(id) {
-      if (typeof id !== 'string' || !/^[1-9]\d{0,19}$/.test(id)
-        || BigInt(id) > 18446744073709551615n) {
-        throw new HttpError(400, 'ID inválido: se requiere un entero positivo dentro del rango BIGINT UNSIGNED.');
-      }
+      validateUserId(id);
       const user = await repository.findById(id);
       if (!user) throw new HttpError(404, 'Usuario no encontrado.');
       return userDetails(user);

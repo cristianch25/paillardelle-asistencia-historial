@@ -1,65 +1,124 @@
 import { getPool } from '../../config/database.js';
 
-// Selección explícita: nunca se consulta password_hash en este módulo.
 const columns = `id, nombres, apellidos, usuario, rol, cargo, nivel_asignado,
   puede_escanear_qr, puede_usar_bitacora, activo, created_at, updated_at`;
+const publicFields = columns.split(',').map(field => field.trim());
 const insertColumns = ['nombres', 'apellidos', 'usuario', 'password_hash', 'rol',
   'cargo', 'nivel_asignado', 'puede_escanear_qr', 'puede_usar_bitacora', 'activo'];
+const updateColumns = insertColumns.filter(field => field !== 'password_hash');
+
+function publicRow(row) {
+  return Object.fromEntries(publicFields.map(key => [key, row[key]]));
+}
+
+async function selectUser(connection, id, lock = false) {
+  const [rows] = await connection.execute(
+    `SELECT ${columns} FROM usuarios WHERE id = ? LIMIT 1${lock ? ' FOR UPDATE' : ''}`, [id],
+  );
+  return rows[0] ? publicRow(rows[0]) : null;
+}
+
+async function writeUserAudit(connection, actorId, action, before, after) {
+  await connection.execute(
+    `INSERT INTO auditoria_administrativa
+      (usuario_id, accion, entidad, registro_id, datos_anteriores, datos_nuevos)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [actorId, action, 'usuarios', String(after.id),
+      before ? JSON.stringify(publicRow(before)) : null, JSON.stringify(publicRow(after))],
+  );
+}
+
+function discard(connection) {
+  try { connection.destroy(); } catch { /* La limpieza no debe ocultar el error principal. */ }
+}
+
+// Una política de cierre para ambas escrituras, privada de este repositorio.
+async function inTransaction(pool, work) {
+  const connection = await pool.getConnection();
+  let reusable = true;
+  let failed = false;
+  try {
+    await connection.beginTransaction();
+    const result = await work(connection);
+    await connection.commit();
+    return result;
+  } catch (error) {
+    failed = true;
+    try { await connection.rollback(); } catch { reusable = false; }
+    throw error;
+  } finally {
+    if (!reusable) discard(connection);
+    else {
+      try { connection.release(); } catch (error) {
+        discard(connection);
+        if (!failed) throw error;
+      }
+    }
+  }
+}
 
 export function createUsuariosRepository(poolProvider = getPool) {
   return {
+    update(id, actorId, patch, decide) {
+      return inTransaction(poolProvider(), async connection => {
+        // Orden común: ADMIN activos, actor, destino, asignaciones; lecturas actuales.
+        const [admins] = await connection.execute(
+          'SELECT id FROM usuarios WHERE rol = ? AND activo = ? ORDER BY id FOR UPDATE', ['ADMIN', 1],
+        );
+        const actor = await selectUser(connection, actorId, true);
+        const current = id === actorId ? actor : await selectUser(connection, id, true);
+        let assignments = [];
+        if (current && (Object.hasOwn(patch, 'rol') || Object.hasOwn(patch, 'nivel_asignado'))) {
+          // Bloquear también históricos evita cambios de períodos durante la decisión.
+          [assignments] = await connection.execute(
+            `SELECT a.id, a.fecha_fin, s.nivel FROM asignaciones a
+             JOIN secciones s ON s.id = a.seccion_id
+             WHERE a.usuario_id = ? ORDER BY a.id FOR UPDATE`, [id],
+          );
+        }
+        const changes = decide({ current, actor, assignments, adminIds: admins.map(row => String(row.id)) });
+        const fields = updateColumns.filter(field => Object.hasOwn(changes, field));
+        if (!fields.length) return current;
+        const [result] = await connection.execute(
+          `UPDATE usuarios SET ${fields.map(field => `${field} = ?`).join(', ')} WHERE id = ?`,
+          [...fields.map(field => changes[field]), id],
+        );
+        if (result.affectedRows !== 1) throw new Error('No se actualizó un único usuario.');
+        const updated = await selectUser(connection, id, true);
+        if (!updated) throw new Error('No se pudo consultar el usuario actualizado.');
+        const action = Object.hasOwn(changes, 'activo') ? 'CAMBIAR_ESTADO_USUARIO' : 'ACTUALIZAR_USUARIO';
+        await writeUserAudit(connection, actorId, action, current, updated);
+        return updated;
+      });
+    },
     async findByUsername(username) {
       const [rows] = await poolProvider().execute(
         'SELECT id FROM usuarios WHERE usuario = ? LIMIT 1', [username],
       );
       return rows[0] ?? null;
     },
-    async create(data, actorId) {
-      const connection = await poolProvider().getConnection();
-      try {
-        await connection.beginTransaction();
-        // Los nombres de columnas provienen exclusivamente de esta lista interna.
+    create(data, actorId) {
+      return inTransaction(poolProvider(), async connection => {
         const fields = insertColumns.filter(field => Object.hasOwn(data, field));
         const [result] = await connection.execute(
           `INSERT INTO usuarios (${fields.join(', ')}) VALUES (${fields.map(() => '?').join(', ')})`,
           fields.map(field => data[field]),
         );
         if (result.affectedRows !== 1) throw new Error('No se creó un único usuario.');
-        const [rows] = await connection.execute(
-          `SELECT ${columns} FROM usuarios WHERE id = ? LIMIT 1`, [String(result.insertId)],
-        );
-        if (rows.length !== 1) throw new Error('No se pudo consultar el usuario creado.');
-        const user = Object.fromEntries(columns.split(',').map(field => {
-          const key = field.trim();
-          return [key, rows[0][key]];
-        }));
-        await connection.execute(
-          `INSERT INTO auditoria_administrativa
-            (usuario_id, accion, entidad, registro_id, datos_anteriores, datos_nuevos)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [actorId, 'CREAR_USUARIO', 'usuarios', String(user.id), null, JSON.stringify(user)],
-        );
-        await connection.commit();
+        const user = await selectUser(connection, String(result.insertId));
+        if (!user) throw new Error('No se pudo consultar el usuario creado.');
+        await writeUserAudit(connection, actorId, 'CREAR_USUARIO', null, user);
         return user;
-      } catch (error) {
-        await connection.rollback();
-        throw error;
-      } finally {
-        connection.release();
-      }
+      });
     },
     async list({ limit, offset }) {
       const [rows] = await poolProvider().execute(
-        `SELECT ${columns} FROM usuarios ORDER BY id ASC LIMIT ? OFFSET ?`,
-        [limit, offset],
+        `SELECT ${columns} FROM usuarios ORDER BY id ASC LIMIT ? OFFSET ?`, [limit, offset],
       );
       return rows;
     },
-    async findById(id) {
-      const [rows] = await poolProvider().execute(
-        `SELECT ${columns} FROM usuarios WHERE id = ? LIMIT 1`, [id],
-      );
-      return rows[0] ?? null;
+    findById(id) {
+      return selectUser(poolProvider(), id);
     },
   };
 }

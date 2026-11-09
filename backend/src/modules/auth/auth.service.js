@@ -1,23 +1,10 @@
 import { randomBytes } from 'node:crypto';
+import { publicUser } from '../usuarios/usuarios.service.js';
 import bcrypt from 'bcrypt';
 import { AuthError, unauthorized } from './auth.errors.js';
 import { createAuthRepository } from './auth.repository.js';
 import { createTokenService } from './auth.tokens.js';
 import { hashPassword, isValidPassword } from '../../shared/passwords.js';
-
-export function publicUser(user) {
-  return {
-    id: String(user.id),
-    nombres: user.nombres,
-    apellidos: user.apellidos,
-    usuario: user.usuario,
-    rol: user.rol,
-    cargo: user.cargo,
-    nivel_asignado: user.nivel_asignado,
-    puede_escanear_qr: Boolean(user.puede_escanear_qr),
-    puede_usar_bitacora: Boolean(user.puede_usar_bitacora),
-  };
-}
 
 export function createAuthService({
   repository = createAuthRepository(), tokens = createTokenService(),
