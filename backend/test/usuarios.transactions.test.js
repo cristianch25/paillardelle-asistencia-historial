@@ -14,6 +14,7 @@ function scenario(operation, options = {}) {
       if (options.failAt === 'begin') throw primary;
     },
     async execute(sql, params) {
+      if (sql.endsWith('FOR UPDATE') && options.failAt === 'lock') throw primary;
       if (sql.startsWith('SELECT id FROM usuarios WHERE rol')) return [[{ id: '1' }]];
       if (sql.startsWith('SELECT')) return [[testUser(params[0])]];
       if (sql.startsWith('INSERT INTO auditoria_administrativa')) {
@@ -49,7 +50,7 @@ function scenario(operation, options = {}) {
   } }));
   const run = () => operation === 'create'
     ? repository.create({ nombres: 'Nombre', apellidos: 'Ficticio', usuario: 'ficticio',
-      rol: 'ADMIN', password_hash: 'HASH_FICTICIO' }, '1')
+      rol: 'ADMIN', password_hash: 'HASH_FICTICIO' }, '1', () => {})
     : repository.update('2', '1', { nombres: 'Nuevo' }, () => ({ nombres: 'Nuevo' }));
   return { run, events, primary, cleanup };
 }
@@ -76,14 +77,14 @@ for (const operation of ['create', 'update']) {
     }
   });
 
-  test(`${operation}: adquisición, BEGIN, escritura, auditoría y COMMIT preservan el error principal`, async () => {
-    for (const failAt of ['acquire', 'begin', 'write', 'audit', 'commit']) {
+  test(`${operation}: adquisición, BEGIN, bloqueo, escritura, auditoría y COMMIT preservan el error principal`, async () => {
+    for (const failAt of ['acquire', 'begin', 'lock', 'write', 'audit', 'commit']) {
       const { run, events, primary } = scenario(operation, { failAt });
       await assert.rejects(run, error => error === primary);
       if (failAt === 'acquire') assert.deepEqual(events, ['acquire']);
       else if (failAt === 'commit') assert.deepEqual(events.slice(-2), ['rollback', 'destroy']);
       else assert.deepEqual(events.slice(-2), ['rollback', 'release']);
-      if (['begin', 'write', 'audit'].includes(failAt)) assert.equal(events.includes('commit'), false);
+      if (['begin', 'lock', 'write', 'audit'].includes(failAt)) assert.equal(events.includes('commit'), false);
     }
   });
 

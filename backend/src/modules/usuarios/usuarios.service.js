@@ -21,10 +21,14 @@ export function publicUser(user) {
   };
 }
 
-function planUserUpdate({ current, actor, adminIds, assignments }, patch, actorId, today) {
-  // Revalidar al actor después de esperar los bloqueos de otras peticiones.
+function authorizeAdmin(actor) {
   if (!actor || !(actor.activo === 1 || actor.activo === true)) throw unauthorized();
   if (actor.rol !== 'ADMIN') throw new HttpError(403, 'Acceso reservado a ADMIN.');
+}
+
+function planUserUpdate({ current, actor, adminIds, assignments }, patch, actorId, today) {
+  // Revalidar al actor después de esperar los bloqueos de otras peticiones.
+  authorizeAdmin(actor);
   if (!current) throw new HttpError(404, 'Usuario no encontrado.');
   const next = { ...current, ...patch };
   validateRoleLevel(next);
@@ -96,11 +100,10 @@ export function createUsuariosService({ repository = createUsuariosRepository(),
       }
       data.password_hash = await hashPassword(body.password);
       try {
-        return userDetails(await repository.create(data, actorId));
+        return userDetails(await repository.create(data, actorId, authorizeAdmin));
       } catch (error) {
         // La restricción UNIQUE es la garantía final, también con peticiones concurrentes.
-        if (error.code === 'ER_DUP_ENTRY') throw updateConflict(error);
-        throw error;
+        throw updateConflict(error);
       }
     },
     async list(query = {}) {

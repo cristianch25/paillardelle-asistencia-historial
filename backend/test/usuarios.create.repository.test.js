@@ -19,6 +19,7 @@ function fixture(failAt) {
     release() { events.push('release'); },
     async execute(sql, params) {
       events.push({ sql, params });
+      if (sql.endsWith('FOR UPDATE')) return [[{ id: '7', rol: 'ADMIN', activo: 1 }]];
       if (sql.startsWith('INSERT INTO usuarios')) {
         if (failAt === 'duplicate') throw Object.assign(new Error(), { code: 'ER_DUP_ENTRY' });
         return [{ affectedRows: 1, insertId: row.id }];
@@ -36,12 +37,20 @@ function fixture(failAt) {
 
 test('repositorio de alta: usuario y auditoría se confirman juntos, sin secretos en auditoría', async () => {
   const { repository, events } = fixture();
-  const user = await repository.create(data, '7');
+  const user = await repository.create(data, '7', actor => {
+    assert.equal(actor.id, '7');
+    assert.equal(actor.rol, 'ADMIN');
+    assert.equal(actor.activo, 1);
+    events.push('authorized');
+  });
   assert.equal(user.id, '9007199254740993');
   assert.equal(Object.hasOwn(user, 'password_hash'), false);
   assert.equal(events[0], 'begin');
   assert.deepEqual(events.slice(-2), ['commit', 'release']);
-  const statements = events.filter(event => typeof event === 'object');
+  const [lock, ...statements] = events.filter(event => typeof event === 'object');
+  assert.match(lock.sql, /FROM usuarios WHERE id = \? LIMIT 1 FOR UPDATE$/);
+  assert.deepEqual(lock.params, ['7']);
+  assert.equal(events[2], 'authorized');
   assert.equal(statements.length, 3);
   assert.match(statements[0].sql, /^INSERT INTO usuarios \(nombres, apellidos, usuario, password_hash, rol\) VALUES \(\?, \?, \?, \?, \?\)$/);
   assert.deepEqual(statements[0].params, [data.nombres, data.apellidos, data.usuario, data.password_hash, data.rol]);
@@ -61,7 +70,7 @@ test('repositorio de alta: usuario y auditoría se confirman juntos, sin secreto
 test('repositorio de alta: falla UNIQUE, lectura o auditoría y revierte sin confirmar', async () => {
   for (const failAt of ['duplicate', 'read', 'audit']) {
     const { repository, events } = fixture(failAt);
-    await assert.rejects(repository.create(data, '7'));
+    await assert.rejects(repository.create(data, '7', () => {}));
     assert.equal(events.includes('commit'), false);
     assert.deepEqual(events.slice(-2), ['rollback', 'release']);
     if (failAt === 'duplicate') {

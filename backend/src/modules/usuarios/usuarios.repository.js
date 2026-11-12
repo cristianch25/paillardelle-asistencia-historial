@@ -79,8 +79,10 @@ export function createUsuariosRepository(poolProvider = getPool) {
       );
       return rows[0] ?? null;
     },
-    create(data, actorId) {
+    create(data, actorId, authorize) {
       return inTransaction(poolProvider(), async connection => {
+        // Lectura actual y bloqueo del actor hasta COMMIT/ROLLBACK, antes del alta.
+        authorize(await selectUser(connection, actorId, true));
         const fields = insertColumns.filter(field => Object.hasOwn(data, field));
         const [result] = await connection.execute(
           `INSERT INTO usuarios (${fields.join(', ')}) VALUES (${fields.map(() => '?').join(', ')})`,

@@ -28,9 +28,16 @@ before(async () => {
       if (failAt === 'lookup') throw new Error('Conexión privada');
       return username === 'existente' ? { id: '9' } : null;
     },
-    async create(data, actorId) {
+    async create(data, actorId, authorize) {
       calls++;
       captured = { data, actorId };
+      const actor = failAt === 'missing-actor' ? null : { id: actorId,
+        activo: failAt === 'inactive-actor' ? 0 : 1,
+        rol: failAt === 'revoked-actor' ? 'REGISTRADOR' : 'ADMIN' };
+      authorize(actor);
+      if (['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT'].includes(failAt)) {
+        throw Object.assign(new Error('Bloqueo privado'), { code: failAt });
+      }
       if (failAt === 'duplicate') throw Object.assign(new Error('Dato privado'), { code: 'ER_DUP_ENTRY' });
       if (failAt === 'insert') throw new Error('SQL con datos privados');
       return { id: '9007199254740993', cargo: null, nivel_asignado: null,
@@ -126,6 +133,31 @@ test('errores de consulta o inserción devuelven un 500 sin datos privados', asy
       const response = await post();
       assert.equal(response.status, 500);
       assert.deepEqual(await response.json(), { error: 'No se pudo procesar la solicitud.' });
+    }
+  } finally { failAt = undefined; }
+});
+
+test('alta revalida al actor transaccional aunque su JWT haya autorizado la petición', async () => {
+  try {
+    for (const [scenario, status] of [['missing-actor', 401], ['inactive-actor', 401], ['revoked-actor', 403]]) {
+      failAt = scenario;
+      const response = await post();
+      assert.equal(response.status, status);
+      if (status === 401) assert.equal(response.headers.get('www-authenticate'), 'Bearer');
+      assert.deepEqual(await response.json(), { error: status === 401
+        ? 'Credenciales o autenticación no válidas.' : 'Acceso reservado a ADMIN.' });
+    }
+  } finally { failAt = undefined; }
+});
+
+test('fallos de bloqueo del alta devuelven 409 seguro sin reintentos', async () => {
+  try {
+    for (failAt of ['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT']) {
+      const previous = calls;
+      const response = await post();
+      assert.equal(response.status, 409);
+      assert.deepEqual(await response.json(), { error: 'Conflicto concurrente: vuelve a intentar la operación.' });
+      assert.equal(calls, previous + 2);
     }
   } finally { failAt = undefined; }
 });
