@@ -1,5 +1,9 @@
 # Organización escolar — etapas 6A, 6B, 6C y 6C-A
 
+Este documento describe los contratos implementados. Las referencias funcionales
+vigentes son [los cuatro TXT v4](../../../../README.md#referencias-funcionales-vigentes);
+v2 y la adenda 6C-A se conservan como antecedentes. No hay API de calendario.
+
 El módulo agrupa dos funcionalidades en `anios-escolares/` y `secciones/`.
 Cada carpeta contiene `controller.js`, `repository.js`, `routes.js`, `service.js`
 y `validation.js`. Este README conserva los contratos de ambas funcionalidades.
@@ -61,7 +65,9 @@ de insertar. Solo se bloquea ese usuario, sin adquirir después otros usuarios.
 
 Auditoría: CREAR_ANIO_ESCOLAR, entidad anios_escolares, actor autenticado, ID como
 texto, datos anteriores null y datos nuevos limitados a los siete campos públicos.
-Se aplica RN-18/RF-09, junto con RF-01/RF-03 y RNF-02/04/05/08.
+La referencia original de esta etapa fue v2 RN-18/RF-09. En v4, RF-09 y
+RNF-02/04/05/08 mantienen los requisitos de auditoría, seguridad e integridad;
+no confundir la numeración RN-18 de v2 con la RN-18 vigente de v4.
 
 UNIQUE(anio) es la garantía contra duplicados, también concurrentes: ER_DUP_ENTRY
 devuelve 409. Deadlock/timeout de bloqueo devuelve 409. No se prohíben otros años
@@ -135,7 +141,8 @@ interno currentSectionIds; no añade endpoints de asignaciones ni altera sus reg
 de edición. Su SQL permanece en usuarios. La consulta no modifica asignaciones.
 Errores: 400 por datos inválidos, 401 sin autenticación, 403 por permisos, 404 por
 recurso inexistente/no visible, 409 por duplicado/cierre/deadlock/timeout y 500 genérico.
-Se aplican RF-01/03/09, RN-14/15/18 y RNF-02/04/05/08.
+La referencia histórica de 6C fue v2 RF-01/03/09, RN-14/15/18 y RNF-02/04/05/08.
+Para cambios posteriores aplicar las reglas v4, no la numeración histórica sin versión.
 No hay PATCH/DELETE, desactivación, calendario, matrícula, asistencia ni frontend.
 
 6C-A incorpora INICIAL reutilizando REGISTRADOR/asignaciones: grupo 4 CREATIVOS y
@@ -145,5 +152,20 @@ La supervisión utiliza `usuariosService.supervisionLevels`: principal + adicion
 explícitos, sin excepción automática PRIMARIA/INICIAL. La lectura consulta estado
 persistido actual; la escritura lee adicionales con la misma conexión bajo el
 bloqueo del actor, coordinándose con concesiones y revocaciones administrativas.
-Ver [adenda 6C-A](../../../../docs/requisitos/adenda_6c_a_inicial_supervision.md) y
-[migración pendiente](../../../../docs/database/migrations/README.md).
+Ver [adenda histórica 6C-A](../../../../docs/requisitos/adenda_6c_a_inicial_supervision.md) y
+[estado de migración 002](../../../../docs/database/migrations/README.md).
+
+## Preparación de 6D (sin implementación)
+
+La decisión aprobada incorpora `periodos_lectivos` por año escolar y nivel y
+conserva `calendario_lectivo` para excepciones diarias. El valor semanal por defecto
+solo rige dentro de períodos: lunes–viernes lectivos, fines de semana no lectivos.
+No existe todavía tabla de períodos, migración nueva ni código de calendario.
+La futura funcionalidad se ubicará en `calendario-lectivo/` cuando sea autorizada;
+no se crean carpetas vacías ni se reorganizan años y secciones.
+
+ADMIN administrará los tres niveles y SUBDIRECCION los autorizados; REGISTRADOR
+no tendrá pantalla ni modificación de calendario. La validación automática en
+backend y auditoría deberán proteger fechas con asistencias. Los límites y las
+decisiones todavía abiertas se centralizan en el
+[README principal](../../../../README.md#6d-decisión-aprobada-sin-implementación).

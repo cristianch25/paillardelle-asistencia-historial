@@ -4,15 +4,32 @@
 
 Antes de implementar o modificar cualquier módulo, leer:
 
+- `docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v4.txt`
+- `docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v4.txt`
+- `docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v4.txt`
+- `docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v4.txt`
 - `docs/database/asistencia_paillardelle_mysql_v1.sql`
-- `docs/requisitos/diseno_asistencia_consolidado_v2.txt`
+- Las migraciones versionadas aplicables y su `docs/database/migrations/README.md`.
 
-Consultar las reglas RN y los requerimientos RF/RNF aplicables a cada cambio.
-Respetar estrictamente el esquema SQL: nombres, tipos, ENUM, nulabilidad,
-columnas generadas, claves, índices y restricciones. No modificar los documentos
-originales ni crear o modificar tablas de MySQL. No ejecutar el SQL como parte
-de tareas de estructura o arranque. Si una necesidad no encaja en el esquema,
-informar la discrepancia antes de implementar una solución.
+Los cuatro TXT v4 son las referencias funcionales vigentes. Consultar las RN,
+RF/RNF y decisiones aplicables, citando su versión: los códigos no conservan
+necesariamente el significado de v2. El análisis de impacto describe propuestas
+y limitaciones, no evidencia que una función esté implementada. La decisión
+posterior aprobada de períodos lectivos para 6D se recoge en `README.md`.
+
+`docs/requisitos/diseno_asistencia_consolidado_v2.txt` y
+`docs/requisitos/adenda_6c_a_inicial_supervision.md` se conservan como antecedentes
+históricos; no aplicar sus reglas sustituidas por v4. Las decisiones compatibles
+de 6C-A, como supervisión adicional explícita, siguen vigentes. No sobrescribir
+estos antecedentes, SQL v1 ni migración 002 para adaptar el diseño nuevo.
+
+Respetar el esquema SQL y las migraciones aplicables: nombres, tipos, ENUM,
+nulabilidad, columnas generadas, claves, índices y restricciones. Una decisión
+funcional no modifica por sí sola el esquema. Ante incompatibilidades, informarlas
+y obtener autorización para la migración necesaria antes de implementar lo que
+dependa de ella. No crear o modificar tablas ni ejecutar migraciones sin
+autorización expresa; nunca hacerlo como parte del arranque o de las pruebas.
+No inferir el estado de MySQL real solo por la presencia de un archivo SQL.
 
 ## Tecnologías y organización
 
@@ -57,34 +74,46 @@ responsabilidades y particularidades de cada tecnología.
 - No introducir nuevas dependencias sin justificar su necesidad y obtener
   autorización del usuario.
 
-## Reglas que deben preservarse
+## Seguridad e integridad que deben preservarse
 
-- Validar permisos en servidor por rol, nivel, sección, asignación y vigencia.
-  ADMIN no adquiere facultad de justificar faltas por su rol técnico.
-- `PENDIENTE` es ausencia de fila en un día lectivo; no es un estado del ENUM.
-  Permitir guardados parciales. Una falta justificada sigue siendo `FALTA`.
-- Solo SUBDIRECCION gestiona justificaciones tras el FUT externo. REGISTRADOR
-  puede corregir FALTA a TARDANZA por llegada posterior verificada según las reglas.
-- Validar año abierto, día lectivo y fechas de matrícula, sección y asignación.
+- Aplicar los permisos de v4 en servidor por rol, niveles efectivos, sección,
+  matrícula y vigencia. Las facultades institucionales generales de ADMIN no
+  resuelven operaciones específicas que v4 deja pendientes. No crear roles ni
+  permisos configurables nuevos. Revalidar al actor bajo bloqueo en escrituras
+  sensibles, siguiendo el protocolo existente y un orden compatible de bloqueos.
+- Para asistencia ordinaria validar año ABIERTO, día lectivo y vigencias.
+  No extender esa exigencia indiscriminadamente a consultas históricas o a la
+  preparación académica. Las correcciones y justificaciones seguirán v4 y sus
+  decisiones pendientes; no reintroducir FUT ni exclusividad de SUBDIRECCION de v2.
 - Resolver solapamientos con transacciones y bloqueos adecuados. Guardar cambios
   de asistencia e historial juntos, usando `version` para concurrencia;
   guardar cambios administrativos y auditoría en la misma transacción.
+- Reutilizar `shared/transaction.js`. Un fallo de COMMIT puede dejar resultado
+  incierto: descartar siempre la conexión, preservar el error principal y no
+  reintentar automáticamente. Un ROLLBACK posterior no demuestra reversión.
 - No fusionar contactos por nombre o teléfono. Un contacto compartido afecta a
-  todos sus vínculos; como máximo un apoderado activo por estudiante.
+  todos sus vínculos. El esquema actual admite un solo vínculo activo por
+  estudiante; no ampliarlo a múltiples contactos sin decisión y migración.
 - Importaciones Excel con vista previa, validaciones y control de duplicados;
-  no persistir lotes inconsistentes ni integrar SIAGIE.
-- QR y bitácora son independientes, opcionales y desactivados inicialmente;
-  requieren activación global y permiso individual. No alteran asistencias.
+  no persistir lotes inconsistentes ni integrar SIAGIE automáticamente. Aplicar
+  v4 para conciliación y conservación de históricos, sin sobrescritura silenciosa.
+- QR sigue opcional. Bitácora será individual por estudiante y solo de anexado
+  según v4; no implementar edición/borrado ordinarios. Su activación global y
+  permiso individual existentes deben resolverse antes de habilitarla. Ninguna
+  de estas funciones altera automáticamente asistencias.
 - Proteger datos personales. No incluir contraseñas, hashes ni tokens secretos
   en auditorías o logs. No borrar historial ni auditorías en operaciones ordinarias.
 
 ## Decisiones pendientes y alcance de trabajo
 
-No inventar decisiones de la sección 8 del documento de requisitos: autoridad de
-cierre/reapertura, fechas pasadas corregibles, correcciones adicionales de
-Subdirección, formato real de Excel y ausencia de apoderado, permisos de QR y
-consulta de auditoría, edición de bitácora, conservación de datos y respaldos.
-Solicitar definición antes de implementar comportamiento que dependa de ellas.
+Consultar P01–P07 de decisiones v4 y los pendientes del análisis de impacto.
+No inventar reglas sobre cierre diario frente a cierre del año, reapertura,
+retroactividad, facultades concretas de ADMIN/Secretaría, formato de ficha,
+fechas efectivas del padrón, contactos, activación de bitácora, permisos de QR,
+consulta de auditoría o conservación/recuperación de datos y respaldos.
+Los pendientes específicos de 6D se enumeran en `README.md`. Solicitar definición
+antes de implementar comportamiento que dependa de ellos. Una especificación
+aprobada no autoriza por sí sola implementar otra etapa ni ejecutar SQL.
 
 Trabajar únicamente dentro de la carpeta del proyecto y respetar los límites de
 archivos y carpetas indicados por el usuario en cada etapa. Se permiten

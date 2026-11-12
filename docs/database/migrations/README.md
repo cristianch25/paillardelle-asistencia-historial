@@ -1,11 +1,31 @@
-# Migración 002 — 6C-A (preparada, no ejecutada)
+# Migración 002 — 6C-A (ejecución local registrada)
+
+## Estado conocido y alcance de esta documentación
+
+Según la ejecución autorizada y las verificaciones previas de la sesión de
+desarrollo, `002_inicial_supervision_multinivel.sql` ya se aplicó una sola vez
+a `asistencia_paillardelle` LOCAL, MySQL 8.4.13. Se registraron cinco sentencias
+exitosas sin advertencias SQL, 18 tablas, cuatro ENUM ampliados, letra VARCHAR(30),
+15 CHECK habilitados y PK/FK de `usuario_niveles_adicionales`. Se conservaron
+sin cambios el ADMIN activo y las dos configuraciones; las otras 16 tablas
+quedaron vacías. Existía un respaldo completo previamente validado.
+
+Estos resultados son antecedentes de la sesión, no una inspección actual de
+MySQL. Esta actualización solo modifica documentación; no comprueba conexión,
+conteos ni definiciones reales. No acredita ejecución en producción ni ensayo
+de restauración. El script conserva su contenido original: sus comentarios de
+preparación describen el momento de redacción, no el estado de cada instalación.
+
+**No reejecutar 002 en la base local migrada.** Los pasos siguientes son un
+procedimiento para otra instalación todavía en v1, previa comprobación y
+autorización específicas; no una instrucción para repetir la operación local.
 
 `002_inicial_supervision_multinivel.sql` amplía el esquema v1. No ejecutar el SQL
 v1 sobre una base existente. Esta migración no forma parte del arranque ni de tests.
 El backend nuevo necesita el esquema migrado para supervisión y cambios de rol de
 SUBDIRECCION. No desplegarlo contra la base institucional antes de validar el cambio.
 
-## Antes de cualquier ejecución real
+## Antes de ejecutar en otra instalación no migrada
 
 1. Obtener aprobación específica de ejecución y coordinar una ventana sin escritores.
 2. Confirmar host, base seleccionada, versión MySQL 8.4, modo SQL estricto y privilegios
@@ -18,7 +38,8 @@ SUBDIRECCION. No desplegarlo contra la base institucional antes de validar el ca
    controles de conservación de datos sin exponer datos personales ni credenciales.
 5. Ensayar primero en una base aislada autorizada: restauración v1, datos ficticios
    de ambos niveles, ejecución y controles siguientes. No usar la base institucional
-   como entorno de prueba. No se ha realizado ese ensayo en esta entrega.
+   como entorno de prueba. No consta un ensayo aislado de restauración en los
+   antecedentes locales; no confundir validación del volcado con restauración comprobada.
 
 ## Ejecución manual y control
 
@@ -64,3 +85,21 @@ Con INICIAL, nombres largos o permisos nuevos, reducir el esquema puede perder d
 Preferir corregir hacia adelante o restauración coordinada; no borrar historial ni
 auditorías. Tampoco volver al backend anterior sin evaluar su incompatibilidad con
 los niveles nuevos. Los documentos v1/v2 permanecen como referencias originales.
+
+## Próximas migraciones: diseño pendiente
+
+Las [referencias funcionales v4](../../../README.md#referencias-funcionales-vigentes)
+no modifican automáticamente el esquema. El SQL v1 y 002 se conservan sin cambios.
+No existe aún migración 003 ni un ejecutor/registro automático de migraciones.
+
+Está aprobada para 6D la futura tabla `periodos_lectivos` por año/nivel, complementaria
+de `calendario_lectivo` para excepciones. Requiere una nueva migración autorizada;
+esta etapa no la crea ni fija su número/alcance. La recomendación inicial del
+análisis v4 de implementar calendario solo sobre 002 debe complementarse con
+esa decisión posterior. Ver [decisión y pendientes de 6D](../../../README.md#6d-decisión-aprobada-sin-implementación).
+
+V4 también requiere revisar justificación de tardanzas (tres CHECK), motivo/canal,
+historial/cierre diario y vínculo de bitácora con estudiante. Sus modelos y división
+en migraciones siguen pendientes. Revisar `chk_hist_cambio` si se registran cambios
+solo de motivo/canal. No añadir un estado global del estudiante por defecto:
+la inactividad operativa puede representarse mediante matrícula.

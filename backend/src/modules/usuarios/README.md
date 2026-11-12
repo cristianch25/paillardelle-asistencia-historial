@@ -3,6 +3,10 @@
 Para instalación, variables de entorno, arranque y pruebas, consulta el
 [README del backend](../../../README.md).
 
+Las referencias funcionales vigentes son [los cuatro TXT v4](../../../../README.md#referencias-funcionales-vigentes).
+Este README describe únicamente contratos implementados hasta `a131fec`;
+no añade facultades de asistencia o justificación ni nuevos roles por documentación.
+
 Todos los endpoints requieren JWT válido y rol ADMIN actual. Las respuestas usan
 representaciones públicas sin contraseñas ni hashes y `Cache-Control: no-store`.
 
@@ -56,13 +60,21 @@ comprobación previa de duplicados se complementa con el manejo de `ER_DUP_ENTRY
 en el INSERT para responder 409 incluso ante solicitudes concurrentes.
 
 La creación y su auditoría administrativa se confirman en una misma transacción
-(RN-18). Se utiliza como actor el ADMIN autenticado; la auditoría guarda los datos
+(v4 RF-02/RF-09). Antes del INSERT se consulta al actor con `FOR UPDATE` en la
+misma conexión y se revalidan existencia, actividad y rol ADMIN desde el servicio.
+El bloqueo se conserva hasta COMMIT/ROLLBACK: una revocación previa produce 401
+si el actor falta/está inactivo o 403 si perdió ADMIN, sin usuario ni auditoría.
+Una revocación que llega después de adquirir el bloqueo espera a que termine
+la transacción. Esta protección está incluida en `a131fec`.
+Se utiliza como actor el ADMIN autenticado; la auditoría guarda los datos
 públicos y excluye contraseña y hash. Si falla la auditoría, se revierte el alta.
 No se añade una API de consulta de auditoría.
 
 En éxito: 201, cabecera `Location: /api/usuarios/<id>` y `{ "user": { ... } }`, con
 la misma representación pública del detalle. Errores: 400 por validación, 401 por
-autenticación, 403 por permisos, 409 por duplicado y 500 genérico por fallo interno.
+autenticación, 403 por permisos, 409 por duplicado o deadlock/timeout de bloqueo
+(sin reintentos), y 500 genérico por otros fallos internos. Los errores 401/403
+y de infraestructura no reconocidos como conflictos se conservan al propagarse.
 Las pruebas de registro y transacciones usan repositorios y conexiones simulados;
 no insertan, modifican ni eliminan registros en la base institucional.
 
@@ -174,5 +186,5 @@ La tabla nueva representa configuración vigente; retirar sus filas no borra
 historial ni auditorías. CHECK SQL no valida rol cruzando tablas: el backend aplica
 esa regla y la exclusión del principal. La migración requiere un usuario SQL con
 SELECT/INSERT/DELETE sobre esta tabla; los privilegios DDL son solo para el operador.
-Ver [adenda](../../../../docs/requisitos/adenda_6c_a_inicial_supervision.md) y
-[procedimiento de migración pendiente](../../../../docs/database/migrations/README.md).
+Ver [adenda histórica](../../../../docs/requisitos/adenda_6c_a_inicial_supervision.md) y
+[estado y procedimiento de migración 002](../../../../docs/database/migrations/README.md).

@@ -1,0 +1,49 @@
+PAILLARDELLE ASISTENCIA — I.E. ENRIQUE PAILLARDELLE
+Fecha de consolidación: 11/11/2026
+Fuente: diseño consolidado v2, adenda 6C-A, SQL v1 + migración 002 y decisiones conversadas.
+Estado: ESPECIFICACIÓN ACORDADA, no evidencia de implementación.
+
+DECISIONES DE ASISTENCIA v4 — CONSOLIDADO
+
+1. ALCANCE Y ORGANIZACIÓN
+D01. Sistema web responsive React/TypeScript/Vite, Node/Express y MySQL; independiente de SIAGIE, sin sincronización ni avisos automáticos a familias.
+D02. Tres roles vigentes: ADMIN, SUBDIRECCION, REGISTRADOR. Directora usa ADMIN con autoridad institucional general; SUBDIRECCION por niveles autorizados; REGISTRADOR por secciones vigentes. Secretaría con rol SUBDIRECCION solo con autorización institucional, cuenta individual.
+D03. INICIAL (4 CREATIVOS, 5 GENIALES), PRIMARIA y SECUNDARIA. Calendarios independientes. Supervisión adicional explícita según adenda 6C-A, no concedida automáticamente.
+D04. No implementar permisos configurables por rol, rol SECRETARIA ni SUPERADMIN por ahora. Eventual soporte técnico autorizado y auditado, sin acceso académico implícito.
+
+2. CALENDARIO Y ASISTENCIA
+D05. ADMIN configura calendario de todos los niveles; SUBDIRECCION de los autorizados. REGISTRADOR no necesita pantalla de calendario: validación automática en backend y aviso de día no lectivo.
+D06. No convertir directamente en no lectivo un día con asistencias registradas; preservar registros y mostrar conflicto. Auditar cambios. Reapertura excepcional y regularización retroactiva quedan pendientes.
+D07. Registro diario por sección, estados base PRESENTE, TARDANZA y FALTA; PENDIENTE equivale a ausencia de registro. Guardado parcial y cierre con advertencia de pendientes.
+D08. REGISTRADOR corrige/justifica solo sus secciones; SUBDIRECCION dentro de niveles autorizados. ADMIN institucional tiene autoridad académica general según reglas nuevas, pendiente implementar controles específicos.
+D09. Correcciones durante y después del cierre; posteriores al cierre exigen motivo. Conservar actor, hora, antes/después y auditoría transaccional.
+D10. FALTA inicial puede pasar a TARDANZA si el estudiante llega. Justificación independiente del estado base, tanto en FALTA como TARDANZA. Registrar motivo y medio (llamada, mensaje, fotografía, documento, presencial); sin adjunto obligatorio, FUT ni aprobación interna. Criterio de aceptación corresponde al personal autorizado.
+
+3. SEGUIMIENTO, BITÁCORA Y REPORTES
+D11. Un indicador mensual de seguimiento se activa con 3 incidencias combinadas (FALTA y/o TARDANZA), consecutivas o intercaladas, incluidas justificadas. Recalcular al menos diariamente y al registrar/corregir para reflejar cambios sin esperar fin de mes. No implica sanción.
+D12. Mostrar conteos separados de faltas, tardanzas, justificadas e injustificadas. ADMIN y SUBDIRECCION ven indicadores institucionales; REGISTRADOR solo resumen mensual sencillo por estudiante de sección autorizada.
+D13. Bitácora individual por estudiante, vinculada a identidad permanente, de solo anexar: no editar ni borrar por operaciones ordinarias. REGISTRADOR escribe/consulta en secciones autorizadas; ADMIN/SUBDIRECCION consultan según alcance. Actor y timestamp automáticos. Independiente de auditoría técnica.
+D14. Si estudiante cambia de sección, conserva asistencias y bitácora; nuevo REGISTRADOR puede consultar historial necesario para continuidad del seguimiento de estudiante actualmente asignado, sin acceso general a secciones ajenas.
+D15. Ficha mensual por sección exportable en cualquier momento, parcial o completa, sin cierre mensual obligatorio. REGISTRADOR exporta secciones asignadas; SUBDIRECCION niveles autorizados; ADMIN todos. Días futuros y sin registro no equivalen a faltas.
+D16. Leyenda de ficha: '.' presente, F falta, T tardanza, J falta justificada, U tardanza justificada. Referencia operativa, NO catálogo oficial exhaustivo SIAGIE. Formato final PDF/XLSX/CSV y plantilla quedan PENDIENTES hasta recibir modelo.
+
+4. ESTUDIANTES E IMPORTACIÓN
+D17. Sin eliminación física de estudiante/historial. Identidad permanente y estado de matrícula activa/retirada; desactivaciones auditadas. ADMIN/SUBDIRECCION consultan historiales dentro de alcance.
+D18. Importación inicial desde padrones SIAGIE, seleccionando datos mínimos útiles. Importar todos, incluso los 15 TRASLADADO del padrón Primaria como inactivos para asistencia. No deducir que tendrán historial de asistencia previo.
+D19. Importaciones posteriores: comparar, validar, mostrar vista previa y requerir confirmación de ADMIN/SUBDIRECCION autorizados. Nuevos, reingresos, cambios de sección, traslados y contactos se revisan; no borrar históricos, no sobrescribir silenciosamente, no desactivar por ausencia de un archivo parcial.
+D20. Campos preferentes: código de estudiante, identificación, nombres, año, nivel, grado, sección, matrícula y contacto/apoderado disponible. No exigir teléfono; evitar fusiones dudosas de contactos. Mapeo exacto se verifica con padrones reales.
+D21. Respaldos/restauración MySQL como operación técnica separada; mantener respaldo antes de migraciones. Automatización y política de restauración para fase posterior, sin posponer protección básica de datos.
+
+5. TESTIMONIOS VS DISEÑO
+D22. Subdirector Secundaria informó necesidad de atender estudiantes con 3 faltas o tardanzas incluso intercaladas. Sumar ambos tipos, contar justificadas y usar mes calendario son decisiones de diseño, no norma oficial confirmada.
+D23. Auxiliares informaron que llamada, mensaje o fotografía del apoderado pueden bastar según su criterio; el sistema no valida veracidad ni sustituye procedimientos institucionales.
+D24. No atribuir testimonios de Secretaría de Primaria a Subdirección de Primaria; su titular no había sido entrevistada en la documentación aportada.
+
+6. ABIERTOS / FUERA DE ALCANCE ACTUAL
+P01. Formato exacto y medio de exportación; plantilla institucional.
+P02. Detalles del calendario en cambios retroactivos excepcionales, cierre y reapertura del año.
+P03. Política de conservación y recuperación de backups; soporte técnico separado.
+P04. Fuente de verdad para fecha efectiva de traslados/reingresos en padrones; contactos múltiples frente a vínculo único actual.
+P05. QR opcional: no ampliarlo por estas decisiones. Bitácora debe habilitarse cuando se implemente, revisar flag global actual.
+P06. Horarios exactos de tardanza, equipos y conectividad; validar institucionalmente.
+P07. Alcance institucional formal de cuentas de Secretaría y operaciones académicas de ADMIN en backend.

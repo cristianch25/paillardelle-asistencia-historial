@@ -1,91 +1,151 @@
-# paillardelle-asistencia
+# Paillardelle Asistencia
 
-Sistema web de control de asistencia de la I.E. Enrique Paillardelle para inicial,
-primaria y secundaria. Independiente de SIAGIE, con importación manual de Excel institucional.
+Sistema web de control de asistencia de la I.E. Enrique Paillardelle para
+INICIAL, PRIMARIA y SECUNDARIA. Independiente de SIAGIE: se prevé importación
+manual de padrones con revisión, sin sincronización automática.
 
-## Estado inicial
+## Estado del proyecto
 
-Solo estructura y pautas de trabajo. No hay funcionalidades, dependencias
-instaladas, servidores iniciados ni conexiones a MySQL. No se ha ejecutado ni
-modificado el SQL. Los manifiestos de paquetes y la configuración de herramientas
-se incorporarán en la siguiente etapa aprobada, cuando se prepare el arranque.
+Punto de control de código: `a131fec70d1545971ea20e38a76d8a5d54517b70`
+(`fix: revalidar admin en alta transaccional de usuarios`), posterior al cierre
+de 6C-A en `911be67`. Última suite verificada en ese cierre de seguridad:
+**171 pruebas exitosas**, con conexiones simuladas, sin escrituras en MySQL real.
 
-Las carpetas de código están vacías intencionalmente. No se añaden archivos
-de relleno; Git incorporará esas carpetas cuando tengan código real.
+El backend tiene código y dependencias; el frontend conserva solo carpetas
+preparadas, sin aplicación React ni manifiesto de paquetes. Una carpeta vacía
+no representa una funcionalidad terminada. **6D todavía no está implementada.**
 
-## Documentación de referencia
+| Área | Implementado en backend | Pendiente |
+| --- | --- | --- |
+| Salud | `GET /api/health`, independiente de MySQL | No acredita esquema ni conexión SQL |
+| Autenticación | Login bcrypt, JWT Bearer, perfil y usuario activo consultado en cada petición | Recuperación de contraseña, refresh/logout y despliegue HTTPS |
+| Usuarios | Listado/detalle/alta, edición y estado, protección del último ADMIN, auditoría | Administración de asignaciones; no hay eliminación física |
+| Supervisión | Niveles adicionales explícitos de SUBDIRECCION, administrados por ADMIN | No hay permisos dinámicos ni roles nuevos |
+| Años escolares | Listado/detalle para tres roles; creación ADMIN en PLANIFICADO | Edición, apertura, cierre y reapertura |
+| Secciones | Listado/detalle por ámbito; creación ADMIN/SUBDIRECCION en año PLANIFICADO o ABIERTO | Edición y desactivación |
+| Auditoría | Escritura transaccional de operaciones administrativas implementadas | API de consulta e historial de asistencia |
+| Calendario, estudiantes, matrículas, asistencia, importaciones, reportes y bitácora | Sin endpoints funcionales | Implementación por etapas según v4 |
+| QR y configuración | Campos y tablas de referencia; permisos individuales editables en usuarios | Operación de módulos y administración de configuración global |
 
-- [Esquema MySQL existente](docs/database/asistencia_paillardelle_mysql_v1.sql).
-- [Requisitos consolidados](docs/requisitos/diseno_asistencia_consolidado_v2.txt).
-- [Instrucciones para agentes](AGENTS.md).
-- [Adenda 6C-A: INICIAL y supervisión multinivel](docs/requisitos/adenda_6c_a_inicial_supervision.md).
-- [Migración 002 preparada, no ejecutada](docs/database/migrations/README.md).
+El alta de usuarios bloquea y revalida al ADMIN antes del INSERT y mantiene
+usuario y auditoría en la misma transacción. Las consultas de secciones usan
+niveles efectivos para SUBDIRECCION y asignaciones vigentes en America/Lima
+para REGISTRADOR. No se precargan profesoras, salones ni permisos adicionales.
 
-El esquema define 17 tablas, relaciones, restricciones y valores iniciales.
-Las reglas de permisos, intervalos y concurrencia también requieren lógica
-transaccional en Express; las claves foráneas por sí solas no las garantizan.
-`PENDIENTE` se calcula por ausencia de asistencia en un día lectivo. Los guardados
-pueden ser parciales y una falta justificada conserva el estado `FALTA`.
+Contratos y comandos: [backend](backend/README.md), [usuarios](backend/src/modules/usuarios/README.md)
+y [organización escolar](backend/src/modules/organizacion-escolar/README.md).
 
-## Organización propuesta
+## Referencias funcionales vigentes
 
-Monolito modular: backend con JavaScript puro, Node.js y Express; frontend con
-React, TypeScript y Vite; una base de datos MySQL 8.4 LTS. Los módulos son carpetas
-del mismo backend, sin microservicios ni paquetes independientes por funcionalidad.
+- [Decisiones de asistencia v4](docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v4.txt).
+- [Reglas de negocio v4](docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v4.txt).
+- [Requerimientos v4](docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v4.txt).
+- [Análisis de impacto BD/código v4](docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v4.txt).
+- [Instrucciones de trabajo](AGENTS.md).
+
+V4 especifica el comportamiento aprobado; no declara que ya esté programado.
+Su análisis de impacto contiene alternativas y decisiones de modelo pendientes.
+La decisión posterior de períodos lectivos se documenta abajo y complementa su
+propuesta inicial de calendario. Citar versión junto a RN/RF/RNF: algunos códigos
+cambiaron de significado respecto de v2.
+
+Antecedentes históricos conservados sin sobrescribir:
+[consolidado v2](docs/requisitos/diseno_asistencia_consolidado_v2.txt) y
+[adenda 6C-A](docs/requisitos/adenda_6c_a_inicial_supervision.md).
+La supervisión adicional explícita de 6C-A sigue vigente; sus antiguas limitaciones
+de justificaciones no sustituyen las decisiones v4 posteriores.
+
+## Esquema y migraciones
+
+El [SQL v1](docs/database/asistencia_paillardelle_mysql_v1.sql) define 17 tablas.
+La [migración 002](docs/database/migrations/002_inicial_supervision_multinivel.sql)
+añade INICIAL a cuatro ENUM, amplía `secciones.letra` a VARCHAR(30), ajusta el
+CHECK de grados y crea `usuario_niveles_adicionales`: se esperan 18 tablas tras 002.
+
+Según la ejecución autorizada y las verificaciones registradas en la sesión de
+desarrollo, 002 ya se aplicó a `asistencia_paillardelle` local (MySQL 8.4.13),
+conservando el ADMIN activo y las dos configuraciones existentes. **Esta
+actualización documental no inspecciona MySQL real ni certifica su estado actual.**
+No se acredita ejecución en producción ni ensayo de restauración. Ver
+[estado y procedimiento de migraciones](docs/database/migrations/README.md).
+
+No reejecutar 002: no es idempotente. El arranque y las pruebas no ejecutan SQL
+de migración ni seeds. No existe todavía migración 003. SQL v1 y 002 son
+antecedentes inmutables; los cambios de v4 requieren nuevas migraciones autorizadas.
+
+## Arquitectura y mapa de funcionalidades
+
+Monolito modular: un backend JavaScript/Node.js/Express, un frontend previsto
+React/TypeScript/Vite y una base MySQL 8.4 LTS.
 
 | Carpeta | Responsabilidad |
 | --- | --- |
-| `backend/src/config/` | Configuración de entorno y futura conexión MySQL. |
-| `backend/src/middlewares/` | Manejo HTTP transversal: sesión, autorización y errores. |
-| `backend/src/modules/` | Funcionalidades con sus rutas, controladores, servicios y repositorios según se necesiten. |
-| `frontend/src/app/` | Composición de React y futura navegación. |
-| `frontend/src/features/` | Pantallas, componentes, tipos y acceso a API por funcionalidad. |
-| `frontend/src/shared/` | Elementos de interfaz y cliente HTTP compartidos cuando exista reutilización real. |
+| `backend/src/config/` | Configuración y pool MySQL bajo demanda |
+| `backend/src/middlewares/` | Autenticación, autorización HTTP y errores seguros |
+| `backend/src/shared/` | Utilidades realmente reutilizadas, sin reglas de módulos |
+| `backend/src/modules/` | Rutas/controladores HTTP, servicios de negocio y repositorios SQL |
+| `frontend/src/app/`, `features/`, `shared/` | Organización prevista; carpetas sin implementación |
 
-El backend separará la composición de Express del inicio del servidor cuando se
-implemente. Los controladores adaptarán HTTP, los servicios aplicarán reglas y
-transacciones, y los repositorios concentrarán SQL parametrizado. El frontend
-consumirá la API; la autorización definitiva siempre corresponderá al backend.
+`app.js` compone Express; `server.js` inicia el servidor. Los repositorios
+concentran SQL parametrizado; las transacciones reutilizan `shared/transaction.js`.
+La autorización definitiva corresponde al backend. Un fallo de COMMIT puede
+dejar resultado incierto; se descarta la conexión y no se reintenta automáticamente.
 
-### Funcionalidades preparadas
-
-Los mismos nombres se utilizan en `backend/src/modules/` y `frontend/src/features/`.
-La coincidencia facilita localizar el código sin exigir una pantalla por tabla.
-
-| Funcionalidad | Alcance y tablas de referencia |
+| Módulo | Responsabilidad actual o futura |
 | --- | --- |
-| `auth/` | Inicio de sesión y permisos; consulta `usuarios`. |
-| `usuarios/` | Gestión de `usuarios` y `asignaciones`. |
-| `organizacion-escolar/` | `anios_escolares`, `secciones` y `calendario_lectivo`. |
-| `estudiantes/` | `estudiantes`, `contactos` y `estudiante_contactos`. |
-| `matriculas/` | `matriculas` e historial temporal en `matricula_secciones`. |
-| `asistencias/` | Registro, correcciones y justificaciones; `asistencias` e `historial_asistencias`. |
-| `importaciones/` | Vista previa y validación de Excel; coordina servicios de estudiantes y matrículas. |
-| `reportes/` | Consulta de asistencias, pendientes, completitud y exportaciones; sin tablas nuevas. |
-| `auditoria/` | Escritura transaccional en `auditoria_administrativa`; acceso de consulta pendiente. |
-| `configuracion/` | `configuracion_sistema`, incluida activación de opcionales. |
-| `qr/` | Opcional: `credenciales_qr` y `registros_ingreso`; no modifica asistencias. |
-| `bitacora/` | Opcional: `bitacora_actividades`; no modifica asistencias. |
+| `auth/`, `usuarios/` | Implementados; asignaciones aún sin API propia |
+| `organizacion-escolar/` | Años y secciones implementados; calendario pendiente |
+| `estudiantes/`, `matriculas/` | Identidad/contactos y movimientos con historial; pendientes |
+| `asistencias/` | Registro, correcciones, justificaciones e historial; pendiente |
+| `importaciones/` | Vista previa, validación y conciliación confirmada; pendiente |
+| `reportes/` | Seguimiento mensual y fichas; pendiente |
+| `auditoria/`, `configuracion/` | Consulta de auditoría y gestión global; pendientes |
+| `bitacora/` | Seguimiento individual por estudiante, solo anexar; pendiente |
+| `qr/` | Función opcional independiente de asistencia; pendiente |
 
-Una carpeta reservada no concede permisos ni define rutas o pantallas. En
-particular, la consulta de auditoría y los permisos pendientes de QR y edición
-de bitácora requieren definición antes de implementarse. El historial de
-asistencias permanece en su módulo; la auditoría administrativa es transversal.
+## 6D: decisión aprobada, sin implementación
 
-Mantener archivos pequeños y responsabilidades separadas. Evaluar dividir un
-archivo cuando crezca excesivamente o reúna tareas distintas. Crear subcarpetas
-y utilidades compartidas conforme aparezcan necesidades reales.
+Se incorporará **`periodos_lectivos` por año escolar y nivel**, complementaria
+de **`calendario_lectivo` para excepciones diarias**. El año escolar es global;
+los períodos y calendarios son independientes para INICIAL, PRIMARIA y SECUNDARIA.
+La tabla nueva aún no está en SQL v1 ni 002 y requiere una migración autorizada.
+No se ha creado su SQL ni se ha fijado el alcance/número de la próxima migración.
 
-## Decisiones de negocio pendientes
+Regla aprobada: lunes a viernes lectivos por defecto únicamente dentro de los
+períodos habilitados; sábados y domingos no lectivos por defecto. Las excepciones
+permitirán feriados, vacaciones, semanas de gestión, suspensiones y recuperaciones,
+sin generar innecesariamente 365 filas por nivel ni integrar automáticamente UGEL.
+No se inventan fechas oficiales ni se configuran calendarios con esta documentación.
 
-La sección 8 de los requisitos deja por definir:
+ADMIN administrará los tres niveles; SUBDIRECCION, sus niveles autorizados.
+REGISTRADOR no tendrá pantalla ni permisos de modificación del calendario;
+el backend validará lectividad y dará el aviso correspondiente. Los cambios
+serán auditados; no se convertirá directamente en no lectiva una fecha con
+asistencias. El fin de clases no cierra automáticamente el año administrativo.
 
-- Autoridad para cerrar y reabrir excepcionalmente un año escolar.
-- Fechas pasadas que se pueden corregir durante un año abierto.
-- Correcciones de estado adicionales permitidas a Subdirección.
-- Columnas del Excel real y tratamiento de estudiantes sin apoderado en el archivo.
-- Emisión/revocación QR, consulta de auditoría y edición de bitácora.
-- Conservación de datos personales y respaldos.
+Falta aprobar el contrato técnico: columnas y restricciones de períodos,
+tratamiento de solapamientos, precedencia exacta de excepciones fuera de período,
+recuperaciones fuera de período, consultas directas permitidas al REGISTRADOR,
+modificaciones retroactivas y endpoints. No interpretar ausencia de fila diaria
+como lectividad universal. Cierre diario de asistencia, cierre de año y sesión
+de autenticación son conceptos que deben distinguirse antes de implementarlos.
 
-No se fijan valores ni permisos para resolver esos puntos en esta estructura.
-La implementación y preparación del entorno quedan a la espera de aprobación.
+## Compatibilidad y decisiones pendientes
+
+V4 sustituye las reglas antiguas de FUT obligatorio, justificación exclusiva de
+SUBDIRECCION/solo FALTA y bitácora por nivel. Estas funciones aún no tienen API.
+El esquema actual restringe justificación a FALTA, carece de motivo/canal y cierre
+diario, y no vincula bitácora a estudiante: se requiere diseño y migración antes
+de implementar las partes incompatibles. No reutilizar 002 para estos cambios.
+
+El indicador mensual combinará tres faltas/tardanzas, incluidas justificadas,
+con recálculo diario y ante cambios. La ficha mensual podrá ser parcial y no
+convertirá pendientes o días futuros en faltas. Son requisitos futuros, no funciones
+ya disponibles. La inactividad operativa puede resolverse por matrícula; no se
+presupone un nuevo estado global del estudiante ni una tabla de alertas.
+
+Siguen pendientes P01–P07 de decisiones v4: formato de ficha, cierre/reapertura y
+retroactividad, conservación/recuperación, fechas efectivas y contactos del padrón,
+activación de bitácora, horarios y alcance específico de ADMIN/Secretaría.
+Definir también consulta de auditoría y permisos de QR antes de implementarlos.
+Esta etapa es documental: no autoriza implementar 6D, migrar ni crear commits.

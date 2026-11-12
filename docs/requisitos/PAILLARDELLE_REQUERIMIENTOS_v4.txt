@@ -1,0 +1,42 @@
+PAILLARDELLE ASISTENCIA — I.E. ENRIQUE PAILLARDELLE
+Fecha de consolidación: 11/11/2026
+Fuente: diseño consolidado v2, adenda 6C-A, SQL v1 + migración 002 y decisiones conversadas.
+Estado: ESPECIFICACIÓN ACORDADA, no evidencia de implementación.
+
+REQUERIMIENTOS FUNCIONALES Y NO FUNCIONALES v4
+Mantiene 15 RF agrupados y 10 RNF del consolidado v2; amplía su alcance.
+
+REQUERIMIENTOS FUNCIONALES
+RF-01. Autenticar usuarios y autorizar por rol, niveles efectivos y secciones vigentes, verificando permisos en backend.
+RF-02. Administrar cuentas individuales, roles fijos, niveles adicionales y asignaciones con auditoría y protecciones de seguridad.
+RF-03. Administrar años escolares, secciones y calendarios independientes INICIAL/PRIMARIA/SECUNDARIA; restringir cambios sobre fechas con asistencia y mostrar avisos al REGISTRADOR.
+RF-04. Importar padrones SIAGIE (estudiantes, matrículas y contactos) con mapeo selectivo, validación, vista previa y confirmación; conciliar importaciones posteriores sin borrado ni reemplazo silencioso.
+RF-05. Consultar/actualizar estudiantes, matrículas, traslados y contactos según permisos; desactivar sin borrar; auditar teléfonos y cambios de matrícula.
+RF-06. Registrar asistencia individual y por lista en secciones autorizadas, con estados PRESENTE/TARDANZA/FALTA, pendientes, guardado parcial y cierre advertido.
+RF-07. Corregir estados de asistencia, incluida FALTA a TARDANZA por llegada posterior, durante/después del cierre; exigir motivo después del cierre.
+RF-08. Registrar y retirar justificación de FALTA o TARDANZA con motivo, canal, responsable y fecha; sin adjunto ni aprobación obligatoria.
+RF-09. Conservar historial inalterable de modificaciones y auditoría administrativa, con transacciones y consulta autorizada.
+RF-10. Consultar asistencia, pendientes, completitud, historial por estudiante y resumen mensual individual según rol y sección.
+RF-11. Calcular seguimiento mensual de 3 incidencias combinadas, incluidas justificadas; recalcular diariamente y tras cambios; presentar desglose y reportes por período, nivel, grado y sección.
+RF-12. Exportar fichas mensuales por sección en cualquier momento, incluso parciales, con permisos por ámbito, leyenda . F T J U y formato configurable a definir.
+RF-13. Generar/revocar credenciales QR por matrícula y exportarlas según alcance cuando el módulo opcional sea habilitado (sin ampliar QR ahora).
+RF-14. Registrar primer ingreso diario por QR sin modificar asistencia cuando QR esté habilitado.
+RF-15. Crear y consultar bitácora de seguimiento individual por estudiante, solo anexar, conservando historial tras cambios de sección y visibilidad autorizada.
+
+REQUERIMIENTOS NO FUNCIONALES
+RNF-01. Interfaz responsive y sencilla en computadora/celular, con vistas de REGISTRADOR sin funciones administrativas innecesarias.
+RNF-02. Autorización obligatoria en servidor por rol, niveles efectivos, sección, matrícula y fechas; ocultar detalles ajenos.
+RNF-03. Contraseñas con hash seguro (bcrypt), JWT/sesiones protegidas y HTTPS en despliegue.
+RNF-04. Minimización y protección de datos personales de menores, contactos y bitácoras; acceso restringido.
+RNF-05. Integridad relacional, validaciones, restricciones, transacciones, concurrencia y consistencia histórica de traslados y justificaciones.
+RNF-06. Respuesta ágil para volumen escolar esperado; índices por estudiante, fecha, matrícula, sección y filtros de seguimiento.
+RNF-07. Respaldos seguros y procedimiento de restauración comprobable antes de operación real; automatización y calendario de pruebas por definir.
+RNF-08. Código modular y mantenible, pruebas automatizadas de permisos, importación, asistencia, correcciones, calendarios y estadísticas.
+RNF-09. Importaciones con vista previa y mensajes de error comprensibles; sin sobrescritura silenciosa, duplicados o cambios parciales inconsistentes.
+RNF-10. Funcionar sin conexión con SIAGIE ni módulos QR activos; permitir uso de bitácora cuando se implemente sin depender de QR.
+
+ESTADO Y ALCANCE
+- El documento especifica requisitos, NO declara que todos estén programados.
+- Según información comunicada por el usuario: 6C-A concluida, 6D pendiente, frontend aún pendiente.
+- Fuera de alcance inmediato: SUPERADMIN técnico, permisos dinámicos, importación de asistencia histórica, integración SIAGIE, mensajería automática.
+- Pendiente: formato exacto de ficha, reglas de recuperación excepcional, horarios, tratamiento detallado de contactos múltiples y backups automatizados.

@@ -1,0 +1,34 @@
+PAILLARDELLE ASISTENCIA — I.E. ENRIQUE PAILLARDELLE
+Fecha de consolidación: 11/11/2026
+Fuente: diseño consolidado v2, adenda 6C-A, SQL v1 + migración 002 y decisiones conversadas.
+Estado: ESPECIFICACIÓN ACORDADA, no evidencia de implementación.
+
+REGLAS DE NEGOCIO v4 — ACTUALIZACIÓN DE RN-01 A RN-20 DEL DISEÑO v2
+
+RN-01. Sistema independiente de SIAGIE; padrones importados manualmente, sin sincronización.
+RN-02. Identidad de estudiante permanente; una matrícula por estudiante y año; movimientos de sección con vigencia efectiva sin superposición y sin perder historial.
+RN-03. Registrar asistencia únicamente en fecha lectiva del nivel y año habilitado; calendario independiente para INICIAL, PRIMARIA y SECUNDARIA.
+RN-04. Una asistencia máxima por matrícula y fecha. PENDIENTE significa que aún no existe fila registrada en día lectivo; no equivale a FALTA.
+RN-05. Guardado parcial y cierre de sesión con advertencia de pendientes; registros guardados visibles oportunamente a supervisión.
+RN-06. REGISTRADOR registra y corrige estados en secciones asignadas; SUBDIRECCION en niveles autorizados; ADMIN institucional conforme a atribuciones generales. Comprobar autorización en backend.
+RN-07. Permitir corregir FALTA a TARDANZA por llegada posterior, y otras correcciones autorizadas; posteriores al cierre requieren motivo y auditoría.
+RN-08. REGISTRADOR y SUBDIRECCION pueden justificar FALTA o TARDANZA dentro de su ámbito sin aprobación adicional del sistema. Motivo y canal simples; sin FUT ni archivo obligatorio; aceptación bajo criterio del personal.
+RN-09. Estado base PRESENTE/TARDANZA/FALTA y justificación independiente. PRESENTE no justificable; FALTA y TARDANZA sí. Conservar ambos hechos para estadísticas e impresión J/U.
+RN-10. Correcciones/justificaciones registran actor, fecha/hora, antes/después; motivo obligatorio después del cierre; modificación e historial atómicos.
+RN-11. Conservar vínculos de contactos por estudiante y evitar duplicados de identidad; cualquier ampliación de uno a múltiples contactos requiere decisión/migración separada.
+RN-12. Importación selectiva de padrón SIAGIE; campos de contacto incompletos no impiden importar estudiante; coincidencias dudosas se revisan.
+RN-13. REGISTRADOR puede actualizar teléfonos de contactos de sus estudiantes, con auditoría; respetar efectos de contactos compartidos.
+RN-14. Sin solapamiento de períodos estudiante-sección ni de asignación del mismo usuario a la misma sección; auxiliar puede gestionar varias secciones.
+RN-15. ADMIN configura calendarios de todos los niveles y SUBDIRECCION de niveles autorizados; REGISTRADOR sin pantalla de calendario. No pasar a no lectivo fecha con asistencia; auditar. No modificar año cerrado ordinariamente.
+RN-16. QR permanece opcional y sin alteración de asistencia. Bitácora individual por estudiante de solo anexar; REGISTRADOR en secciones propias, supervisión en ámbito autorizado.
+RN-17. Bitácora no modifica asistencia y conserva autor/hora; anotaciones históricas acompañan al estudiante al cambiar de sección; sin edición ni borrado ordinarios.
+RN-18. Estudiantes y matrículas retiradas/inactivas se excluyen de listas activas, pero no se borran asistencias, bitácoras ni auditorías; accesos históricos sujetos a permisos.
+RN-19. Indicador mensual al alcanzar 3 faltas/tardanzas combinadas, justificadas o no, intercaladas o consecutivas; recalcular diariamente y ante cambios. Desglosar categorías, sin sanción automática.
+RN-20. Importación inicial y posteriores con vista previa, validación y confirmación. Incluir trasladados iniciales como inactivos; no desactivar por ausencia en padrón parcial; no sobrescribir historiales.
+RN-21. Reporte mensual por sección exportable parcial/completo en cualquier momento, sin cierre obligatorio, con días sin registro distintos de falta; formato final pendiente.
+RN-22. Leyenda prevista de ficha: . / F / T / J / U para presente/falta/tardanza/falta justificada/tardanza justificada; origen operativo, no catálogo oficial completo.
+RN-23. ADMIN y SUBDIRECCION ven estadísticas de su ámbito; REGISTRADOR solo resumen individual mensual de estudiantes autorizados y exportación de sus secciones.
+RN-24. Cambios de sección preservan historia; nuevo REGISTRADOR puede consultar información histórica necesaria del estudiante actualmente a su cargo, sin ampliar acceso a otros estudiantes.
+RN-25. Respaldos/restauración se gestionan por procedimiento técnico independiente; realizar respaldos previos a migraciones y proteger datos personales.
+
+Nota de compatibilidad: RN-08/RN-09/RN-10/RN-16/RN-17/RN-19 y RN-20 difieren del SQL v1; no asumir implementadas. Las decisiones más recientes sustituyen reglas contradictorias del v2 y del v3 (FUT obligatorio, solo faltas justificables, bitácora por nivel y umbral de tres tardanzas consecutivas).

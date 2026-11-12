@@ -6,6 +6,16 @@ El modo de desarrollo y las pruebas usan herramientas nativas
 de Node.js. La separación entre `app.js` y `server.js` permite probar HTTP con un
 puerto temporal sin iniciar el servidor habitual al importar la aplicación.
 
+## Estado y referencias vigentes
+
+Código de referencia: `a131fec`, posterior a 6C-A; incluye revalidación del ADMIN
+bajo bloqueo en el alta de usuarios. Última suite confirmada para ese commit:
+171 pruebas exitosas. Calendario 6D y frontend siguen sin implementar.
+Las referencias funcionales vigentes son los cuatro TXT v4 enlazados en el
+[README principal](../README.md#referencias-funcionales-vigentes). V2 y la adenda
+6C-A son antecedentes históricos; no conceden permisos contrarios a v4 ni
+acreditan implementación de asistencia, justificaciones o bitácora.
+
 ## Iniciar y detener
 
 Desde la raíz del proyecto, en PowerShell:
@@ -57,15 +67,21 @@ Pruebas automatizadas, desde `backend/`:
 npm.cmd test
 ```
 
-Las pruebas abren un servidor temporal y lo cierran al terminar; comprueban el
-contrato de health y el 404 de una API no implementada. No requieren iniciar
+Las pruebas HTTP abren servidores temporales y los cierran al terminar. La suite
+cubre health, autenticación, usuarios, supervisión multinivel, años, secciones,
+validaciones y fallos/concurrencia transaccionales simulados. Usa dobles de
+repositorio y conexión, sin consultar ni modificar MySQL real. No requiere iniciar
 otro servidor. Health solo indica que Express responde: no comprueba MySQL.
 
 ## Alcance
 
 Endpoints: `GET /api/health`, `POST /api/auth/login`, `GET /api/auth/me`,
 `GET /api/usuarios`, `GET /api/usuarios/:id`, `POST /api/usuarios`,
-`PATCH /api/usuarios/:id` y `PATCH /api/usuarios/:id/estado`.
+`PATCH /api/usuarios/:id`, `PATCH /api/usuarios/:id/estado`,
+`GET/PUT /api/usuarios/:id/niveles-adicionales`,
+`GET/POST /api/anios-escolares`, `GET /api/anios-escolares/:id`,
+`GET/POST /api/secciones` y `GET /api/secciones/:id`.
+Los listados admiten barra final. Los contratos de cada módulo detallan permisos.
 El pool MySQL se crea bajo demanda; health sigue independiente de MySQL y puede
 funcionar sin credenciales. El módulo health no
 necesita servicios ni repositorios porque no tiene reglas de negocio ni SQL.
@@ -99,7 +115,7 @@ El comando usa el pool de `src/config/database.js`, ejecuta únicamente
 es `asistencia_paillardelle`. Seleccionarla en la conexión también comprueba que
 existe y que el usuario tiene acceso. Cierra el pool tanto en éxito como en error;
 sale con código 0 en éxito y 1 en fallo. No crea bases ni tablas, no ejecuta
-migraciones ni lee datos personales. No comprueba aún las 17 tablas ni la versión
+migraciones ni lee datos personales. No comprueba las tablas, sus migraciones ni la versión
 del servidor. Los errores muestran solo un código reconocido y una descripción
 fija; no se imprimen mensajes originales, stack ni credenciales. Los fallos no
 clasificados se identifican como `UNKNOWN_DB_ERROR`.
@@ -199,10 +215,12 @@ debe usar HTTPS antes de enviar contraseñas o tokens fuera del entorno local.
 Los roles devueltos no conceden acceso a funcionalidades futuras: cada módulo
 deberá aplicar sus propias reglas de autorización de rol, nivel y sección.
 
-## Procedimiento puntual autorizado: admin_prueba
+## Procedimiento histórico puntual: admin_prueba
 
-Exclusivamente para esta prueba local aprobada, incluida la excepción de usar
-la conexión existente de desarrollo. Desde una terminal interactiva de VS Code:
+El script se conserva como antecedente de una prueba local autorizada. Inserta
+una cuenta real; no forma parte de `npm.cmd test`, del arranque ni de un seed.
+La autorización histórica no permite ejecutarlo nuevamente sin aprobación
+específica. Con esa autorización, desde una terminal interactiva de VS Code:
 
 ```powershell
 cd backend
@@ -249,7 +267,7 @@ estado inicial PLANIFICADO y auditoría en la misma transacción. No incluye edi
 ni apertura/cierre de años; los contratos y límites se detallan en el enlace anterior.
 
 La etapa 6C añade `GET /api/secciones`, `GET /api/secciones/:id` y `POST /api/secciones`.
-ADMIN tiene ámbito global, SUBDIRECCION su nivel y REGISTRADOR solo consulta sus
+ADMIN tiene ámbito global, SUBDIRECCION sus niveles efectivos y REGISTRADOR solo consulta sus
 asignaciones vigentes en America/Lima. Las consultas admiten cualquier estado del
 año; crear requiere PLANIFICADO o ABIERTO y se audita en una misma transacción.
 
@@ -263,9 +281,20 @@ INICIAL admite grupos 4 y 5; letra admite hasta 30 caracteres para nombres de sa
 GET/PUT `/api/usuarios/:id/niveles-adicionales` permite a ADMIN administrar niveles
 adicionales de SUBDIRECCION con auditoría. La API de usuarios ordinaria conserva sus
 contratos y la autenticación sigue sin almacenar permisos de nivel en JWT.
-Consultar la [adenda y decisiones](../docs/requisitos/adenda_6c_a_inicial_supervision.md).
+Consultar las [referencias v4 vigentes](../README.md#referencias-funcionales-vigentes)
+y la [adenda histórica 6C-A](../docs/requisitos/adenda_6c_a_inicial_supervision.md).
 
-La [migración 002](../docs/database/migrations/README.md) está preparada y NO ejecutada.
-Antes de desplegar este backend contra MySQL institucional se requiere inspección
-del esquema real, respaldo y ensayo autorizado. El arranque y las pruebas no migran
-ni precargan datos institucionales. Calendario lectivo 6D permanece pendiente.
+La [migración 002](../docs/database/migrations/README.md) fue aplicada a MySQL local
+según la ejecución y verificaciones previas registradas en la sesión de desarrollo.
+Esta revisión documental no vuelve a inspeccionar la base ni acredita producción.
+No reejecutar 002. Antes de cualquier otro despliegue se requiere inspección del
+esquema real, respaldo y procedimiento autorizado. El arranque y las pruebas no
+migran ni precargan datos institucionales.
+
+## Calendario lectivo (6D pendiente)
+
+Está aprobada una tabla futura `periodos_lectivos` por año/nivel, complementaria
+de `calendario_lectivo` para excepciones diarias. No existe aún migración ni API.
+Consultar la [decisión aprobada y sus pendientes](../README.md#6d-decisión-aprobada-sin-implementación).
+Los cambios de esquema de asistencia/bitácora descritos en v4 tampoco están
+implementados y requieren diseño y autorización independientes.

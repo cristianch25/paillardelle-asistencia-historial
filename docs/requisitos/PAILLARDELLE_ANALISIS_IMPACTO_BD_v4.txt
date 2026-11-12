@@ -1,0 +1,43 @@
+ANÁLISIS DE IMPACTO EN BASE DE DATOS Y CÓDIGO — 11/11/2026
+Archivos inspeccionados: diseno_asistencia_consolidado_v2(2).txt, adenda_6c_a_inicial_supervision.md, asistencia_paillardelle_mysql_v1(2).sql, 002_inicial_supervision_multinivel.sql.
+NO se ejecutó SQL, NO se inspeccionó la BD viva ni el código fuente completo; conclusiones referidas al esquema y documentos aportados. Migración 002 se considera ejecutada únicamente por reporte previo del usuario.
+
+A. CAMBIOS DE ESQUEMA NECESARIOS / MUY PROBABLES
+1. Justificación de tardanza: asistencias.chk_asistencia_justificada restringe justificada=TRUE solo para FALTA; historial_asistencias.chk_hist_antes y chk_hist_despues repiten la restricción. Hay que modificar los tres CHECK para permitir TARDANZA justificada, pero impedir PRESENTE justificado. No basta cambiar solo backend.
+2. Justificación documentada: el esquema solo tiene BOOLEAN justificada y historial sin motivo ni canal. Diseñar campos de motivo y canal en entidad de justificaciones o historial asociado; conservar cambios y reversión. Requiere decisión técnica sobre modelo (tabla dedicada recomendada si se requiere historia de múltiples justificaciones; evitar duplicar información innecesaria).
+3. Correcciones tras cierre: historial_asistencias no tiene motivo y el SQL mostrado no incluye tabla de sesiones/cierres. Definir dónde persistir estado de cierre por sección/día y motivo de corrección. No inventar que el cierre ya está implementado.
+4. Bitácora: bitacora_actividades actualmente contiene usuario_id, nivel, fecha, descripcion; NO estudiante_id ni matricula_id. Añadir FK a estudiantes para bitácora permanente individual, índices por estudiante/fecha, timestamp autor y política append-only. Revisar si conservar nivel como contexto histórico y si eliminar updated_at para evitar sugerir edición. Validar alcance por matrícula/sección en backend.
+5. Estado de estudiante: estudiantes no tiene columna activo; matriculas sí tiene estado ACTIVA/RETIRADA/FINALIZADA. Se puede representar inactividad operativa por matrícula vigente, sin duplicar estado global. Si se desea ACTIVO/INACTIVO global explícito, requiere ALTER y reglas de coherencia; decidir antes de migrar. Importar trasladados como RETIRADA, no como matrícula ACTIVA.
+6. Importación repetida: esquema de estudiantes tiene codigo_estudiante UNIQUE y documento UNIQUE; matriculas UNIQUE estudiante/año. Aprovechar, revisar nulos y cambios de identificación, registrar lotes/importaciones y decisiones si se requiere trazabilidad detallada. No necesariamente nuevas tablas para MVP; auditoría administrativa puede registrar lote.
+
+B. FUNCIONES QUE NO REQUIEREN NECESARIAMENTE CAMBIOS DE TABLAS
+7. Indicador mensual de 3 incidencias y desglose: derivar con consultas agregadas de asistencias por mes y justificada, sin tabla de alertas inicialmente; índices existentes por fecha/estado y sección ayudan, evaluar EXPLAIN en datos reales. Recalcular bajo demanda/tras escritura y asegurar frescura diaria, no obligar a cron si no hace falta.
+8. Exportación mensual parcial y leyenda: transformación de datos y permisos; no se requiere tabla específica; PENDIENTE se deduce de ausencia de asistencia en fecha lectiva.
+9. Calendarios separados por nivel: migración 002 ya amplía ENUM a INICIAL; índice UNIQUE(anio_escolar_id,nivel,fecha) permite separación. ADMIN y SUBDIRECCION y protección ante cambios retroactivos se resuelven principalmente en backend/auditoría.
+10. Supervisión multinivel: migración 002 agrega usuario_niveles_adicionales; NO duplicar ni rehacer.
+11. Traslado interno e historial: matricula_secciones tiene períodos; controlar solapamientos y acceso histórico en backend.
+12. Acceso a reportes: autorización y filtros de consultas, sin cambio obligatorio de esquema.
+
+C. DISCREPANCIAS DOCUMENTALES REALES
+- v2: solo SUBDIRECCION justifica FALTA con FUT; v4: REGISTRADOR y SUBDIRECCION justifican FALTA/TARDANZA sin aprobación ni documento obligatorio.
+- v2: justificada TRUE únicamente en FALTA; v4: también TARDANZA.
+- v2: bitácora por usuario/nivel y opcional deshabilitada; v4: individual por estudiante y funcionalidad prevista. Definir cuándo activar flag bitacora_habilitada y permiso puede_usar_bitacora.
+- v2: 17 tablas; tras 002 se esperan 18 tablas. No editar retroactivamente SQL v1 ni migración 002.
+- v2: ADMIN técnico sin justificaciones; v4: directora ADMIN con autoridad institucional. Revisar backend de autorizaciones y delimitar operaciones.
+- v3: umbral de 3 tardanzas injustificadas consecutivas; v4: 3 incidencias mensuales combinadas, justificadas incluidas. Sustituir regla anterior, no ejecutar ambas por accidente.
+- v2: solo APODERADO y vínculo único activo; export SIAGIE incluye padre/madre/apoderado. Mantener un contacto activo como MVP o decidir modelo múltiple ANTES de importar tres columnas indiscriminadamente.
+
+D. ORDEN SEGURO PROPUESTO
+1. Cerrar decisiones de modelo de justificación y estado de matrícula/estudiante, y comparar esquema vivo SHOW CREATE TABLE contra scripts.
+2. Diseñar una migración 003 nueva y reversible operativamente mediante backup (DDL MySQL no es transacción única), SIN ejecutar todavía; incluir cambios de CHECK, bitácora, y tablas/campos justificación/cierre que se aprueben.
+3. Implementar 6D calendario sobre esquema 002 ya migrado, con pruebas de roles y fechas con registros.
+4. Implementar módulos estudiantes/matrículas/importación, asistencia y justificaciones con migración coordinada; indicadores y reportes por consultas.
+5. Pruebas de regresión, importación real anonimizada primero, respaldos y revisión de permisos antes de datos de menores.
+
+E. AÚN POR CONFIRMAR
+- Fuente y significado de fecha_ingreso para estudiantes TRASLADADO del padrón; el SQL exige fecha_ingreso NOT NULL.
+- Si bitácora se habilita para todos los REGISTRADOR o requiere permiso individual ya existente.
+- Estructura de sesión/cierre de asistencia; no aparece en SQL v1 proporcionado.
+- Reglas de reversión de justificaciones y motivos de correcciones antes/después de cierre.
+- Datos de contacto: importación de PADRE/MADRE/APODERADO frente a un solo vínculo activo actual.
+- Confirmar tablas y cambios ya existentes en BD viva antes de redactar SQL ejecutable.
