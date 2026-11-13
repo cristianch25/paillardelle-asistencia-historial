@@ -16,12 +16,13 @@ preparadas, sin aplicación React ni manifiesto de paquetes. Una carpeta vacía
 no representa una funcionalidad terminada. **6D-1 completó el esquema de períodos;
 6D-2 implementa las API y reglas operativas de calendario.** La suite de 6D-2
 comprueba 216 pruebas con conexiones simuladas, sin MySQL real.
+El bloque inicial de asignaciones añade 24 pruebas: suite actual de 240 pruebas.
 
 | Área | Implementado en backend | Pendiente |
 | --- | --- | --- |
 | Salud | `GET /api/health`, independiente de MySQL | No acredita esquema ni conexión SQL |
 | Autenticación | Login bcrypt, JWT Bearer, perfil y usuario activo consultado en cada petición | Recuperación de contraseña, refresh/logout y despliegue HTTPS |
-| Usuarios | Listado/detalle/alta, edición y estado, protección del último ADMIN, auditoría | Administración de asignaciones; no hay eliminación física |
+| Usuarios y asignaciones | Administración de usuarios; consulta de asignaciones por ámbito y alta exclusiva de ADMIN con auditoría | Edición/finalización de asignaciones; no hay eliminación física |
 | Supervisión | Niveles adicionales explícitos de SUBDIRECCION, administrados por ADMIN | Sin permisos dinámicos; PORTERIA aprobado para una etapa futura |
 | Años escolares | Listado/detalle para tres roles; creación ADMIN en PLANIFICADO | Edición, apertura, cierre y reapertura |
 | Secciones | Listado/detalle por ámbito; creación ADMIN/SUBDIRECCION en año PLANIFICADO o ABIERTO | Edición y desactivación |
@@ -104,7 +105,7 @@ dejar resultado incierto; se descarta la conexión y no se reintenta automática
 
 | Módulo | Responsabilidad actual o futura |
 | --- | --- |
-| `auth/`, `usuarios/` | Implementados; asignaciones aún sin API propia |
+| `auth/`, `usuarios/` | Autenticación y usuarios implementados; asignaciones con GET/POST propios |
 | `organizacion-escolar/` | Años, secciones y calendario implementados |
 | `estudiantes/`, `matriculas/` | Identidad/contactos y movimientos con historial; pendientes |
 | `asistencias/` | Registro, correcciones, justificaciones e historial; pendiente |

@@ -11,6 +11,10 @@ y `validation.js`. Este README conserva los contratos de ambas funcionalidades.
 `app.js` compone sus rutas; se conservan los nombres de exports existentes.
 Secciones consulta las asignaciones mediante el servicio de usuarios; el SQL
 permanece en su repositorio, sin dependencia de usuarios hacia este módulo.
+Para el alta de asignaciones, `app.js` inyecta el servicio de secciones en el
+servicio de asignaciones; no hay importación inversa de usuarios a organización.
+Su operación interna `assignmentContext` localiza el año y bloquea año/sección
+en la conexión transaccional recibida, sin abrir otra transacción ni añadir HTTP.
 
 En las consultas, ADMIN, SUBDIRECCION y REGISTRADOR autenticados
 pueden consultar todos los años, incluidos PLANIFICADO, ABIERTO y CERRADO.

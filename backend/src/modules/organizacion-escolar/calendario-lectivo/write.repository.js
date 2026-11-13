@@ -1,14 +1,7 @@
 import { getPool } from '../../../config/database.js';
 import { inTransaction } from '../../../shared/transaction.js';
-import { validateId } from '../../../shared/query-validation.js';
+import { readInsertedId } from '../../../shared/inserted-id.js';
 import { readCalendar, periodColumns, exceptionColumns, periodRow, exceptionRow } from './repository.js';
-
-async function insertedId(connection) {
-  const [rows] = await connection.execute('SELECT CAST(LAST_INSERT_ID() AS CHAR) AS id');
-  const id = rows[0]?.id;
-  try { validateId(id); } catch { throw new Error('No se pudo recuperar el ID insertado como texto unsigned.'); }
-  return id;
-}
 
 async function audit(connection, actorId, entity, action, before, after) {
   await connection.execute(
@@ -31,7 +24,7 @@ async function savePeriod(connection, actorId, { before, after }) {
       [after.anio_escolar_id, after.nivel, after.fecha_inicio, after.fecha_fin],
     );
     if (result.affectedRows !== 1) throw new Error('No se creó un único período.');
-    id = await insertedId(connection);
+    id = await readInsertedId(connection);
   }
   const [rows] = await connection.execute(`SELECT ${periodColumns} FROM periodos_lectivos WHERE id = ? LIMIT 1`, [id]);
   const row = periodRow(rows[0]);
@@ -52,7 +45,7 @@ async function saveException(connection, actorId, { before, after }) {
       [after.anio_escolar_id, after.nivel, after.fecha, after.es_lectivo, after.descripcion],
     );
     if (result.affectedRows !== 1) throw new Error('No se creó una única excepción.');
-    id = await insertedId(connection);
+    id = await readInsertedId(connection);
   }
   const [rows] = await connection.execute(`SELECT ${exceptionColumns} FROM calendario_lectivo WHERE id = ? LIMIT 1`, [id]);
   const row = exceptionRow(rows[0]);
