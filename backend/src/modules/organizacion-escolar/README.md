@@ -89,9 +89,61 @@ Si COMMIT falla, la conexión se descarta siempre, aunque el ROLLBACK posterior
 resuelva; ese ROLLBACK no demuestra que la creación no haya sido confirmada.
 Los demás errores reciben 500 genérico, sin SQL ni datos internos.
 
-En años escolares no se implementan edición ni transiciones de estado.
+En 6B no se implementaron edición ni transiciones de estado. El bloque posterior
+de apertura incorpora únicamente PLANIFICADO → ABIERTO, según el contrato siguiente.
 La etapa 6B no añadió dependencias ni cambios funcionales en usuarios. Los casos concurrentes y de
 fallos usan conexiones simuladas; no equivalen a validación en MySQL real.
+
+## Apertura del año escolar
+
+`PATCH /api/anios-escolares/:id/abrir` requiere JWT y ADMIN activo. Decisión
+aprobada posterior a asignaciones: el año es global (v5 D25), por lo que
+SUBDIRECCION no puede abrirlo, aunque tenga los tres niveles efectivos.
+REGISTRADOR y roles futuros tampoco. Se conservan sus consultas actuales.
+
+ID BIGINT UNSIGNED como texto, validado sin Number. Sin cuerpo o con `{}`;
+cualquier campo JSON, incluso estado/nivel, devuelve 400. JSON malformado 400,
+cuerpo mayor de 8 KB 413. HTTP 200: `{ anio_escolar: {...} }`, con los siete
+campos públicos de GET y Cache-Control: no-store. Año inexistente: 404;
+ya ABIERTO o CERRADO: 409. No se reabre, cierra, elimina ni edita el año.
+
+Condición funcional: año existente en PLANIFICADO. No se añaden requisitos
+de fecha actual, períodos cargados, secciones/asignaciones completas ni año
+ABIERTO único que el esquema y v5 no establecen. Abrir no vuelve lectivo un día
+por sí solo: siguen vigentes períodos, regla semanal y excepciones de 6D-2.
+
+Una transacción compartida: actor FOR UPDATE y revalidación de actividad/ADMIN,
+luego año FOR UPDATE y validación de su estado actual. UPDATE condicionado a
+PLANIFICADO, lectura del resultado y auditoría ABRIR_ANIO_ESCOLAR, entidad
+anios_escolares, con actor/ID/antes/después públicos se confirman juntos.
+Nunca se adquieren otros usuarios después del año. Se comparte la fila del año
+con calendario y asignaciones; dos aperturas concurrentes generan una única
+transición/auditoría, y la otra devuelve 409 tras releer ABIERTO. Rollback,
+descarte ante COMMIT incierto y ausencia de reintentos usan shared/transaction.js.
+Errores restantes: 401 autenticación/actor inactivo, 403 rol, 409 deadlock/timeout,
+500 interno genérico. No se modifican períodos, excepciones o asignaciones.
+
+Mapa: anios-escolares/routes.js y controller.js contienen HTTP; validation.js
+valida el cuerpo; service.js aplica autorización y transición; repository.js
+contiene bloqueos, UPDATE y auditoría compartida con el alta existente.
+Tablas: usuarios (lectura/bloqueo), anios_escolares (estado) y
+auditoria_administrativa (anexado). Sin migración ni dependencias nuevas.
+
+Desde backend, `npm.cmd test`: anios-escolares.open.test.js y
+anios-escolares.open.http.test.js añaden 16 pruebas con conexiones simuladas,
+incluidas revocación mientras espera, fallos transaccionales y escritor de
+calendario concurrente. La integración mínima adicional se ejecutó el 13/11/2026
+en una instancia nueva MySQL 8.4.13, 127.0.0.1:3307, con directorio/configuración
+independientes. Se verificaron puerto libre antes del arranque, PID, argumentos
+e identidad antes de escribir. Seis comprobaciones satisfactorias: esquema
+v1/002/003 solo temporal; apertura HTTP con ID unsigned grande y rechazos de
+estados/inexistente; roles; dos ADMIN concurrentes con una sola apertura/auditoría;
+antes/después auditados y rollback real del UPDATE ante fallo controlado de
+auditoría; calendario conservado. Se autorizó por separado el SHUTDOWN y se
+confirmó apagado normal, sin Stop-Process, sin acceso a 3306 y sin cambios en
+backend/.env o servicios existentes. Arnés/resultados locales ignorados por Git
+en backend/tmp/integracion-apertura-preparada/. No reutilizar esa instancia.
+Cierre anual, reapertura y cierre diario permanecen pendientes.
 
 ## Secciones (6C)
 

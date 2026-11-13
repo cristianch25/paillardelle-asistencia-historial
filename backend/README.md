@@ -13,7 +13,8 @@ bajo bloqueo en el alta de usuarios. Última suite confirmada para ese commit:
 171 pruebas exitosas. 6D-1 completó el esquema local de períodos; 6D-2 añade las
 API de calendario y 45 pruebas (216 en total). Asistencia principal, QR/PORTERIA
 y frontend siguen pendientes.
-El bloque inicial de asignaciones añade 24 pruebas; la suite actual tiene 240.
+El bloque inicial de asignaciones añade 24 pruebas y la apertura anual otras 16;
+la suite actual tiene 256.
 Las referencias funcionales vigentes son los cuatro TXT v5 enlazados en el
 [README principal](../README.md#referencias-funcionales-vigentes). V2 y la adenda
 6C-A y los cuatro TXT v4 son antecedentes históricos; no conceden permisos contrarios a v5 ni
@@ -83,6 +84,7 @@ Endpoints: `GET /api/health`, `POST /api/auth/login`, `GET /api/auth/me`,
 `PATCH /api/usuarios/:id`, `PATCH /api/usuarios/:id/estado`,
 `GET/PUT /api/usuarios/:id/niveles-adicionales`,
 `GET/POST /api/anios-escolares`, `GET /api/anios-escolares/:id`,
+`PATCH /api/anios-escolares/:id/abrir` (solo ADMIN),
 `GET/POST /api/secciones` y `GET /api/secciones/:id`, más los ocho
 [endpoints de calendario 6D-2](src/modules/organizacion-escolar/calendario-lectivo/README.md).
 `GET/POST /api/asignaciones` incorpora consulta por ámbito y alta exclusiva de
@@ -270,7 +272,9 @@ Consulta los [contratos y pruebas de organización escolar](src/modules/organiza
 
 La etapa 6B añade `POST /api/anios-escolares`, exclusivo de ADMIN activo, con
 estado inicial PLANIFICADO y auditoría en la misma transacción. No incluye edición
-ni apertura/cierre de años; los contratos y límites se detallan en el enlace anterior.
+ni apertura/cierre de años en 6B; el bloque posterior de apertura incorpora solo
+PLANIFICADO → ABIERTO mediante PATCH exclusivo de ADMIN, según la decisión
+aprobada para el año global. Contratos y límites en el enlace anterior.
 
 La etapa 6C añade `GET /api/secciones`, `GET /api/secciones/:id` y `POST /api/secciones`.
 ADMIN tiene ámbito global, SUBDIRECCION sus niveles efectivos y REGISTRADOR solo consulta sus

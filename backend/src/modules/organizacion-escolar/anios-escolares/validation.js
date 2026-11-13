@@ -1,6 +1,12 @@
 import { HttpError } from '../../../shared/http-error.js';
 import { validDate } from '../../../shared/date-validation.js';
 
+export function validateOpenYear(body) {
+  if (body !== undefined && (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length)) {
+    throw new HttpError(400, 'La apertura no admite campos: omite el cuerpo o envía un objeto vacío.');
+  }
+}
+
 export function validateNewYear(body) {
   const fields = ['anio', 'fecha_inicio', 'fecha_fin'];
   if (!body || typeof body !== 'object' || Array.isArray(body)

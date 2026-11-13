@@ -291,5 +291,6 @@ usuario/sección distintos. Se verificaron backend/.env y estados de servicios
 sin cambios. La instancia temporal terminó con SHUTDOWN normal autorizado,
 sin Stop-Process. Arnés/resultados locales ignorados por Git en
 backend/tmp/integracion-asignaciones-41f6021f54/. La integración de siete
-comprobaciones anterior corresponde a calendario 6D-2. Apertura de año,
-estudiantes, matrículas y asistencia siguen pendientes.
+comprobaciones anterior corresponde a calendario 6D-2. Estudiantes, matrículas
+y asistencia siguen pendientes. La apertura del año ya dispone de PATCH
+exclusivo de ADMIN: ver el [contrato de organización escolar](../organizacion-escolar/README.md).
