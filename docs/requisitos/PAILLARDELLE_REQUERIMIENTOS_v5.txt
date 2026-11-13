@@ -1,0 +1,44 @@
+PAILLARDELLE ASISTENCIA — I.E. ENRIQUE PAILLARDELLE
+Fecha de consolidación: 13/11/2026
+Fuente: documentos v4 conservados, decisiones aprobadas de 6D-0/6D-1 y confirmaciones posteriores del usuario sobre QR/PORTERIA.
+Estado: ESPECIFICACIÓN ACORDADA, no evidencia de implementación.
+
+REQUERIMIENTOS FUNCIONALES Y NO FUNCIONALES v5
+Conserva RF-01 a RF-15 con alcance actualizado; añade RF-16 para PORTERIA. Mantiene RNF-01 a RNF-10. Citar siempre la versión.
+
+REQUERIMIENTOS FUNCIONALES
+RF-01. Autenticar cuentas individuales y autorizar por los roles funcionales aprobados, niveles efectivos y asignaciones vigentes, verificando permisos en backend. PORTERIA se incorporará en su etapa futura, sin heredar funciones académicas.
+RF-02. Administrar cuentas, roles fijos, niveles adicionales y asignaciones con auditoría y protecciones. El catálogo aprobado incluye PORTERIA; SQL/backend todavía admiten tres roles y requieren adaptación futura.
+RF-03. Administrar años, secciones y calendarios independientes por nivel, con períodos inclusivos sin solapamientos dentro del año, regla semanal y excepciones prioritarias con motivo. Recuperaciones fuera de períodos y bloqueos atómicos de hasta 366 fechas; 409 ante recuperación incompatible. Permitir fechas pasadas en año no cerrado sin invalidar asistencias. ADMIN todos los niveles, SUBDIRECCION los autorizados y REGISTRADOR consulta por asignaciones vigentes. Validar en backend y auditar.
+RF-04. Importar padrones SIAGIE (estudiantes, matrículas y contactos) con mapeo selectivo, validación, vista previa y confirmación; conciliar importaciones posteriores sin borrado ni reemplazo silencioso.
+RF-05. Consultar/actualizar estudiantes, matrículas, traslados y contactos según permisos; desactivar sin borrar; auditar teléfonos y cambios de matrícula.
+RF-06. Registrar asistencia individual y por lista en secciones autorizadas, con estados PRESENTE/TARDANZA/FALTA, pendientes, guardado parcial y cierre advertido.
+RF-07. Corregir estados de asistencia, incluida FALTA a TARDANZA por llegada posterior, durante/después del cierre; exigir motivo después del cierre.
+RF-08. Registrar y retirar justificación de FALTA o TARDANZA con motivo, canal, responsable y fecha; sin adjunto ni aprobación obligatoria.
+RF-09. Conservar historial inalterable de modificaciones y auditoría administrativa, con transacciones y consulta autorizada.
+RF-10. Consultar asistencia, pendientes, completitud, historial por estudiante y resumen mensual individual según rol y sección.
+RF-11. Calcular seguimiento mensual de 3 incidencias combinadas, incluidas justificadas; recalcular diariamente y tras cambios; presentar desglose y reportes por período, nivel, grado y sección.
+RF-12. Exportar fichas mensuales por sección en cualquier momento, incluso parciales, con permisos por ámbito, leyenda . F T J U y formato configurable a definir.
+RF-13. Generar/revocar credenciales QR por matrícula anual y exportarlas según alcance cuando el módulo futuro sea habilitado. PORTERIA no tiene esas facultades; los actores autorizados para emisión/revocación/exportación requieren definición específica.
+RF-14. Con QR autorizado y habilitado, registrar automáticamente PRESENTE/TARDANZA según horario del turno, sin confirmación individual, en la misma asistencia diaria del docente/auxiliar. Exigir en backend año ABIERTO y fecha lectiva del nivel, incluidas recuperaciones habilitadas fuera de períodos o en fines de semana. En otro estado/día rechazar sin alterar datos existentes. Evitar asistencias duplicadas; no implementar salidas ni múltiples ingresos. Correcciones de REGISTRADOR sujetas a permisos/auditoría; conflictos manual/QR pendientes.
+RF-15. Crear y consultar bitácora de seguimiento individual por estudiante, solo anexar, conservando historial tras cambios de sección y visibilidad autorizada.
+
+RF-16. Permitir a PORTERIA iniciar sesión, escanear QR y ver solo el resultado de sus propios escaneos con datos mínimos, en el acceso principal de los tres niveles. Sin asistencia manual, justificaciones, administración de horarios, emisión/revocación de credenciales, listados generales ni reportes. Implementar después de asistencia principal, con migración independiente de 003; relación con puede_escanear_qr pendiente.
+
+REQUERIMIENTOS NO FUNCIONALES
+RNF-01. Interfaz responsive y sencilla en computadora/celular, con vistas de REGISTRADOR sin funciones administrativas innecesarias.
+RNF-02. Autorización obligatoria en servidor por rol, niveles efectivos, sección, matrícula y fechas; ocultar detalles ajenos.
+RNF-03. Contraseñas con hash seguro (bcrypt), JWT/sesiones protegidas y HTTPS en despliegue.
+RNF-04. Minimización y protección de datos personales de menores, contactos y bitácoras; acceso restringido.
+RNF-05. Integridad relacional, validaciones, restricciones, transacciones, concurrencia y consistencia histórica de traslados y justificaciones.
+RNF-06. Respuesta ágil para volumen escolar esperado; índices por estudiante, fecha, matrícula, sección y filtros de seguimiento.
+RNF-07. Respaldos seguros y procedimiento de restauración comprobable antes de operación real; automatización y calendario de pruebas por definir.
+RNF-08. Código modular y mantenible; pruebas automatizadas de permisos, importación, asistencia, calendarios, indicadores y QR/PORTERIA cuando se implementen. Incluir duplicados concurrentes, año no abierto, día no lectivo y recuperaciones; probar conflictos manual/QR después de definir su política.
+RNF-09. Importaciones con vista previa y mensajes de error comprensibles; sin sobrescritura silenciosa, duplicados o cambios parciales inconsistentes.
+RNF-10. El flujo principal funciona sin SIAGIE conectado y con QR deshabilitado. QR será funcional al implementarse, pero opcional y deshabilitado por defecto hasta autorización; bitácora no depende de QR.
+
+ESTADO Y ALCANCE
+- El documento especifica requisitos, NO declara que todos estén programados.
+- Código existente: 6C-A y alta transaccional segura a131fec. Esquema local 6D-1: migración 003 aplicada/verificada, 19 tablas. API de calendario y frontend pendientes; esta redacción no vuelve a inspeccionar MySQL.
+- Fuera de alcance inmediato: SUPERADMIN técnico, permisos dinámicos, importación de asistencia histórica, integración SIAGIE, mensajería automática.
+- QR/PORTERIA son decisiones aprobadas futuras, no funciones implementadas. Pendientes: conflictos manual/QR, relación con puede_escanear_qr, horarios, emisión/revocación/exportación y demás P01–P09 de decisiones v5. Año ABIERTO y día lectivo efectivo para QR ya están aprobados.

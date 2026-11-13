@@ -4,14 +4,14 @@
 
 Antes de implementar o modificar cualquier módulo, leer:
 
-- `docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v4.txt`
-- `docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v4.txt`
-- `docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v4.txt`
-- `docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v4.txt`
+- `docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v5.txt`
+- `docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v5.txt`
+- `docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v5.txt`
+- `docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v5.txt`
 - `docs/database/asistencia_paillardelle_mysql_v1.sql`
 - Las migraciones versionadas aplicables y su `docs/database/migrations/README.md`.
 
-Los cuatro TXT v4 son las referencias funcionales vigentes. Consultar las RN,
+Los cuatro TXT v5 son las referencias funcionales vigentes. Consultar las RN,
 RF/RNF y decisiones aplicables, citando su versión: los códigos no conservan
 necesariamente el significado de v2. El análisis de impacto describe propuestas
 y limitaciones, no evidencia que una función esté implementada. La decisión
@@ -19,9 +19,9 @@ posterior aprobada de períodos lectivos para 6D se recoge en `README.md`.
 
 `docs/requisitos/diseno_asistencia_consolidado_v2.txt` y
 `docs/requisitos/adenda_6c_a_inicial_supervision.md` se conservan como antecedentes
-históricos; no aplicar sus reglas sustituidas por v4. Las decisiones compatibles
-de 6C-A, como supervisión adicional explícita, siguen vigentes. No sobrescribir
-estos antecedentes, SQL v1 ni migración 002 para adaptar el diseño nuevo.
+históricos, junto con los cuatro TXT v4; no aplicar sus reglas sustituidas por v5.
+Las decisiones compatibles de 6C-A, como supervisión adicional explícita, siguen vigentes. No sobrescribir
+estos antecedentes, SQL v1 ni migraciones 002/003 para adaptar el diseño nuevo.
 
 Respetar el esquema SQL y las migraciones aplicables: nombres, tipos, ENUM,
 nulabilidad, columnas generadas, claves, índices y restricciones. Una decisión
@@ -76,14 +76,15 @@ responsabilidades y particularidades de cada tecnología.
 
 ## Seguridad e integridad que deben preservarse
 
-- Aplicar los permisos de v4 en servidor por rol, niveles efectivos, sección,
+- Aplicar los permisos de v5 en servidor por rol, niveles efectivos, sección,
   matrícula y vigencia. Las facultades institucionales generales de ADMIN no
-  resuelven operaciones específicas que v4 deja pendientes. No crear roles ni
-  permisos configurables nuevos. Revalidar al actor bajo bloqueo en escrituras
+  resuelven operaciones específicas que v5 deja pendientes. PORTERIA está aprobado
+  como cuarto rol futuro, no implementado; no crear otros roles ni permisos
+  configurables. Revalidar al actor bajo bloqueo en escrituras
   sensibles, siguiendo el protocolo existente y un orden compatible de bloqueos.
 - Para asistencia ordinaria validar año ABIERTO, día lectivo y vigencias.
   No extender esa exigencia indiscriminadamente a consultas históricas o a la
-  preparación académica. Las correcciones y justificaciones seguirán v4 y sus
+  preparación académica. Las correcciones y justificaciones seguirán v5 y sus
   decisiones pendientes; no reintroducir FUT ni exclusividad de SUBDIRECCION de v2.
 - Resolver solapamientos con transacciones y bloqueos adecuados. Guardar cambios
   de asistencia e historial juntos, usando `version` para concurrencia;
@@ -96,21 +97,34 @@ responsabilidades y particularidades de cada tecnología.
   estudiante; no ampliarlo a múltiples contactos sin decisión y migración.
 - Importaciones Excel con vista previa, validaciones y control de duplicados;
   no persistir lotes inconsistentes ni integrar SIAGIE automáticamente. Aplicar
-  v4 para conciliación y conservación de históricos, sin sobrescritura silenciosa.
-- QR sigue opcional. Bitácora será individual por estudiante y solo de anexado
-  según v4; no implementar edición/borrado ordinarios. Su activación global y
-  permiso individual existentes deben resolverse antes de habilitarla. Ninguna
-  de estas funciones altera automáticamente asistencias.
+  v5 para conciliación y conservación de históricos, sin sobrescritura silenciosa.
+- QR futuro será opcional y deshabilitado por defecto hasta autorización. Un
+  escaneo válido registrará PRESENTE/TARDANZA por horario del turno en la misma
+  asistencia diaria, solo con año ABIERTO y fecha lectiva del nivel, incluidas
+  recuperaciones explícitas fuera de períodos o en fin de semana. Rechazar otros
+  estados/días sin alterar datos existentes. No implementar QR/PORTERIA antes del
+  módulo principal de asistencia ni modificar 003 para incorporarlos.
+- PORTERIA solo podrá iniciar sesión, escanear y ver resultados propios con datos
+  mínimos en el acceso principal de los tres niveles. Sin asistencia manual,
+  justificaciones, administración de horarios, emisión/revocación de credenciales,
+  listados generales ni reportes. No
+  resolver implícitamente conflictos manual/QR ni relación con puede_escanear_qr.
+- Bitácora será individual por estudiante y solo de anexado según v5; no
+  implementar edición/borrado ordinarios. Su activación global y permiso
+  individual existentes deben resolverse antes de habilitarla. No altera asistencias.
 - Proteger datos personales. No incluir contraseñas, hashes ni tokens secretos
   en auditorías o logs. No borrar historial ni auditorías en operaciones ordinarias.
 
 ## Decisiones pendientes y alcance de trabajo
 
-Consultar P01–P07 de decisiones v4 y los pendientes del análisis de impacto.
+Consultar P01–P09 de decisiones v5 y los pendientes del análisis de impacto.
 No inventar reglas sobre cierre diario frente a cierre del año, reapertura,
-retroactividad, facultades concretas de ADMIN/Secretaría, formato de ficha,
+procedimientos retroactivos excepcionales, facultades concretas de ADMIN/Secretaría,
+formato de ficha,
 fechas efectivas del padrón, contactos, activación de bitácora, permisos de QR,
-consulta de auditoría o conservación/recuperación de datos y respaldos.
+consulta de auditoría, conflictos manual/QR, relación PORTERIA–puede_escanear_qr,
+conservación/recuperación de datos y respaldos. QR exige año ABIERTO y día lectivo;
+no tratar esas condiciones ya aprobadas como decisiones pendientes.
 Los pendientes específicos de 6D se enumeran en `README.md`. Solicitar definición
 antes de implementar comportamiento que dependa de ellos. Una especificación
 aprobada no autoriza por sí sola implementar otra etapa ni ejecutar SQL.

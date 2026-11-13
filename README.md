@@ -13,19 +13,21 @@ de 6C-A en `911be67`. Última suite verificada en ese cierre de seguridad:
 
 El backend tiene código y dependencias; el frontend conserva solo carpetas
 preparadas, sin aplicación React ni manifiesto de paquetes. Una carpeta vacía
-no representa una funcionalidad terminada. **6D todavía no está implementada.**
+no representa una funcionalidad terminada. **6D-1 completó el esquema de períodos;
+las API y reglas operativas de calendario siguen pendientes.**
 
 | Área | Implementado en backend | Pendiente |
 | --- | --- | --- |
 | Salud | `GET /api/health`, independiente de MySQL | No acredita esquema ni conexión SQL |
 | Autenticación | Login bcrypt, JWT Bearer, perfil y usuario activo consultado en cada petición | Recuperación de contraseña, refresh/logout y despliegue HTTPS |
 | Usuarios | Listado/detalle/alta, edición y estado, protección del último ADMIN, auditoría | Administración de asignaciones; no hay eliminación física |
-| Supervisión | Niveles adicionales explícitos de SUBDIRECCION, administrados por ADMIN | No hay permisos dinámicos ni roles nuevos |
+| Supervisión | Niveles adicionales explícitos de SUBDIRECCION, administrados por ADMIN | Sin permisos dinámicos; PORTERIA aprobado para una etapa futura |
 | Años escolares | Listado/detalle para tres roles; creación ADMIN en PLANIFICADO | Edición, apertura, cierre y reapertura |
 | Secciones | Listado/detalle por ámbito; creación ADMIN/SUBDIRECCION en año PLANIFICADO o ABIERTO | Edición y desactivación |
 | Auditoría | Escritura transaccional de operaciones administrativas implementadas | API de consulta e historial de asistencia |
-| Calendario, estudiantes, matrículas, asistencia, importaciones, reportes y bitácora | Sin endpoints funcionales | Implementación por etapas según v4 |
-| QR y configuración | Campos y tablas de referencia; permisos individuales editables en usuarios | Operación de módulos y administración de configuración global |
+| Calendario, estudiantes, matrículas, asistencia, importaciones, reportes y bitácora | Sin endpoints funcionales | Implementación por etapas según v5 |
+| QR y configuración | Campos y tablas de referencia; permisos individuales editables en usuarios | QR futuro automático sobre asistencia, opcional y deshabilitado por defecto; configuración global |
+| PORTERIA | No soportado todavía por SQL/backend | Cuarto rol independiente: login, escaneo y resultados propios, sin funciones administrativas |
 
 El alta de usuarios bloquea y revalida al ADMIN antes del INSERT y mantiene
 usuario y auditoría en la misma transacción. Las consultas de secciones usan
@@ -37,23 +39,26 @@ y [organización escolar](backend/src/modules/organizacion-escolar/README.md).
 
 ## Referencias funcionales vigentes
 
-- [Decisiones de asistencia v4](docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v4.txt).
-- [Reglas de negocio v4](docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v4.txt).
-- [Requerimientos v4](docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v4.txt).
-- [Análisis de impacto BD/código v4](docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v4.txt).
+- [Decisiones de asistencia v5](docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v5.txt).
+- [Reglas de negocio v5](docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v5.txt).
+- [Requerimientos v5](docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v5.txt).
+- [Análisis de impacto BD/código v5](docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v5.txt).
 - [Instrucciones de trabajo](AGENTS.md).
 
-V4 especifica el comportamiento aprobado; no declara que ya esté programado.
-Su análisis de impacto contiene alternativas y decisiones de modelo pendientes.
-La decisión posterior de períodos lectivos se documenta abajo y complementa su
-propuesta inicial de calendario. Citar versión junto a RN/RF/RNF: algunos códigos
-cambiaron de significado respecto de v2.
+V5 consolida las decisiones aprobadas, no declara que todas estén programadas.
+Incluye calendario 6D, estado de 003 y el futuro QR/PORTERIA. Su análisis conserva
+los modelos y conflictos pendientes. Citar versión junto a RN/RF/RNF: algunos
+códigos cambiaron de significado respecto de versiones anteriores.
 
 Antecedentes históricos conservados sin sobrescribir:
 [consolidado v2](docs/requisitos/diseno_asistencia_consolidado_v2.txt) y
-[adenda 6C-A](docs/requisitos/adenda_6c_a_inicial_supervision.md).
+[adenda 6C-A](docs/requisitos/adenda_6c_a_inicial_supervision.md), más los cuatro TXT v4:
+[decisiones](docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v4.txt),
+[reglas](docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v4.txt),
+[requerimientos](docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v4.txt) y
+[análisis](docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v4.txt).
 La supervisión adicional explícita de 6C-A sigue vigente; sus antiguas limitaciones
-de justificaciones no sustituyen las decisiones v4 posteriores.
+de justificaciones no sustituyen las decisiones v5 posteriores.
 
 ## Esquema y migraciones
 
@@ -70,8 +75,11 @@ No se acredita ejecución en producción ni ensayo de restauración. Ver
 [estado y procedimiento de migraciones](docs/database/migrations/README.md).
 
 No reejecutar 002: no es idempotente. El arranque y las pruebas no ejecutan SQL
-de migración ni seeds. No existe todavía migración 003. SQL v1 y 002 son
-antecedentes inmutables; los cambios de v4 requieren nuevas migraciones autorizadas.
+de migración ni seeds. La [003](docs/database/migrations/003_periodos_lectivos.sql)
+ya fue aplicada y completamente verificada en la sesión local: 19 tablas,
+periodos_lectivos vacía y estructuras/datos de las 18 tablas anteriores conservados.
+Esta redacción no conecta a MySQL. No reejecutar 003; SQL v1, 002 y 003 se
+conservan sin cambios. QR/PORTERIA requieren una migración futura independiente.
 
 ## Arquitectura y mapa de funcionalidades
 
@@ -101,42 +109,63 @@ dejar resultado incierto; se descarta la conexión y no se reintenta automática
 | `reportes/` | Seguimiento mensual y fichas; pendiente |
 | `auditoria/`, `configuracion/` | Consulta de auditoría y gestión global; pendientes |
 | `bitacora/` | Seguimiento individual por estudiante, solo anexar; pendiente |
-| `qr/` | Función opcional independiente de asistencia; pendiente |
+| `qr/` | QR futuro opcional que registrará asistencia automáticamente; PORTERIA y horarios pendientes |
 
-## 6D: decisión aprobada, sin implementación
+## Calendario 6D: esquema completado, API pendiente
 
-Se incorporará **`periodos_lectivos` por año escolar y nivel**, complementaria
-de **`calendario_lectivo` para excepciones diarias**. El año escolar es global;
-los períodos y calendarios son independientes para INICIAL, PRIMARIA y SECUNDARIA.
-La tabla nueva aún no está en SQL v1 ni 002 y requiere una migración autorizada.
-No se ha creado su SQL ni se ha fijado el alcance/número de la próxima migración.
+6D-1 creó y verificó mediante 003 la tabla periodos_lectivos por año/nivel,
+complementaria de calendario_lectivo para excepciones diarias. No hay endpoints
+ni servicios de calendario todavía. El año sigue siendo global para los tres niveles.
 
-Regla aprobada: lunes a viernes lectivos por defecto únicamente dentro de los
-períodos habilitados; sábados y domingos no lectivos por defecto. Las excepciones
-permitirán feriados, vacaciones, semanas de gestión, suspensiones y recuperaciones,
-sin generar innecesariamente 365 filas por nivel ni integrar automáticamente UGEL.
-No se inventan fechas oficiales ni se configuran calendarios con esta documentación.
+Decisiones aprobadas en 6D-0 y confirmadas al iniciar 6D-1:
 
-ADMIN administrará los tres niveles; SUBDIRECCION, sus niveles autorizados.
-REGISTRADOR no tendrá pantalla ni permisos de modificación del calendario;
-el backend validará lectividad y dará el aviso correspondiente. Los cambios
-serán auditados; no se convertirá directamente en no lectiva una fecha con
-asistencias. El fin de clases no cierra automáticamente el año administrativo.
+- Períodos inclusivos y editables, dentro del año y sin solapamientos por año/nivel.
+- Lunes–viernes lectivos dentro de períodos; fines de semana no lectivos por defecto.
+- Excepciones prioritarias con motivo; recuperaciones incluso fuera de períodos,
+  sin período artificial y siempre dentro del año. Sin excepción ni período, no lectivo.
+- Bloqueos atómicos de hasta 366 fechas; recuperación explícita habilitada incompatible
+  provoca 409 sin cambios parciales. Sin calendarios completos ni integración UGEL automáticos.
+- Modificaciones pasadas permitidas si el año no está CERRADO y no invalidan asistencias;
+  proteger excepciones y recortes/desplazamientos según lectividad efectiva.
+- ADMIN administra todos los niveles; SUBDIRECCION los autorizados; REGISTRADOR
+  solo consulta por asignaciones vigentes, no por nivel_asignado aislado, sin administración.
+- Cambios auditados. Contratos API de 6D-0 aprobados como base revisable por subetapa;
+  consultar el [análisis v5](docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v5.txt).
 
-Falta aprobar el contrato técnico: columnas y restricciones de períodos,
-tratamiento de solapamientos, precedencia exacta de excepciones fuera de período,
-recuperaciones fuera de período, consultas directas permitidas al REGISTRADOR,
-modificaciones retroactivas y endpoints. No interpretar ausencia de fila diaria
-como lectividad universal. Cierre diario de asistencia, cierre de año y sesión
-de autenticación son conceptos que deben distinguirse antes de implementarlos.
+Cierre diario de asistencia, cierre del año y logout son procesos distintos. Su
+definición operativa pendiente no se implementará dentro de calendario. El fin
+de clases no cierra automáticamente el año administrativo.
+
+## QR y PORTERIA: aprobados, sin implementación
+
+PORTERIA será un cuarto rol independiente, para login, escaneo QR y visualización
+de resultados propios con datos mínimos, en el acceso principal compartido de
+INICIAL, PRIMARIA y SECUNDARIA. No tendrá asistencia manual, justificaciones,
+horarios, emisión/revocación de credenciales, listados generales ni reportes.
+Actualmente el ENUM y los validadores siguen admitiendo solo los tres roles anteriores.
+
+QR será funcional al implementarse, opcional y deshabilitado por defecto hasta
+autorización. Credenciales por matrícula anual; escaneo válido registra PRESENTE
+o TARDANZA por horario del turno en la misma asistencia diaria, sin confirmación
+individual. REGISTRADOR podrá corregir conforme a permisos y auditoría. Duplicados
+no duplicarán asistencias; no habrá salidas ni múltiples ingresos diarios.
+
+El backend solo permitirá registrar por QR con año ABIERTO y fecha lectiva del
+calendario efectivo del nivel, incluidas recuperaciones explícitas en fines de
+semana o fuera de períodos. PLANIFICADO/CERRADO o fecha no lectiva: rechazo sin
+alterar datos existentes. Esta condición ya está aprobada, no está pendiente.
+
+QR/PORTERIA se desarrollarán después de asistencia principal, con migración futura
+independiente de 003. Pendientes: conflictos manual/QR y relación de PORTERIA con
+puede_escanear_qr. No inferir prioridad de registros, sobrescritura ni permisos implícitos.
 
 ## Compatibilidad y decisiones pendientes
 
-V4 sustituye las reglas antiguas de FUT obligatorio, justificación exclusiva de
+V5 conserva la sustitución de las reglas antiguas de FUT obligatorio, justificación exclusiva de
 SUBDIRECCION/solo FALTA y bitácora por nivel. Estas funciones aún no tienen API.
 El esquema actual restringe justificación a FALTA, carece de motivo/canal y cierre
 diario, y no vincula bitácora a estudiante: se requiere diseño y migración antes
-de implementar las partes incompatibles. No reutilizar 002 para estos cambios.
+de implementar las partes incompatibles. No reutilizar 002/003 para estos cambios.
 
 El indicador mensual combinará tres faltas/tardanzas, incluidas justificadas,
 con recálculo diario y ante cambios. La ficha mensual podrá ser parcial y no
@@ -144,8 +173,9 @@ convertirá pendientes o días futuros en faltas. Son requisitos futuros, no fun
 ya disponibles. La inactividad operativa puede resolverse por matrícula; no se
 presupone un nuevo estado global del estudiante ni una tabla de alertas.
 
-Siguen pendientes P01–P07 de decisiones v4: formato de ficha, cierre/reapertura y
-retroactividad, conservación/recuperación, fechas efectivas y contactos del padrón,
-activación de bitácora, horarios y alcance específico de ADMIN/Secretaría.
-Definir también consulta de auditoría y permisos de QR antes de implementarlos.
-Esta etapa es documental: no autoriza implementar 6D, migrar ni crear commits.
+Siguen pendientes P01–P09 de decisiones v5: formato de ficha, cierre/reapertura y
+procedimientos excepcionales, conservación/recuperación, fechas efectivas/contactos,
+activación de bitácora, horarios y facultades específicas de ADMIN/Secretaría,
+conflictos manual/QR y relación PORTERIA–puede_escanear_qr. Definir consulta de auditoría
+y operadores de emisión/revocación/exportación QR antes de implementarlos.
+Esta etapa es documental: no autoriza implementar funciones, ejecutar SQL ni crear commits.

@@ -3,9 +3,9 @@
 Para instalación, variables de entorno, arranque y pruebas, consulta el
 [README del backend](../../../README.md).
 
-Las referencias funcionales vigentes son [los cuatro TXT v4](../../../../README.md#referencias-funcionales-vigentes).
+Las referencias funcionales vigentes son [los cuatro TXT v5](../../../../README.md#referencias-funcionales-vigentes).
 Este README describe únicamente contratos implementados hasta `a131fec`;
-no añade facultades de asistencia o justificación ni nuevos roles por documentación.
+las decisiones futuras no amplían estos contratos por documentación.
 
 Todos los endpoints requieren JWT válido y rol ADMIN actual. Las respuestas usan
 representaciones públicas sin contraseñas ni hashes y `Cache-Control: no-store`.
@@ -170,7 +170,7 @@ No hay escritura ni auditoría cuando la lista ya coincide.
 concentra SQL de configuración/auditoría. Principal y adicionales pertenecen a la
 misma cuenta y no conceden administración de usuarios. Dos SUBDIRECCION con principal
 SECUNDARIA tienen ámbito completo independiente. No se amplía REGISTRADOR ni se
-concede automáticamente INICIAL a PRIMARIA. No hay nuevos roles ni claims JWT.
+concede automáticamente INICIAL a PRIMARIA. 6C-A no añadió otros roles ni claims JWT; PORTERIA sigue como ampliación futura.
 
 Las ediciones adicionales bloquean ADMIN activos, actor, destino y adicionales en
 la misma transacción compartida. Revalidan al ADMIN y al destino. Secciones usa la
@@ -188,3 +188,26 @@ esa regla y la exclusión del principal. La migración requiere un usuario SQL c
 SELECT/INSERT/DELETE sobre esta tabla; los privilegios DDL son solo para el operador.
 Ver [adenda histórica](../../../../docs/requisitos/adenda_6c_a_inicial_supervision.md) y
 [estado y procedimiento de migración 002](../../../../docs/database/migrations/README.md).
+
+## PORTERIA y QR: decisión v5 futura, sin soporte actual
+
+La API y el ENUM actuales solo admiten ADMIN, SUBDIRECCION y REGISTRADOR. No se
+puede crear PORTERIA con este backend todavía. Su incorporación futura requiere
+una migración independiente de 003 y ajustes de validación/autorización/pruebas,
+después del módulo principal de asistencia; no se crea otro rol ni permisos dinámicos.
+
+PORTERIA podrá iniciar sesión, escanear QR y ver sus propios resultados con
+datos mínimos, en el acceso principal de los tres niveles. No podrá modificar
+asistencia manualmente, justificar, administrar horarios, emitir/revocar QR,
+consultar listados generales ni generar reportes. No hereda permisos de REGISTRADOR.
+La relación entre rol y puede_escanear_qr permanece pendiente: el flag actual
+no implementa el módulo ni concede por sí solo ese acceso futuro.
+
+QR será opcional y deshabilitado por defecto hasta autorización. Al implementarse,
+un escaneo válido registrará PRESENTE/TARDANZA por horario del turno en la misma
+asistencia diaria, solo con año ABIERTO y fecha lectiva efectiva, incluidas
+recuperaciones explícitas fuera de períodos o en fin de semana. En otro estado/día,
+rechazo sin alterar datos existentes. No duplicará asistencias ni tendrá salidas
+o múltiples ingresos diarios. REGISTRADOR podrá corregir según permisos/auditoría.
+Los conflictos entre registros manuales y QR siguen sin política definida.
+Consultar [decisiones v5](../../../../docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v5.txt).

@@ -86,20 +86,46 @@ Preferir corregir hacia adelante o restauración coordinada; no borrar historial
 auditorías. Tampoco volver al backend anterior sin evaluar su incompatibilidad con
 los niveles nuevos. Los documentos v1/v2 permanecen como referencias originales.
 
+## Migración 003 — 6D-1 (aplicada y verificada en local)
+
+003_periodos_lectivos.sql crea únicamente periodos_lectivos por año/nivel.
+La ejecución autorizada previa en asistencia_paillardelle local, MySQL 8.4.13,
+terminó con una sentencia exitosa y sin advertencias SQL. Verificación completa:
+19 tablas esperadas, siete columnas, PK autoincremental, UNIQUE de año/nivel/inicio,
+FK RESTRICT hacia anios_escolares y CHECK de fechas habilitado. Timestamps
+correctos, InnoDB y utf8mb4_0900_ai_ci; tabla nueva vacía. Las estructuras y todos
+los datos de las 18 tablas anteriores coincidieron con el respaldo previo
+validado (27 109 bytes): ADMIN activo y dos configuraciones conservados.
+
+Estos resultados se refieren a consultas previas reales de la sesión, no a una
+nueva conexión durante esta redacción ni a despliegue en producción. Un respaldo
+validado no acredita ensayo de restauración. CURRENT_TIMESTAMP y current_timestamp()
+sin precisión son representaciones equivalentes en estas columnas; verificar
+semántica con SHOW CREATE TABLE/INFORMATION_SCHEMA, no exigir igualdad textual.
+
+No volver a ejecutar 003. Se conserva su contenido aplicado; el comentario
+inicial de preparación no representa el estado actual de la instalación local.
+El UNIQUE no impide todos los solapamientos: límites del año, permisos,
+concurrencia y protección de asistencias se implementarán en backend. La API
+de calendario aún no existe; 6D-1 solo completó su esquema.
+
 ## Próximas migraciones: diseño pendiente
 
-Las [referencias funcionales v4](../../../README.md#referencias-funcionales-vigentes)
-no modifican automáticamente el esquema. El SQL v1 y 002 se conservan sin cambios.
-No existe aún migración 003 ni un ejecutor/registro automático de migraciones.
+Las [referencias funcionales v5](../../../README.md#referencias-funcionales-vigentes)
+no modifican automáticamente el esquema. SQL v1, 002 y 003 se conservan intactos;
+no existe ejecutor/registro automático de migraciones. No crear otra migración
+durante esta actualización documental ni dar por aplicada una futura.
 
-Está aprobada para 6D la futura tabla `periodos_lectivos` por año/nivel, complementaria
-de `calendario_lectivo` para excepciones. Requiere una nueva migración autorizada;
-esta etapa no la crea ni fija su número/alcance. La recomendación inicial del
-análisis v4 de implementar calendario solo sobre 002 debe complementarse con
-esa decisión posterior. Ver [decisión y pendientes de 6D](../../../README.md#6d-decisión-aprobada-sin-implementación).
+Justificación de tardanzas requiere revisar tres CHECK; motivo/canal, historial,
+cierre diario y bitácora por estudiante necesitan sus modelos. Revisar
+chk_hist_cambio para cambios solo de metadatos. Inactividad operativa puede
+resolverse por matrícula sin añadir por defecto un estado global del estudiante.
 
-V4 también requiere revisar justificación de tardanzas (tres CHECK), motivo/canal,
-historial/cierre diario y vínculo de bitácora con estudiante. Sus modelos y división
-en migraciones siguen pendientes. Revisar `chk_hist_cambio` si se registran cambios
-solo de motivo/canal. No añadir un estado global del estudiante por defecto:
-la inactividad operativa puede representarse mediante matrícula.
+PORTERIA es un cuarto rol aprobado que todavía no admite usuarios.rol ni el
+backend. QR registrará automáticamente asistencia por horario del turno, solo
+con año ABIERTO y fecha lectiva efectiva, incluidas recuperaciones habilitadas.
+PLANIFICADO/CERRADO o no lectivo: rechazo sin alterar datos existentes.
+Se desarrollarán después de asistencia principal con migración futura independiente
+de 003. El número/alcance no están fijados; horarios, trazabilidad, conflictos
+manual/QR y relación PORTERIA–puede_escanear_qr necesitan diseño/definición.
+No modificar 003 para incorporarlos. Ver [análisis v5](../../requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v5.txt).

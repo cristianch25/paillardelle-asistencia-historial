@@ -1,8 +1,8 @@
 # Organización escolar — etapas 6A, 6B, 6C y 6C-A
 
 Este documento describe los contratos implementados. Las referencias funcionales
-vigentes son [los cuatro TXT v4](../../../../README.md#referencias-funcionales-vigentes);
-v2 y la adenda 6C-A se conservan como antecedentes. No hay API de calendario.
+vigentes son [los cuatro TXT v5](../../../../README.md#referencias-funcionales-vigentes);
+v2, la adenda 6C-A y los TXT v4 se conservan como antecedentes. No hay API de calendario.
 
 El módulo agrupa dos funcionalidades en `anios-escolares/` y `secciones/`.
 Cada carpeta contiene `controller.js`, `repository.js`, `routes.js`, `service.js`
@@ -65,9 +65,10 @@ de insertar. Solo se bloquea ese usuario, sin adquirir después otros usuarios.
 
 Auditoría: CREAR_ANIO_ESCOLAR, entidad anios_escolares, actor autenticado, ID como
 texto, datos anteriores null y datos nuevos limitados a los siete campos públicos.
-La referencia original de esta etapa fue v2 RN-18/RF-09. En v4, RF-09 y
-RNF-02/04/05/08 mantienen los requisitos de auditoría, seguridad e integridad;
-no confundir la numeración RN-18 de v2 con la RN-18 vigente de v4.
+La referencia original de esta etapa fue v2 RN-18/RF-09. Las referencias v4
+RF-09, RNF-02/04/05/08 y RN-18 son históricas; no confundir la numeración
+RN-18 de v2 con la de v4. Para las referencias actuales de auditoría, seguridad
+e integridad, consultar RF-09 y RNF-02/04/05/08 de la documentación v5 vigente.
 
 UNIQUE(anio) es la garantía contra duplicados, también concurrentes: ER_DUP_ENTRY
 devuelve 409. Deadlock/timeout de bloqueo devuelve 409. No se prohíben otros años
@@ -142,7 +143,7 @@ de edición. Su SQL permanece en usuarios. La consulta no modifica asignaciones.
 Errores: 400 por datos inválidos, 401 sin autenticación, 403 por permisos, 404 por
 recurso inexistente/no visible, 409 por duplicado/cierre/deadlock/timeout y 500 genérico.
 La referencia histórica de 6C fue v2 RF-01/03/09, RN-14/15/18 y RNF-02/04/05/08.
-Para cambios posteriores aplicar las reglas v4, no la numeración histórica sin versión.
+Para cambios posteriores aplicar las reglas v5, no la numeración histórica sin versión.
 No hay PATCH/DELETE, desactivación, calendario, matrícula, asistencia ni frontend.
 
 6C-A incorpora INICIAL reutilizando REGISTRADOR/asignaciones: grupo 4 CREATIVOS y
@@ -155,17 +156,28 @@ bloqueo del actor, coordinándose con concesiones y revocaciones administrativas
 Ver [adenda histórica 6C-A](../../../../docs/requisitos/adenda_6c_a_inicial_supervision.md) y
 [estado de migración 002](../../../../docs/database/migrations/README.md).
 
-## Preparación de 6D (sin implementación)
+## Calendario 6D (esquema disponible, API pendiente)
 
-La decisión aprobada incorpora `periodos_lectivos` por año escolar y nivel y
-conserva `calendario_lectivo` para excepciones diarias. El valor semanal por defecto
-solo rige dentro de períodos: lunes–viernes lectivos, fines de semana no lectivos.
-No existe todavía tabla de períodos, migración nueva ni código de calendario.
-La futura funcionalidad se ubicará en `calendario-lectivo/` cuando sea autorizada;
-no se crean carpetas vacías ni se reorganizan años y secciones.
+6D-1 creó/verificó periodos_lectivos mediante 003 en MySQL local, según las
+comprobaciones previas de la sesión. No reejecutar la migración. No existe aún
+código de calendario; la futura funcionalidad se ubicará en calendario-lectivo/
+cuando sea autorizada, sin reorganizar años/secciones.
 
-ADMIN administrará los tres niveles y SUBDIRECCION los autorizados; REGISTRADOR
-no tendrá pantalla ni modificación de calendario. La validación automática en
-backend y auditoría deberán proteger fechas con asistencias. Los límites y las
-decisiones todavía abiertas se centralizan en el
-[README principal](../../../../README.md#6d-decisión-aprobada-sin-implementación).
+Períodos inclusivos por año/nivel sin solapamientos y dentro del año; lunes–viernes
+lectivos dentro de ellos y fines de semana no lectivos por defecto. Excepciones
+prioritarias con motivo en calendario_lectivo, incluidas recuperaciones fuera
+de períodos siempre dentro del año. Sin excepción ni período: no lectivo.
+Rangos atómicos de hasta 366 fechas y 409 ante recuperación explícita incompatible.
+Ediciones pasadas permitidas en año no CERRADO si no invalidan asistencias;
+proteger también recortes/desplazamientos de períodos y auditar.
+
+ADMIN administra los tres niveles; SUBDIRECCION los autorizados. REGISTRADOR
+solo consulta por asignaciones vigentes hoy en America/Lima, no por nivel_asignado
+aislado y sin administración. Contratos API de base y detalles técnicos revisables
+por etapa: [análisis v5](../../../../docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v5.txt).
+
+QR futuro consumirá el calendario efectivo: solo registrará asistencia con año
+ABIERTO y día lectivo, incluidas recuperaciones explícitas fuera de períodos o
+en fin de semana; otros estados/días se rechazan sin alterar datos existentes.
+No se implementa QR/PORTERIA en 6D ni se introducen reglas de cierre diario.
+Ver [estado y decisiones aprobadas](../../../../README.md#calendario-6d-esquema-completado-api-pendiente).

@@ -1,0 +1,46 @@
+PAILLARDELLE ASISTENCIA — I.E. ENRIQUE PAILLARDELLE
+Fecha de consolidación: 13/11/2026
+Fuente: documentos v4 conservados, decisiones aprobadas de 6D-0/6D-1 y confirmaciones posteriores del usuario sobre QR/PORTERIA.
+Estado: ESPECIFICACIÓN ACORDADA, no evidencia de implementación.
+
+REGLAS DE NEGOCIO v5 — CONSERVA RN-01 A RN-25 Y AMPLÍA CALENDARIO/QR
+
+RN-01. Sistema independiente de SIAGIE; padrones importados manualmente, sin sincronización.
+RN-02. Identidad de estudiante permanente; una matrícula por estudiante y año; movimientos de sección con vigencia efectiva sin superposición y sin perder historial.
+RN-03. Registro ordinario de asistencia, manual o mediante QR futuro, únicamente con año ABIERTO y fecha lectiva del calendario efectivo de su nivel. Las recuperaciones explícitas habilitadas también son lectivas, aunque sean fin de semana o estén fuera de períodos.
+RN-04. Una asistencia máxima por matrícula y fecha. PENDIENTE significa que aún no existe fila registrada en día lectivo; no equivale a FALTA.
+RN-05. Guardado parcial y cierre de una sesión diaria de asistencia con advertencia de pendientes; registros guardados visibles oportunamente a supervisión. Este cierre es distinto del cierre de sesión del usuario (logout) y del cierre del año escolar; su definición operativa sigue pendiente en P02 de decisiones v5.
+RN-06. REGISTRADOR registra y corrige estados en secciones asignadas; SUBDIRECCION en niveles autorizados; ADMIN institucional conforme a atribuciones generales. PORTERIA solo opera el QR futuro y sus resultados propios, sin modificación manual de asistencias ni justificaciones. Autorizar en backend.
+RN-07. Permitir corregir FALTA a TARDANZA por llegada posterior, y otras correcciones autorizadas; posteriores al cierre requieren motivo y auditoría.
+RN-08. REGISTRADOR y SUBDIRECCION pueden justificar FALTA o TARDANZA dentro de su ámbito sin aprobación adicional del sistema. Motivo y canal simples; sin FUT ni archivo obligatorio; aceptación bajo criterio del personal.
+RN-09. Estado base PRESENTE/TARDANZA/FALTA y justificación independiente. PRESENTE no justificable; FALTA y TARDANZA sí. Conservar ambos hechos para estadísticas e impresión J/U.
+RN-10. Correcciones/justificaciones registran actor, fecha/hora, antes/después; motivo obligatorio después del cierre; modificación e historial atómicos.
+RN-11. Conservar vínculos de contactos por estudiante y evitar duplicados de identidad; cualquier ampliación de uno a múltiples contactos requiere decisión/migración separada.
+RN-12. Importación selectiva de padrón SIAGIE; campos de contacto incompletos no impiden importar estudiante; coincidencias dudosas se revisan.
+RN-13. REGISTRADOR puede actualizar teléfonos de contactos de sus estudiantes, con auditoría; respetar efectos de contactos compartidos.
+RN-14. Sin solapamiento de períodos estudiante-sección ni de asignación del mismo usuario a la misma sección; auxiliar puede gestionar varias secciones.
+RN-15. ADMIN administra calendarios de todos los niveles y SUBDIRECCION de niveles autorizados. REGISTRADOR solo consulta por asignaciones vigentes hoy en America/Lima, nunca por nivel_asignado aislado y sin funciones administrativas. Se permiten fechas pasadas si el año no está CERRADO y no se invalidan asistencias; impedir convertirlas en no lectivas al cambiar excepciones o períodos y auditar.
+RN-16. QR es futuro, opcional y deshabilitado por defecto hasta autorización; al implementarse registra automáticamente PRESENTE/TARDANZA en la misma asistencia diaria. Bitácora sigue individual por estudiante y solo de anexado, sin modificar asistencias; sus permisos/activación pendientes no se resuelven por las decisiones QR.
+RN-17. Bitácora no modifica asistencia y conserva autor/hora; anotaciones históricas acompañan al estudiante al cambiar de sección; sin edición ni borrado ordinarios.
+RN-18. Estudiantes y matrículas retiradas/inactivas se excluyen de listas activas, pero no se borran asistencias, bitácoras ni auditorías; accesos históricos sujetos a permisos.
+RN-19. Indicador mensual al alcanzar 3 faltas/tardanzas combinadas, justificadas o no, intercaladas o consecutivas; recalcular diariamente y ante cambios. Desglosar categorías, sin sanción automática.
+RN-20. Importación inicial y posteriores con vista previa, validación y confirmación. Incluir trasladados iniciales como inactivos; no desactivar por ausencia en padrón parcial; no sobrescribir historiales.
+RN-21. Reporte mensual por sección exportable parcial/completo en cualquier momento, sin cierre obligatorio, con días sin registro distintos de falta; formato final pendiente.
+RN-22. Leyenda prevista de ficha: . / F / T / J / U para presente/falta/tardanza/falta justificada/tardanza justificada; origen operativo, no catálogo oficial completo.
+RN-23. ADMIN y SUBDIRECCION ven estadísticas de su ámbito; REGISTRADOR solo resumen individual mensual de estudiantes autorizados y exportación de sus secciones.
+RN-24. Cambios de sección preservan historia; nuevo REGISTRADOR puede consultar información histórica necesaria del estudiante actualmente a su cargo, sin ampliar acceso a otros estudiantes.
+RN-25. Respaldos/restauración se gestionan por procedimiento técnico independiente; realizar respaldos previos a migraciones y proteger datos personales.
+
+Nota de versión: v5 mantiene las reglas compatibles de v4 y sustituye QR sin modificación de asistencia y el catálogo de solo tres roles. SQL v1 y migraciones aplicadas no se reescriben; v5 no acredita implementación.
+
+RN-26. Períodos inclusivos por año/nivel, dentro de fechas del año, editables y sin solapamientos del mismo año/nivel. Dentro del período, lunes–viernes lectivos y fines de semana no lectivos por defecto.
+RN-27. Excepción diaria con motivo prevalece sobre la regla de períodos. Permitir recuperaciones fuera de períodos sin crear uno artificial; todas las excepciones permanecen dentro del año. Sin excepción y sin período, no es lectivo.
+RN-28. Bloqueos por rango: máximo 366 fechas y transacción atómica. Recuperación explícita habilitada incompatible: HTTP 409, sin cambios parciales. No generar calendarios completos innecesariamente ni integrar automáticamente UGEL.
+RN-29. Cuatro roles aprobados: ADMIN, SUBDIRECCION, REGISTRADOR, PORTERIA. PORTERIA es independiente, accede por cuenta propia y opera el acceso principal compartido de los tres niveles. Actualmente solo tres roles están soportados; incorporar el cuarto requiere desarrollo/migración posteriores.
+RN-30. PORTERIA solo inicia sesión, escanea QR y visualiza el resultado de sus propios escaneos con datos mínimos de identificación/verificación. Sin asistencia manual, justificaciones, horarios, emisión/revocación, listados generales ni reportes.
+RN-31. Credencial QR vinculada a matrícula anual. Un escaneo válido registra automáticamente PRESENTE o TARDANZA según horario del turno, visible en la misma asistencia diaria sin confirmación individual. REGISTRADOR corrige con sus permisos y auditoría.
+RN-32. Backend rechaza QR de asistencia si el año está PLANIFICADO/CERRADO o la fecha no es lectiva para el nivel. No altera datos existentes. Las excepciones de recuperación habilitadas sí permiten registrar con año ABIERTO, incluso en fin de semana/fuera de períodos.
+RN-33. Escaneos duplicados no duplican asistencias; no hay salidas ni múltiples ingresos diarios. Conflictos manual/QR y relación PORTERIA–puede_escanear_qr permanecen pendientes, sin prioridad ni permiso implícitos.
+RN-34. QR/PORTERIA se implementarán después del módulo principal de asistencia con migración futura independiente de 003; módulo completo pero deshabilitado inicialmente. Distinguir aprobación funcional de implementación y activación.
+
+Pendientes transversales: definición del cierre diario frente al año administrativo, formatos, contactos, horarios y conflictos según P01–P09 de decisiones v5. No incorporar cierres diarios al calendario 6D.

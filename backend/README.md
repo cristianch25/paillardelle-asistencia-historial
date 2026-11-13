@@ -10,10 +10,11 @@ puerto temporal sin iniciar el servidor habitual al importar la aplicación.
 
 Código de referencia: `a131fec`, posterior a 6C-A; incluye revalidación del ADMIN
 bajo bloqueo en el alta de usuarios. Última suite confirmada para ese commit:
-171 pruebas exitosas. Calendario 6D y frontend siguen sin implementar.
-Las referencias funcionales vigentes son los cuatro TXT v4 enlazados en el
+171 pruebas exitosas. 6D-1 completó el esquema local de períodos; API de calendario,
+asistencia principal, QR/PORTERIA y frontend siguen pendientes.
+Las referencias funcionales vigentes son los cuatro TXT v5 enlazados en el
 [README principal](../README.md#referencias-funcionales-vigentes). V2 y la adenda
-6C-A son antecedentes históricos; no conceden permisos contrarios a v4 ni
+6C-A y los cuatro TXT v4 son antecedentes históricos; no conceden permisos contrarios a v5 ni
 acreditan implementación de asistencia, justificaciones o bitácora.
 
 ## Iniciar y detener
@@ -281,7 +282,7 @@ INICIAL admite grupos 4 y 5; letra admite hasta 30 caracteres para nombres de sa
 GET/PUT `/api/usuarios/:id/niveles-adicionales` permite a ADMIN administrar niveles
 adicionales de SUBDIRECCION con auditoría. La API de usuarios ordinaria conserva sus
 contratos y la autenticación sigue sin almacenar permisos de nivel en JWT.
-Consultar las [referencias v4 vigentes](../README.md#referencias-funcionales-vigentes)
+Consultar las [referencias v5 vigentes](../README.md#referencias-funcionales-vigentes)
 y la [adenda histórica 6C-A](../docs/requisitos/adenda_6c_a_inicial_supervision.md).
 
 La [migración 002](../docs/database/migrations/README.md) fue aplicada a MySQL local
@@ -291,10 +292,32 @@ No reejecutar 002. Antes de cualquier otro despliegue se requiere inspección de
 esquema real, respaldo y procedimiento autorizado. El arranque y las pruebas no
 migran ni precargan datos institucionales.
 
-## Calendario lectivo (6D pendiente)
+## Calendario lectivo (6D-1 completada, API pendiente)
 
-Está aprobada una tabla futura `periodos_lectivos` por año/nivel, complementaria
-de `calendario_lectivo` para excepciones diarias. No existe aún migración ni API.
-Consultar la [decisión aprobada y sus pendientes](../README.md#6d-decisión-aprobada-sin-implementación).
-Los cambios de esquema de asistencia/bitácora descritos en v4 tampoco están
-implementados y requieren diseño y autorización independientes.
+La migración 003 creó periodos_lectivos por año/nivel, complementaria de
+calendario_lectivo para excepciones. Fue aplicada y verificada en la sesión local:
+19 tablas y conservación de las 18 anteriores. Esta redacción no consulta MySQL.
+No reejecutar 003. No existen aún rutas ni servicios de calendario; consultar
+[decisiones y contratos de base](../README.md#calendario-6d-esquema-completado-api-pendiente).
+Los cambios de justificaciones/bitácora siguen pendientes de diseño y migración.
+
+## QR y PORTERIA (futuros)
+
+Los contratos y el ENUM actuales admiten ADMIN/SUBDIRECCION/REGISTRADOR. PORTERIA
+es un cuarto rol aprobado, todavía sin soporte: login, escaneo y resultados propios
+con datos mínimos en el acceso principal compartido de los tres niveles. Sin
+asistencia manual, justificaciones, administración de horarios, emisión/revocación
+de credenciales, listados generales ni reportes.
+
+QR será opcional y deshabilitado por defecto hasta autorización. Credencial por
+matrícula anual y primer ingreso diario, sin salidas ni múltiples ingresos.
+El escaneo válido registrará automáticamente PRESENTE/TARDANZA por horario del
+turno en la misma asistencia diaria, sin confirmación individual; REGISTRADOR
+podrá corregir con sus permisos/auditoría. Evitar duplicados incluso concurrentes.
+El backend exigirá año ABIERTO y fecha lectiva efectiva del nivel, incluidas
+recuperaciones explícitas en fines de semana o fuera de períodos. PLANIFICADO,
+CERRADO o fecha no lectiva: rechazo sin alterar datos existentes.
+
+Se implementará después de asistencia principal con migración independiente de 003.
+Conflictos manual/QR y relación PORTERIA–puede_escanear_qr siguen pendientes;
+no inferir prioridad ni permiso implícitos. Ver [decisiones v5](../docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v5.txt).
