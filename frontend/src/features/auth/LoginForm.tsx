@@ -1,0 +1,60 @@
+import { useRef, useState, type FormEvent } from 'react';
+import axios from 'axios';
+import Button from '../../shared/components/Button';
+import FormField from '../../shared/components/FormField';
+import ErrorState from '../../shared/components/ErrorState';
+import LoadingState from '../../shared/components/LoadingState';
+import { apiErrorMessage } from '../../shared/api/apiError';
+import { useAuth } from './AuthContext';
+
+export default function LoginForm() {
+  const { signIn } = useAuth();
+  const [usuario, setUsuario] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ usuario?: string; password?: string }>({});
+  const submitting = useRef(false);
+  const userInput = useRef<HTMLInputElement>(null);
+  const passwordInput = useRef<HTMLInputElement>(null);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submitting.current) return;
+    const errors = {
+      usuario: !usuario.trim() || Array.from(usuario).length > 60 ? 'Ingresa un usuario de hasta 60 caracteres.' : undefined,
+      password: !password || new TextEncoder().encode(password).length > 72 ? 'Ingresa una contraseña de hasta 72 bytes UTF-8.' : undefined,
+    };
+    setFieldErrors(errors);
+    setError('');
+    if (errors.usuario || errors.password) {
+      (errors.usuario ? userInput : passwordInput).current?.focus();
+      return;
+    }
+    submitting.current = true;
+    setBusy(true);
+    try {
+      await signIn({ usuario, password });
+    } catch (failure) {
+      if (!axios.isCancel(failure)) setError(apiErrorMessage(failure, true));
+    } finally {
+      setPassword('');
+      setBusy(false);
+      submitting.current = false;
+    }
+  }
+
+  return (
+    <form onSubmit={submit} noValidate aria-busy={busy} className="space-y-5">
+      <FormField ref={userInput} label="Usuario" name="usuario" autoComplete="username" autoCapitalize="none"
+        spellCheck={false} required value={usuario} onChange={event => setUsuario(event.target.value)}
+        disabled={busy} error={fieldErrors.usuario} />
+      <FormField ref={passwordInput} label="Contraseña" name="password" type="password" autoComplete="current-password"
+        required value={password} onChange={event => setPassword(event.target.value)}
+        disabled={busy} error={fieldErrors.password} />
+      {error && <ErrorState title="No se pudo iniciar sesión" message={error} />}
+      {busy && <LoadingState message="Verificando tu cuenta…" />}
+      <Button type="submit" disabled={busy} className="w-full">{busy ? 'Iniciando sesión…' : 'Iniciar sesión'}</Button>
+    </form>
+  );
+}

@@ -1,0 +1,14 @@
+import { LoaderCircle } from 'lucide-react';
+
+type LoadingStateProps = {
+  message?: string;
+};
+
+export default function LoadingState({ message = 'Cargando…' }: LoadingStateProps) {
+  return (
+    <div role="status" className="flex items-center gap-3 text-sm text-slate-600">
+      <LoaderCircle aria-hidden="true" className="size-5 shrink-0 text-institutional-700 motion-safe:animate-spin" />
+      <span>{message}</span>
+    </div>
+  );
+}
