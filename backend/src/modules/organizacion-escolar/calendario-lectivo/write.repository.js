@@ -1,0 +1,93 @@
+import { getPool } from '../../../config/database.js';
+import { inTransaction } from '../../../shared/transaction.js';
+import { validateId } from '../../../shared/query-validation.js';
+import { readCalendar, periodColumns, exceptionColumns, periodRow, exceptionRow } from './repository.js';
+
+async function insertedId(connection) {
+  const [rows] = await connection.execute('SELECT CAST(LAST_INSERT_ID() AS CHAR) AS id');
+  const id = rows[0]?.id;
+  try { validateId(id); } catch { throw new Error('No se pudo recuperar el ID insertado como texto unsigned.'); }
+  return id;
+}
+
+async function audit(connection, actorId, entity, action, before, after) {
+  await connection.execute(
+    `INSERT INTO auditoria_administrativa
+      (usuario_id, accion, entidad, registro_id, datos_anteriores, datos_nuevos)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [actorId, action, entity, after.id, before ? JSON.stringify(before) : null, JSON.stringify(after)],
+  );
+}
+async function savePeriod(connection, actorId, { before, after }) {
+  if (before && before.fecha_inicio === after.fecha_inicio && before.fecha_fin === after.fecha_fin) return before;
+  let id = before?.id;
+  if (before) {
+    const [result] = await connection.execute('UPDATE periodos_lectivos SET fecha_inicio = ?, fecha_fin = ? WHERE id = ?',
+      [after.fecha_inicio, after.fecha_fin, id]);
+    if (result.affectedRows !== 1) throw new Error('No se actualizó un único período.');
+  } else {
+    const [result] = await connection.execute(
+      'INSERT INTO periodos_lectivos (anio_escolar_id, nivel, fecha_inicio, fecha_fin) VALUES (?, ?, ?, ?)',
+      [after.anio_escolar_id, after.nivel, after.fecha_inicio, after.fecha_fin],
+    );
+    if (result.affectedRows !== 1) throw new Error('No se creó un único período.');
+    id = await insertedId(connection);
+  }
+  const [rows] = await connection.execute(`SELECT ${periodColumns} FROM periodos_lectivos WHERE id = ? LIMIT 1`, [id]);
+  const row = periodRow(rows[0]);
+  if (!row) throw new Error('No se pudo leer el período guardado.');
+  await audit(connection, actorId, 'periodos_lectivos', before ? 'ACTUALIZAR_PERIODO_LECTIVO' : 'CREAR_PERIODO_LECTIVO', before, row);
+  return row;
+}
+async function saveException(connection, actorId, { before, after }) {
+  if (before && before.es_lectivo === after.es_lectivo && before.descripcion === after.descripcion) return before;
+  let id = before?.id;
+  if (before) {
+    const [result] = await connection.execute('UPDATE calendario_lectivo SET es_lectivo = ?, descripcion = ? WHERE id = ?',
+      [after.es_lectivo, after.descripcion, id]);
+    if (result.affectedRows !== 1) throw new Error('No se actualizó una única excepción.');
+  } else {
+    const [result] = await connection.execute(
+      'INSERT INTO calendario_lectivo (anio_escolar_id, nivel, fecha, es_lectivo, descripcion) VALUES (?, ?, ?, ?, ?)',
+      [after.anio_escolar_id, after.nivel, after.fecha, after.es_lectivo, after.descripcion],
+    );
+    if (result.affectedRows !== 1) throw new Error('No se creó una única excepción.');
+    id = await insertedId(connection);
+  }
+  const [rows] = await connection.execute(`SELECT ${exceptionColumns} FROM calendario_lectivo WHERE id = ? LIMIT 1`, [id]);
+  const row = exceptionRow(rows[0]);
+  if (!row) throw new Error('No se pudo leer la excepción guardada.');
+  await audit(connection, actorId, 'calendario_lectivo', before ? 'ACTUALIZAR_EXCEPCION_LECTIVA' : 'CREAR_EXCEPCION_LECTIVA', before, row);
+  return row;
+}
+
+export function createCalendarWriter(poolProvider = getPool) {
+  return {
+    change(scope, actorId, authorize, decide) {
+      return inTransaction(poolProvider(), async connection => {
+        const [actors] = await connection.execute(
+          'SELECT id, rol, activo, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId],
+        );
+        // Actor y adicionales antes del año. No adquirir otros usuarios después.
+        await authorize(actors[0] ?? null, scope.nivel, true, connection);
+        // La fila común del año serializa incluso el primer período/excepción.
+        const context = await readCalendar(connection, scope, true);
+        context.attendanceDates = async (start, end) => {
+          const [rows] = await connection.execute(
+            `SELECT a.id, a.fecha FROM asistencias a
+             JOIN matricula_secciones ms ON ms.id = a.matricula_seccion_id AND ms.matricula_id = a.matricula_id
+             JOIN secciones s ON s.id = ms.seccion_id AND s.anio_escolar_id = ms.anio_escolar_id
+             WHERE s.anio_escolar_id = ? AND s.nivel = ? AND a.fecha BETWEEN ? AND ? ORDER BY a.id FOR UPDATE`,
+            [scope.anio_escolar_id, scope.nivel, start, end],
+          );
+          return [...new Set(rows.map(row => row.fecha))];
+        };
+        const plan = await decide(context);
+        if (plan.period) return savePeriod(connection, actorId, plan.period);
+        const rows = [];
+        for (const change of plan.exceptions) rows.push(await saveException(connection, actorId, change));
+        return rows;
+      });
+    },
+  };
+}

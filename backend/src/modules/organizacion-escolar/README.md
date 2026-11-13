@@ -1,11 +1,12 @@
-# Organización escolar — etapas 6A, 6B, 6C y 6C-A
+# Organización escolar — etapas 6A, 6B, 6C, 6C-A y 6D-2
 
 Este documento describe los contratos implementados. Las referencias funcionales
 vigentes son [los cuatro TXT v5](../../../../README.md#referencias-funcionales-vigentes);
-v2, la adenda 6C-A y los TXT v4 se conservan como antecedentes. No hay API de calendario.
+v2, la adenda 6C-A y los TXT v4 se conservan como antecedentes. 6D-2 incorpora la
+[API de calendario](calendario-lectivo/README.md), con contratos y mapa propios.
 
-El módulo agrupa dos funcionalidades en `anios-escolares/` y `secciones/`.
-Cada carpeta contiene `controller.js`, `repository.js`, `routes.js`, `service.js`
+El módulo agrupa años, secciones y calendario. En `anios-escolares/` y `secciones/`,
+cada carpeta contiene `controller.js`, `repository.js`, `routes.js`, `service.js`
 y `validation.js`. Este README conserva los contratos de ambas funcionalidades.
 `app.js` compone sus rutas; se conservan los nombres de exports existentes.
 Secciones consulta las asignaciones mediante el servicio de usuarios; el SQL
@@ -156,12 +157,13 @@ bloqueo del actor, coordinándose con concesiones y revocaciones administrativas
 Ver [adenda histórica 6C-A](../../../../docs/requisitos/adenda_6c_a_inicial_supervision.md) y
 [estado de migración 002](../../../../docs/database/migrations/README.md).
 
-## Calendario 6D (esquema disponible, API pendiente)
+## Calendario 6D (esquema y API implementados)
 
 6D-1 creó/verificó periodos_lectivos mediante 003 en MySQL local, según las
-comprobaciones previas de la sesión. No reejecutar la migración. No existe aún
-código de calendario; la futura funcionalidad se ubicará en calendario-lectivo/
-cuando sea autorizada, sin reorganizar años/secciones.
+comprobaciones previas de la sesión. No reejecutar la migración. 6D-2 implementa
+el calendario en calendario-lectivo/, sin reorganizar años/secciones. Sus
+[contratos, archivos, tablas y verificación](calendario-lectivo/README.md)
+describen los ocho endpoints, permisos y protocolo común de bloqueos.
 
 Períodos inclusivos por año/nivel sin solapamientos y dentro del año; lunes–viernes
 lectivos dentro de ellos y fines de semana no lectivos por defecto. Excepciones
@@ -180,4 +182,4 @@ QR futuro consumirá el calendario efectivo: solo registrará asistencia con añ
 ABIERTO y día lectivo, incluidas recuperaciones explícitas fuera de períodos o
 en fin de semana; otros estados/días se rechazan sin alterar datos existentes.
 No se implementa QR/PORTERIA en 6D ni se introducen reglas de cierre diario.
-Ver [estado y decisiones aprobadas](../../../../README.md#calendario-6d-esquema-completado-api-pendiente).
+Ver [estado y decisiones aprobadas](../../../../README.md#calendario-6d-esquema-y-api-implementados).

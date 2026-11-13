@@ -14,7 +14,8 @@ de 6C-A en `911be67`. Última suite verificada en ese cierre de seguridad:
 El backend tiene código y dependencias; el frontend conserva solo carpetas
 preparadas, sin aplicación React ni manifiesto de paquetes. Una carpeta vacía
 no representa una funcionalidad terminada. **6D-1 completó el esquema de períodos;
-las API y reglas operativas de calendario siguen pendientes.**
+6D-2 implementa las API y reglas operativas de calendario.** La suite de 6D-2
+comprueba 216 pruebas con conexiones simuladas, sin MySQL real.
 
 | Área | Implementado en backend | Pendiente |
 | --- | --- | --- |
@@ -25,7 +26,8 @@ las API y reglas operativas de calendario siguen pendientes.**
 | Años escolares | Listado/detalle para tres roles; creación ADMIN en PLANIFICADO | Edición, apertura, cierre y reapertura |
 | Secciones | Listado/detalle por ámbito; creación ADMIN/SUBDIRECCION en año PLANIFICADO o ABIERTO | Edición y desactivación |
 | Auditoría | Escritura transaccional de operaciones administrativas implementadas | API de consulta e historial de asistencia |
-| Calendario, estudiantes, matrículas, asistencia, importaciones, reportes y bitácora | Sin endpoints funcionales | Implementación por etapas según v5 |
+| Calendario | Períodos, excepciones, lectividad efectiva y bloqueos atómicos por nivel; integración mínima verificada en MySQL 8.4.13 aislado | Frontend |
+| Estudiantes, matrículas, asistencia, importaciones, reportes y bitácora | Sin endpoints funcionales | Implementación por etapas según v5 |
 | QR y configuración | Campos y tablas de referencia; permisos individuales editables en usuarios | QR futuro automático sobre asistencia, opcional y deshabilitado por defecto; configuración global |
 | PORTERIA | No soportado todavía por SQL/backend | Cuarto rol independiente: login, escaneo y resultados propios, sin funciones administrativas |
 
@@ -47,7 +49,8 @@ y [organización escolar](backend/src/modules/organizacion-escolar/README.md).
 
 V5 consolida las decisiones aprobadas, no declara que todas estén programadas.
 Incluye calendario 6D, estado de 003 y el futuro QR/PORTERIA. Su análisis conserva
-los modelos y conflictos pendientes. Citar versión junto a RN/RF/RNF: algunos
+los modelos y conflictos pendientes; su estado de implementación corresponde al
+momento de consolidación previo a 6D-2. Citar versión junto a RN/RF/RNF: algunos
 códigos cambiaron de significado respecto de versiones anteriores.
 
 Antecedentes históricos conservados sin sobrescribir:
@@ -102,7 +105,7 @@ dejar resultado incierto; se descarta la conexión y no se reintenta automática
 | Módulo | Responsabilidad actual o futura |
 | --- | --- |
 | `auth/`, `usuarios/` | Implementados; asignaciones aún sin API propia |
-| `organizacion-escolar/` | Años y secciones implementados; calendario pendiente |
+| `organizacion-escolar/` | Años, secciones y calendario implementados |
 | `estudiantes/`, `matriculas/` | Identidad/contactos y movimientos con historial; pendientes |
 | `asistencias/` | Registro, correcciones, justificaciones e historial; pendiente |
 | `importaciones/` | Vista previa, validación y conciliación confirmada; pendiente |
@@ -111,11 +114,13 @@ dejar resultado incierto; se descarta la conexión y no se reintenta automática
 | `bitacora/` | Seguimiento individual por estudiante, solo anexar; pendiente |
 | `qr/` | QR futuro opcional que registrará asistencia automáticamente; PORTERIA y horarios pendientes |
 
-## Calendario 6D: esquema completado, API pendiente
+## Calendario 6D: esquema y API implementados
 
 6D-1 creó y verificó mediante 003 la tabla periodos_lectivos por año/nivel,
-complementaria de calendario_lectivo para excepciones diarias. No hay endpoints
-ni servicios de calendario todavía. El año sigue siendo global para los tres niveles.
+complementaria de calendario_lectivo para excepciones diarias. 6D-2 implementa
+ocho endpoints de períodos, excepciones y calendario efectivo, con permisos,
+bloqueos y auditoría transaccional. El año sigue siendo global para los tres niveles.
+Consultar [contratos, mapa técnico y verificación](backend/src/modules/organizacion-escolar/calendario-lectivo/README.md).
 
 Decisiones aprobadas en 6D-0 y confirmadas al iniciar 6D-1:
 
@@ -178,4 +183,5 @@ procedimientos excepcionales, conservación/recuperación, fechas efectivas/cont
 activación de bitácora, horarios y facultades específicas de ADMIN/Secretaría,
 conflictos manual/QR y relación PORTERIA–puede_escanear_qr. Definir consulta de auditoría
 y operadores de emisión/revocación/exportación QR antes de implementarlos.
-Esta etapa es documental: no autoriza implementar funciones, ejecutar SQL ni crear commits.
+6D-2 no ejecuta SQL de migración ni implementa otras etapas. Los commits y las
+siguientes etapas requieren autorización del usuario.

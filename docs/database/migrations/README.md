@@ -107,7 +107,8 @@ No volver a ejecutar 003. Se conserva su contenido aplicado; el comentario
 inicial de preparación no representa el estado actual de la instalación local.
 El UNIQUE no impide todos los solapamientos: límites del año, permisos,
 concurrencia y protección de asistencias se implementarán en backend. La API
-de calendario aún no existe; 6D-1 solo completó su esquema.
+de calendario se implementa en 6D-2; 6D-1 solo completó su esquema. Ver
+[contratos y protocolo de bloqueos](../../../backend/src/modules/organizacion-escolar/calendario-lectivo/README.md).
 
 ## Próximas migraciones: diseño pendiente
 

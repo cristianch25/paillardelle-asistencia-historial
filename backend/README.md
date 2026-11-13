@@ -10,8 +10,9 @@ puerto temporal sin iniciar el servidor habitual al importar la aplicación.
 
 Código de referencia: `a131fec`, posterior a 6C-A; incluye revalidación del ADMIN
 bajo bloqueo en el alta de usuarios. Última suite confirmada para ese commit:
-171 pruebas exitosas. 6D-1 completó el esquema local de períodos; API de calendario,
-asistencia principal, QR/PORTERIA y frontend siguen pendientes.
+171 pruebas exitosas. 6D-1 completó el esquema local de períodos; 6D-2 añade las
+API de calendario y 45 pruebas (216 en total). Asistencia principal, QR/PORTERIA
+y frontend siguen pendientes.
 Las referencias funcionales vigentes son los cuatro TXT v5 enlazados en el
 [README principal](../README.md#referencias-funcionales-vigentes). V2 y la adenda
 6C-A y los cuatro TXT v4 son antecedentes históricos; no conceden permisos contrarios a v5 ni
@@ -81,7 +82,8 @@ Endpoints: `GET /api/health`, `POST /api/auth/login`, `GET /api/auth/me`,
 `PATCH /api/usuarios/:id`, `PATCH /api/usuarios/:id/estado`,
 `GET/PUT /api/usuarios/:id/niveles-adicionales`,
 `GET/POST /api/anios-escolares`, `GET /api/anios-escolares/:id`,
-`GET/POST /api/secciones` y `GET /api/secciones/:id`.
+`GET/POST /api/secciones` y `GET /api/secciones/:id`, más los ocho
+[endpoints de calendario 6D-2](src/modules/organizacion-escolar/calendario-lectivo/README.md).
 Los listados admiten barra final. Los contratos de cada módulo detallan permisos.
 El pool MySQL se crea bajo demanda; health sigue independiente de MySQL y puede
 funcionar sin credenciales. El módulo health no
@@ -292,13 +294,14 @@ No reejecutar 002. Antes de cualquier otro despliegue se requiere inspección de
 esquema real, respaldo y procedimiento autorizado. El arranque y las pruebas no
 migran ni precargan datos institucionales.
 
-## Calendario lectivo (6D-1 completada, API pendiente)
+## Calendario lectivo (6D-1 y 6D-2 completadas)
 
 La migración 003 creó periodos_lectivos por año/nivel, complementaria de
 calendario_lectivo para excepciones. Fue aplicada y verificada en la sesión local:
 19 tablas y conservación de las 18 anteriores. Esta redacción no consulta MySQL.
-No reejecutar 003. No existen aún rutas ni servicios de calendario; consultar
-[decisiones y contratos de base](../README.md#calendario-6d-esquema-completado-api-pendiente).
+No reejecutar 003. 6D-2 implementa períodos, excepciones, calendario efectivo y
+bloqueos atómicos, con permisos por nivel, protección de asistencias y auditoría.
+Consultar [contratos y pruebas](src/modules/organizacion-escolar/calendario-lectivo/README.md).
 Los cambios de justificaciones/bitácora siguen pendientes de diseño y migración.
 
 ## QR y PORTERIA (futuros)
