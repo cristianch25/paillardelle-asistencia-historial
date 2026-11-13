@@ -1,0 +1,19 @@
+import { Router, json } from 'express';
+import { authenticate } from '../../middlewares/authenticate.js';
+import { HttpError } from '../../shared/http-error.js';
+import { createEnrollmentController } from './controller.js';
+
+export function createEnrollmentRoutes(authService, service) {
+  const router = Router(), padron = Router(), controller = createEnrollmentController(service);
+  const noStore = (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); };
+  router.use(noStore, authenticate(authService));
+  const writer = (req, _res, next) => {
+    if (!['ADMIN', 'SUBDIRECCION'].includes(req.authUser.rol)) throw new HttpError(403, 'No puedes crear matrículas.');
+    next();
+  };
+  router.get('/', controller.list);
+  router.post('/', writer, json({ limit: '8kb' }), controller.create);
+  router.post('/alta-inicial', writer, json({ limit: '8kb' }), controller.joint);
+  padron.get('/:id/padron', noStore, authenticate(authService), controller.padron);
+  return { router, padron };
+}

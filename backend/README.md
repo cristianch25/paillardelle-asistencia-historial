@@ -14,7 +14,9 @@ bajo bloqueo en el alta de usuarios. Última suite confirmada para ese commit:
 API de calendario y 45 pruebas (216 en total). Asistencia principal, QR/PORTERIA
 y frontend siguen pendientes.
 El bloque inicial de asignaciones añade 24 pruebas y la apertura anual otras 16;
-la suite actual tiene 256.
+256 pruebas previas. El bloque de estudiantes, matrícula inicial y padrón añade
+47 pruebas: suite actual de 303 exitosas. Último commit confirmado: `b0639eb`;
+este bloque permanece pendiente de commit y usa conexiones simuladas en pruebas.
 Las referencias funcionales vigentes son los cuatro TXT v5 enlazados en el
 [README principal](../README.md#referencias-funcionales-vigentes). V2 y la adenda
 6C-A y los cuatro TXT v4 son antecedentes históricos; no conceden permisos contrarios a v5 ni
@@ -73,6 +75,7 @@ npm.cmd test
 
 Las pruebas HTTP abren servidores temporales y los cierran al terminar. La suite
 cubre health, autenticación, usuarios, supervisión multinivel, años, secciones,
+calendario, asignaciones, estudiantes, matrícula inicial y padrón histórico,
 validaciones y fallos/concurrencia transaccionales simulados. Usa dobles de
 repositorio y conexión, sin consultar ni modificar MySQL real. No requiere iniciar
 otro servidor. Health solo indica que Express responde: no comprueba MySQL.
@@ -90,6 +93,9 @@ Endpoints: `GET /api/health`, `POST /api/auth/login`, `GET /api/auth/me`,
 `GET/POST /api/asignaciones` incorpora consulta por ámbito y alta exclusiva de
 ADMIN; ver [contrato y mapa técnico](src/modules/usuarios/README.md#asignaciones-de-registrador--bloque-inicial).
 Los listados admiten barra final. Los contratos de cada módulo detallan permisos.
+`GET/POST /api/estudiantes`, `GET/POST /api/matriculas`,
+`POST /api/matriculas/alta-inicial` y `GET /api/secciones/:id/padron?fecha=YYYY-MM-DD`
+incorporan el bloque mínimo de padrón. Ver [contratos y mapa técnico](src/modules/matriculas/README.md).
 El pool MySQL se crea bajo demanda; health sigue independiente de MySQL y puede
 funcionar sin credenciales. El módulo health no
 necesita servicios ni repositorios porque no tiene reglas de negocio ni SQL.

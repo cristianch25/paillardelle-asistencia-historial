@@ -6,10 +6,9 @@ manual de padrones con revisión, sin sincronización automática.
 
 ## Estado del proyecto
 
-Punto de control de código: `a131fec70d1545971ea20e38a76d8a5d54517b70`
-(`fix: revalidar admin en alta transaccional de usuarios`), posterior al cierre
-de 6C-A en `911be67`. Última suite verificada en ese cierre de seguridad:
-**171 pruebas exitosas**, con conexiones simuladas, sin escrituras en MySQL real.
+Último commit confirmado: `b0639eb` (`feat: implementar apertura del anio escolar`).
+El bloque de estudiantes, matrícula inicial y padrón por fecha se encuentra en el
+árbol de trabajo, pendiente de commit; no se ha accedido a MySQL principal.
 
 El backend tiene código y dependencias; el frontend conserva solo carpetas
 preparadas, sin aplicación React ni manifiesto de paquetes. Una carpeta vacía
@@ -17,7 +16,8 @@ no representa una funcionalidad terminada. **6D-1 completó el esquema de perío
 6D-2 implementa las API y reglas operativas de calendario.** La suite de 6D-2
 comprueba 216 pruebas con conexiones simuladas, sin MySQL real.
 El bloque inicial de asignaciones añade 24 pruebas y la apertura anual otras 16:
-suite actual de 256 pruebas.
+256 pruebas previas. Estudiantes/matrículas/padrón añade 47: suite actual de
+**303 pruebas exitosas** con conexiones simuladas.
 
 | Área | Implementado en backend | Pendiente |
 | --- | --- | --- |
@@ -29,7 +29,8 @@ suite actual de 256 pruebas.
 | Secciones | Listado/detalle por ámbito; creación ADMIN/SUBDIRECCION en año PLANIFICADO o ABIERTO | Edición y desactivación |
 | Auditoría | Escritura transaccional de operaciones administrativas implementadas | API de consulta e historial de asistencia |
 | Calendario | Períodos, excepciones, lectividad efectiva y bloqueos atómicos por nivel; integración mínima verificada en MySQL 8.4.13 aislado | Frontend |
-| Estudiantes, matrículas, asistencia, importaciones, reportes y bitácora | Sin endpoints funcionales | Implementación por etapas según v5 |
+| Estudiantes y matrículas | Identidad individual ADMIN; alta conjunta por ámbito; matrícula inicial atómica y padrón por fecha con doble asignación de REGISTRADOR | Edición, traslados, retiros, reingresos e integración MySQL aislada de este bloque |
+| Asistencia, importaciones, reportes y bitácora | Sin endpoints funcionales | Implementación por etapas según v5 |
 | QR y configuración | Campos y tablas de referencia; permisos individuales editables en usuarios | QR futuro automático sobre asistencia, opcional y deshabilitado por defecto; configuración global |
 | PORTERIA | No soportado todavía por SQL/backend | Cuarto rol independiente: login, escaneo y resultados propios, sin funciones administrativas |
 
@@ -40,6 +41,8 @@ para REGISTRADOR. No se precargan profesoras, salones ni permisos adicionales.
 
 Contratos y comandos: [backend](backend/README.md), [usuarios](backend/src/modules/usuarios/README.md)
 y [organización escolar](backend/src/modules/organizacion-escolar/README.md).
+El [mapa de estudiantes, matrículas y padrón](backend/src/modules/matriculas/README.md)
+documenta endpoints, decisiones de esta etapa, permisos, archivos, tablas y pruebas.
 
 ## Referencias funcionales vigentes
 
@@ -108,7 +111,7 @@ dejar resultado incierto; se descarta la conexión y no se reintenta automática
 | --- | --- |
 | `auth/`, `usuarios/` | Autenticación y usuarios implementados; asignaciones con GET/POST propios |
 | `organizacion-escolar/` | Años, secciones y calendario implementados |
-| `estudiantes/`, `matriculas/` | Identidad/contactos y movimientos con historial; pendientes |
+| `estudiantes/`, `matriculas/` | Identidad, matrícula inicial y padrón por fecha implementados; contactos y movimientos posteriores pendientes |
 | `asistencias/` | Registro, correcciones, justificaciones e historial; pendiente |
 | `importaciones/` | Vista previa, validación y conciliación confirmada; pendiente |
 | `reportes/` | Seguimiento mensual y fichas; pendiente |

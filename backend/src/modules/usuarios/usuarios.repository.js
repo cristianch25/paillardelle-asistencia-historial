@@ -32,6 +32,16 @@ async function writeUserAudit(connection, actorId, action, before, after) {
 
 export function createUsuariosRepository(poolProvider = getPool) {
   return {
+    async historicalSectionIds(id, date, today) {
+      const [rows] = await poolProvider().execute(
+        `SELECT DISTINCT a.seccion_id FROM asignaciones a WHERE a.usuario_id = ?
+         AND a.fecha_inicio <= ? AND (a.fecha_fin IS NULL OR a.fecha_fin >= ?)
+         AND EXISTS (SELECT 1 FROM asignaciones actual WHERE actual.usuario_id = a.usuario_id
+           AND actual.seccion_id = a.seccion_id AND actual.fecha_inicio <= ?
+           AND (actual.fecha_fin IS NULL OR actual.fecha_fin >= ?)) ORDER BY a.seccion_id ASC`,
+        [id, date, date, today, today]);
+      return rows;
+    },
     async currentSectionIds(id, today) {
       const [rows] = await poolProvider().execute(
         `SELECT DISTINCT seccion_id FROM asignaciones WHERE usuario_id = ?
