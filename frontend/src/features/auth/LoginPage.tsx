@@ -5,7 +5,7 @@ import LoginForm from './LoginForm';
 
 export default function LoginPage() {
   const { session, notice } = useAuth();
-  if (session) return <Navigate to="/sesion" replace />;
+  if (session) return <Navigate to="/inicio" replace />;
   return (
     <main className="flex min-h-dvh items-center justify-center px-5 py-10">
       <section aria-labelledby="login-title" className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-9">

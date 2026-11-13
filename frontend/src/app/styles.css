@@ -2,12 +2,15 @@
 
 @theme {
   --color-institutional-950: #102c46;
-  --color-institutional-800: #174f78;
-  --color-institutional-700: #1c628f;
+  --color-institutional-800: #035fa8;
+  --color-institutional-700: #176fb3;
+  --color-sidebar: #035fa8;
+  --color-sidebar-active: #176fb3;
+  --color-sidebar-muted: #d4e7f4;
   --color-sky-soft: #edf7fc;
   --color-accent-yellow: #f5d547;
   --color-accent-red: #bb2939;
-  --color-surface: #f5f7fa;
+  --color-surface: #edf2f8;
 }
 
 @layer base {

@@ -13,6 +13,7 @@ let errors;
 let Provider;
 let LoginPage;
 let ProtectedRoute;
+let navigation;
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false } });
   http = await vite.ssrLoadModule('/src/shared/api/httpClient.ts');
@@ -20,8 +21,17 @@ before(async () => {
   Provider = (await vite.ssrLoadModule('/src/features/auth/AuthProvider.tsx')).default;
   LoginPage = (await vite.ssrLoadModule('/src/features/auth/LoginPage.tsx')).default;
   ProtectedRoute = (await vite.ssrLoadModule('/src/features/auth/ProtectedRoute.tsx')).default;
+  navigation = await vite.ssrLoadModule('/src/app/layout/navigation.ts');
 });
 after(async () => { await vite?.close(); });
+
+test('cada rol solo dispone de Inicio; no se anuncian módulos pendientes', () => {
+  for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {
+    assert.deepEqual(navigation.navigationFor(role).map(({ path, label }) => ({ path, label })),
+      [{ path: '/inicio', label: 'Inicio' }]);
+    assert.equal(typeof navigation.roleLabels[role], 'string');
+  }
+});
 
 function renderRoute(element, path) {
   return renderToStaticMarkup(createElement(Provider, null,
