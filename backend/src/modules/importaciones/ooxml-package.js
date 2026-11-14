@@ -31,6 +31,7 @@ const imageTypes = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/bmp',
 const idPattern = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
 const safeId = value => idPattern.test(value ?? '') && !['__proto__', 'constructor', 'prototype'].includes(value);
 const dangerous = /^(?:externalLink|externalReferences|oleObject|oleObjects|controls|control|legacyDrawing|legacyDrawingHF|AlternateContent|extLst|webPublishItems)$/;
+const legacyCoreRelationship = PACKAGE_REL_NS + '/meatadata/core-properties';
 
 export function internalTarget(source, target) {
   if (!target || /[^\x21-\x7e]|[\\:%?#]/.test(target) || target.startsWith('//')) throw invalidXml();
@@ -97,10 +98,19 @@ export function createOoxmlPackage() {
             if (tag.uri !== PACKAGE_REL_NS || tag.local !== 'Relationships') throw invalidXml();
           } else {
             if (stack.length !== 1 || tag.uri !== PACKAGE_REL_NS || tag.local !== 'Relationship') throw invalidXml();
-            const id = attr(tag, 'Id'), type = attr(tag, 'Type'), mode = attr(tag, 'TargetMode');
+            const id = attr(tag, 'Id'), mode = attr(tag, 'TargetMode');
+            let type = attr(tag, 'Type');
+            const target = internalTarget(part.source, attr(tag, 'Target'));
+            // Errata observada en el exportador: solo metadatos raíz docProps.
+            // Se mantienen tipo de contenido, raíz XML, namespace y destino
+            // existentes. No se ignora la parte ni se admiten otros tipos nuevos.
+            if (type === legacyCoreRelationship) {
+              if (part.source !== '' || !/^docProps\/[^/]+\.xml$/.test(target)) throw invalidXml();
+              type = PACKAGE_REL_NS + '/metadata/core-properties';
+            }
             if (!safeId(id) || rels.has(id) || !relationTypes.has(type)
               || (mode !== undefined && mode !== 'Internal')) throw invalidXml();
-            rels.set(id, { type, target: internalTarget(part.source, attr(tag, 'Target')) });
+            rels.set(id, { type, target });
           }
         } else if (name === 'xl/workbook.xml') {
           if (tag.uri !== MAIN_NS) throw invalidXml();
