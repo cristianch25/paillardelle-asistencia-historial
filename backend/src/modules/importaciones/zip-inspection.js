@@ -42,7 +42,7 @@ export async function inspectZipParts(input, { signal } = {}, inspectPart) {
       const { name, directory } = packageEntry(entry, seen);
       const local = await zip.readLocalFileHeaderPromise(entry);
       ranges.push(entryRange(entry, local, input, envelope.start));
-      const consumer = inspectPart?.(name, directory);
+      const consumer = inspectPart?.(name, directory, entry);
       const bytes = await inspectEntryBytes(zip, entry, budget, controller.signal, consumer);
       if (directory && bytes) throw invalidZip();
       if (!directory && bytes) parts.add(name);

@@ -58,7 +58,7 @@ function styleInspection(counts) {
  * ZIP y XML comparten plazo, cancelación y un solo recorrido. Nunca se acepta
  * un resultado antes de terminar la validación ZIP existente.
  */
-export async function inspectXlsxXml(input, { signal } = {}) {
+export async function inspectXlsxXml(input, { signal } = {}, observePart) {
   const packageInfo = createOoxmlPackage(), total = { cells: 0, positions: 0 };
   const worksheets = new Map(), styles = [], deadline = performance.now() + MAX_ZIP_INSPECTION_MS;
   function checkDeadline() {
@@ -70,6 +70,9 @@ export async function inspectXlsxXml(input, { signal } = {}) {
       if (directory) return;
       const metadata = packageInfo.handlers(name);
       if (!/\.(?:xml|rels)$/.test(name)) return;
+      // Observador técnico interno. No sustituye validaciones ni habilita lectura
+      // antes de comprobar el paquete completo; conserva el resultado público.
+      const observer = observePart?.(name);
       let worksheet, style, root, stringCount = 0, stringsDeclared;
       return createXmlStream({
         open(tag, stack) {
@@ -96,14 +99,17 @@ export async function inspectXlsxXml(input, { signal } = {}) {
             }
           }
           if (root === 'table' && stack.length === 0) cellRange(attr(tag, 'ref'));
+          observer?.open?.(tag, stack);
         },
-        close(tag, stack) { worksheet?.close(tag, stack); },
-        text(value, stack) { worksheet?.text(value, stack); },
+        close(tag, stack) { worksheet?.close(tag, stack); observer?.close?.(tag, stack); },
+        text(value, stack) { worksheet?.text(value, stack); observer?.text?.(value, stack); },
+        encoding(value) { observer?.encoding?.(value); },
         end() {
           if (root === 'sst') {
             if (stringsDeclared !== undefined && stringsDeclared !== stringCount) throw invalidXml();
             packageInfo.counts.strings = stringCount;
           }
+          observer?.end?.();
         },
       });
     });

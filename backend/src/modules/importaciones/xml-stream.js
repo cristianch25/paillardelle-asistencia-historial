@@ -15,7 +15,7 @@ export const attribute = (tag, local, uri = '') => Object.values(tag.attributes)
  * el presupuesto ZIP de bytes reales acota también tokens individuales de SAX.
  * Los callbacks reciben una pila de hasta 64 elementos, válida solo en la llamada.
  */
-export function createXmlStream({ open, close, text, end } = {}) {
+export function createXmlStream({ open, close, text, end, encoding: onEncoding } = {}) {
   const parser = new SaxesParser({ xmlns: true });
   const stack = [];
   let decoder, prefix = Buffer.alloc(0), encoding;
@@ -44,6 +44,7 @@ export function createXmlStream({ open, close, text, end } = {}) {
           : prefix[0] === 0 && prefix[1] === 60 ? 'utf-16be'
             : prefix[0] === 60 && prefix[1] === 0 ? 'utf-16le' : 'utf-8';
       decoder = new TextDecoder(encoding, { fatal: true });
+      onEncoding?.(encoding);
       bytes = prefix;
       prefix = null;
     }
