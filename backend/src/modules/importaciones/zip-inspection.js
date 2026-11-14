@@ -11,6 +11,12 @@ import { inspectEntryBytes } from './zip-entry-stream.js';
  * El plazo local es cooperativo, no reemplaza la supervisión externa de 1B.2A.
  */
 export async function inspectXlsxZip(input, { signal } = {}) {
+  return inspectZipParts(input, { signal });
+}
+
+// Composición interna: el consumidor no recibe un resultado aprobado hasta
+// comprobar también CRC, rangos y partes. Un único recorrido de descompresión.
+export async function inspectZipParts(input, { signal } = {}, inspectPart) {
   if (!Buffer.isBuffer(input) || !input.length || (signal != null && !(signal instanceof AbortSignal))) throw invalidZip();
   if (input.length > MAX_UPLOAD_FILE_BYTES) throw new HttpError(413, 'La carga supera el tamaño permitido.');
   const controller = new AbortController();
@@ -36,7 +42,8 @@ export async function inspectXlsxZip(input, { signal } = {}) {
       const { name, directory } = packageEntry(entry, seen);
       const local = await zip.readLocalFileHeaderPromise(entry);
       ranges.push(entryRange(entry, local, input, envelope.start));
-      const bytes = await inspectEntryBytes(zip, entry, budget, controller.signal);
+      const consumer = inspectPart?.(name, directory);
+      const bytes = await inspectEntryBytes(zip, entry, budget, controller.signal, consumer);
       if (directory && bytes) throw invalidZip();
       if (!directory && bytes) parts.add(name);
     }

@@ -18,7 +18,7 @@ export function fallbackCrc32(bytes, previous = 0) {
 }
 export const updateCrc32 = zlib.crc32 ?? fallbackCrc32;
 
-export async function inspectEntryBytes(zip, entry, budget, signal) {
+export async function inspectEntryBytes(zip, entry, budget, signal, consumer) {
   // Lectura raw: la descompresión y sus recursos quedan bajo nuestro pipeline.
   const raw = await zip.openReadStreamPromise(entry, { decodeFileData: false });
   const inflate = entry.compressionMethod === 8 ? zlib.createInflateRaw() : null;
@@ -28,13 +28,17 @@ export async function inspectEntryBytes(zip, entry, budget, signal) {
     budget.bytes += chunk.length;
     if (budget.bytes > MAX_ZIP_UNCOMPRESSED_BYTES) return callback(new HttpError(413, 'El contenedor supera el tamaño descomprimido permitido.'));
     if (bytes > entry.uncompressedSize) return callback(invalidZip());
-    crc = updateCrc32(chunk, crc);
-    callback();
+    try {
+      crc = updateCrc32(chunk, crc);
+      consumer?.write(chunk);
+      callback();
+    } catch (error) { callback(error); }
   } });
   try {
     await pipeline(...[raw, inflate, sink].filter(Boolean), { signal });
     if (bytes !== entry.uncompressedSize || crc !== entry.crc32
       || (inflate && inflate.bytesWritten !== entry.compressedSize)) throw invalidZip();
+    consumer?.end();
     return bytes;
   } finally {
     raw.destroy();

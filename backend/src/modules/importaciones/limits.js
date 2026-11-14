@@ -9,3 +9,10 @@ export const UPLOAD_HIGH_WATER_MARK = 16 * 1024;
 export const MAX_ZIP_ENTRIES = 500;
 export const MAX_ZIP_UNCOMPRESSED_BYTES = 50_000_000;
 export const MAX_ZIP_INSPECTION_MS = 20_000;
+// Inspección estructural 1B.3B (T01 de decisiones de importación v1).
+export const MAX_XLSX_SHEETS = 20;
+export const MAX_XML_DEPTH = 64;
+export const MAX_WORKSHEET_ROW = 4096;
+export const MAX_WORKSHEET_COLUMN = 128;
+export const MAX_XML_CELLS = 200_000;
+export const MAX_MATERIALIZED_POSITIONS = 200_000;
