@@ -23,6 +23,19 @@ function conditions(filters, access) {
 
 export function createSeccionesRepository(poolProvider = getPool) {
   return {
+    async assignmentContext(id, connection) {
+      // Localizar el año sin bloquear sección antes que año. La decisión usa lecturas actuales.
+      const [locations] = await connection.execute('SELECT anio_escolar_id FROM secciones WHERE id = ? LIMIT 1', [id]);
+      if (!locations[0]) return { section: null, year: null };
+      const yearId = String(locations[0].anio_escolar_id);
+      const [years] = await connection.execute(
+        'SELECT id, estado, fecha_inicio, fecha_fin FROM anios_escolares WHERE id = ? LIMIT 1 FOR UPDATE', [yearId],
+      );
+      const [sections] = await connection.execute(`SELECT ${columns} FROM secciones s WHERE s.id = ? LIMIT 1 FOR UPDATE`, [id]);
+      const section = sections[0] ?? null;
+      if (section && String(section.anio_escolar_id) !== yearId) throw new Error('La sección cambió de año durante la operación.');
+      return { section, year: years[0] ?? null };
+    },
     async list({ filters, access, limit, offset }) {
       const where = conditions(filters, access);
       const [rows] = await poolProvider().execute(

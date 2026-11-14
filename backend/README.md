@@ -10,8 +10,13 @@ puerto temporal sin iniciar el servidor habitual al importar la aplicación.
 
 Código de referencia: `a131fec`, posterior a 6C-A; incluye revalidación del ADMIN
 bajo bloqueo en el alta de usuarios. Última suite confirmada para ese commit:
-171 pruebas exitosas. 6D-1 completó el esquema local de períodos; API de calendario,
-asistencia principal, QR/PORTERIA y frontend siguen pendientes.
+171 pruebas exitosas. 6D-1 completó el esquema local de períodos; 6D-2 añade las
+API de calendario y 45 pruebas (216 en total). Asistencia principal, QR/PORTERIA
+y frontend siguen pendientes.
+El bloque inicial de asignaciones añade 24 pruebas y la apertura anual otras 16;
+256 pruebas previas. El bloque de estudiantes, matrícula inicial y padrón añade
+47 pruebas: suite actual de 303 exitosas. Último commit confirmado: `b0639eb`;
+este bloque permanece pendiente de commit y usa conexiones simuladas en pruebas.
 Las referencias funcionales vigentes son los cuatro TXT v5 enlazados en el
 [README principal](../README.md#referencias-funcionales-vigentes). V2 y la adenda
 6C-A y los cuatro TXT v4 son antecedentes históricos; no conceden permisos contrarios a v5 ni
@@ -70,6 +75,7 @@ npm.cmd test
 
 Las pruebas HTTP abren servidores temporales y los cierran al terminar. La suite
 cubre health, autenticación, usuarios, supervisión multinivel, años, secciones,
+calendario, asignaciones, estudiantes, matrícula inicial y padrón histórico,
 validaciones y fallos/concurrencia transaccionales simulados. Usa dobles de
 repositorio y conexión, sin consultar ni modificar MySQL real. No requiere iniciar
 otro servidor. Health solo indica que Express responde: no comprueba MySQL.
@@ -81,8 +87,15 @@ Endpoints: `GET /api/health`, `POST /api/auth/login`, `GET /api/auth/me`,
 `PATCH /api/usuarios/:id`, `PATCH /api/usuarios/:id/estado`,
 `GET/PUT /api/usuarios/:id/niveles-adicionales`,
 `GET/POST /api/anios-escolares`, `GET /api/anios-escolares/:id`,
-`GET/POST /api/secciones` y `GET /api/secciones/:id`.
+`PATCH /api/anios-escolares/:id/abrir` (solo ADMIN),
+`GET/POST /api/secciones` y `GET /api/secciones/:id`, más los ocho
+[endpoints de calendario 6D-2](src/modules/organizacion-escolar/calendario-lectivo/README.md).
+`GET/POST /api/asignaciones` incorpora consulta por ámbito y alta exclusiva de
+ADMIN; ver [contrato y mapa técnico](src/modules/usuarios/README.md#asignaciones-de-registrador--bloque-inicial).
 Los listados admiten barra final. Los contratos de cada módulo detallan permisos.
+`GET/POST /api/estudiantes`, `GET/POST /api/matriculas`,
+`POST /api/matriculas/alta-inicial` y `GET /api/secciones/:id/padron?fecha=YYYY-MM-DD`
+incorporan el bloque mínimo de padrón. Ver [contratos y mapa técnico](src/modules/matriculas/README.md).
 El pool MySQL se crea bajo demanda; health sigue independiente de MySQL y puede
 funcionar sin credenciales. El módulo health no
 necesita servicios ni repositorios porque no tiene reglas de negocio ni SQL.
@@ -265,7 +278,9 @@ Consulta los [contratos y pruebas de organización escolar](src/modules/organiza
 
 La etapa 6B añade `POST /api/anios-escolares`, exclusivo de ADMIN activo, con
 estado inicial PLANIFICADO y auditoría en la misma transacción. No incluye edición
-ni apertura/cierre de años; los contratos y límites se detallan en el enlace anterior.
+ni apertura/cierre de años en 6B; el bloque posterior de apertura incorpora solo
+PLANIFICADO → ABIERTO mediante PATCH exclusivo de ADMIN, según la decisión
+aprobada para el año global. Contratos y límites en el enlace anterior.
 
 La etapa 6C añade `GET /api/secciones`, `GET /api/secciones/:id` y `POST /api/secciones`.
 ADMIN tiene ámbito global, SUBDIRECCION sus niveles efectivos y REGISTRADOR solo consulta sus
@@ -292,13 +307,14 @@ No reejecutar 002. Antes de cualquier otro despliegue se requiere inspección de
 esquema real, respaldo y procedimiento autorizado. El arranque y las pruebas no
 migran ni precargan datos institucionales.
 
-## Calendario lectivo (6D-1 completada, API pendiente)
+## Calendario lectivo (6D-1 y 6D-2 completadas)
 
 La migración 003 creó periodos_lectivos por año/nivel, complementaria de
 calendario_lectivo para excepciones. Fue aplicada y verificada en la sesión local:
 19 tablas y conservación de las 18 anteriores. Esta redacción no consulta MySQL.
-No reejecutar 003. No existen aún rutas ni servicios de calendario; consultar
-[decisiones y contratos de base](../README.md#calendario-6d-esquema-completado-api-pendiente).
+No reejecutar 003. 6D-2 implementa períodos, excepciones, calendario efectivo y
+bloqueos atómicos, con permisos por nivel, protección de asistencias y auditoría.
+Consultar [contratos y pruebas](src/modules/organizacion-escolar/calendario-lectivo/README.md).
 Los cambios de justificaciones/bitácora siguen pendientes de diseño y migración.
 
 ## QR y PORTERIA (futuros)

@@ -19,6 +19,7 @@ export function createAniosEscolaresRoutes(authService, service = createAniosEsc
     next();
   });
   router.post('/', requireAdmin, json({ limit: '8kb' }), controller.create);
+  router.patch('/:id/abrir', requireAdmin, json({ limit: '8kb' }), controller.open);
   router.get('/', controller.list);
   router.get('/:id', controller.findById);
   return router;

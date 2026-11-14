@@ -1,15 +1,20 @@
-# Organización escolar — etapas 6A, 6B, 6C y 6C-A
+# Organización escolar — etapas 6A, 6B, 6C, 6C-A y 6D-2
 
 Este documento describe los contratos implementados. Las referencias funcionales
 vigentes son [los cuatro TXT v5](../../../../README.md#referencias-funcionales-vigentes);
-v2, la adenda 6C-A y los TXT v4 se conservan como antecedentes. No hay API de calendario.
+v2, la adenda 6C-A y los TXT v4 se conservan como antecedentes. 6D-2 incorpora la
+[API de calendario](calendario-lectivo/README.md), con contratos y mapa propios.
 
-El módulo agrupa dos funcionalidades en `anios-escolares/` y `secciones/`.
-Cada carpeta contiene `controller.js`, `repository.js`, `routes.js`, `service.js`
+El módulo agrupa años, secciones y calendario. En `anios-escolares/` y `secciones/`,
+cada carpeta contiene `controller.js`, `repository.js`, `routes.js`, `service.js`
 y `validation.js`. Este README conserva los contratos de ambas funcionalidades.
 `app.js` compone sus rutas; se conservan los nombres de exports existentes.
 Secciones consulta las asignaciones mediante el servicio de usuarios; el SQL
 permanece en su repositorio, sin dependencia de usuarios hacia este módulo.
+Para el alta de asignaciones, `app.js` inyecta el servicio de secciones en el
+servicio de asignaciones; no hay importación inversa de usuarios a organización.
+Su operación interna `assignmentContext` localiza el año y bloquea año/sección
+en la conexión transaccional recibida, sin abrir otra transacción ni añadir HTTP.
 
 En las consultas, ADMIN, SUBDIRECCION y REGISTRADOR autenticados
 pueden consultar todos los años, incluidos PLANIFICADO, ABIERTO y CERRADO.
@@ -84,9 +89,61 @@ Si COMMIT falla, la conexión se descarta siempre, aunque el ROLLBACK posterior
 resuelva; ese ROLLBACK no demuestra que la creación no haya sido confirmada.
 Los demás errores reciben 500 genérico, sin SQL ni datos internos.
 
-En años escolares no se implementan edición ni transiciones de estado.
+En 6B no se implementaron edición ni transiciones de estado. El bloque posterior
+de apertura incorpora únicamente PLANIFICADO → ABIERTO, según el contrato siguiente.
 La etapa 6B no añadió dependencias ni cambios funcionales en usuarios. Los casos concurrentes y de
 fallos usan conexiones simuladas; no equivalen a validación en MySQL real.
+
+## Apertura del año escolar
+
+`PATCH /api/anios-escolares/:id/abrir` requiere JWT y ADMIN activo. Decisión
+aprobada posterior a asignaciones: el año es global (v5 D25), por lo que
+SUBDIRECCION no puede abrirlo, aunque tenga los tres niveles efectivos.
+REGISTRADOR y roles futuros tampoco. Se conservan sus consultas actuales.
+
+ID BIGINT UNSIGNED como texto, validado sin Number. Sin cuerpo o con `{}`;
+cualquier campo JSON, incluso estado/nivel, devuelve 400. JSON malformado 400,
+cuerpo mayor de 8 KB 413. HTTP 200: `{ anio_escolar: {...} }`, con los siete
+campos públicos de GET y Cache-Control: no-store. Año inexistente: 404;
+ya ABIERTO o CERRADO: 409. No se reabre, cierra, elimina ni edita el año.
+
+Condición funcional: año existente en PLANIFICADO. No se añaden requisitos
+de fecha actual, períodos cargados, secciones/asignaciones completas ni año
+ABIERTO único que el esquema y v5 no establecen. Abrir no vuelve lectivo un día
+por sí solo: siguen vigentes períodos, regla semanal y excepciones de 6D-2.
+
+Una transacción compartida: actor FOR UPDATE y revalidación de actividad/ADMIN,
+luego año FOR UPDATE y validación de su estado actual. UPDATE condicionado a
+PLANIFICADO, lectura del resultado y auditoría ABRIR_ANIO_ESCOLAR, entidad
+anios_escolares, con actor/ID/antes/después públicos se confirman juntos.
+Nunca se adquieren otros usuarios después del año. Se comparte la fila del año
+con calendario y asignaciones; dos aperturas concurrentes generan una única
+transición/auditoría, y la otra devuelve 409 tras releer ABIERTO. Rollback,
+descarte ante COMMIT incierto y ausencia de reintentos usan shared/transaction.js.
+Errores restantes: 401 autenticación/actor inactivo, 403 rol, 409 deadlock/timeout,
+500 interno genérico. No se modifican períodos, excepciones o asignaciones.
+
+Mapa: anios-escolares/routes.js y controller.js contienen HTTP; validation.js
+valida el cuerpo; service.js aplica autorización y transición; repository.js
+contiene bloqueos, UPDATE y auditoría compartida con el alta existente.
+Tablas: usuarios (lectura/bloqueo), anios_escolares (estado) y
+auditoria_administrativa (anexado). Sin migración ni dependencias nuevas.
+
+Desde backend, `npm.cmd test`: anios-escolares.open.test.js y
+anios-escolares.open.http.test.js añaden 16 pruebas con conexiones simuladas,
+incluidas revocación mientras espera, fallos transaccionales y escritor de
+calendario concurrente. La integración mínima adicional se ejecutó el 13/11/2026
+en una instancia nueva MySQL 8.4.13, 127.0.0.1:3307, con directorio/configuración
+independientes. Se verificaron puerto libre antes del arranque, PID, argumentos
+e identidad antes de escribir. Seis comprobaciones satisfactorias: esquema
+v1/002/003 solo temporal; apertura HTTP con ID unsigned grande y rechazos de
+estados/inexistente; roles; dos ADMIN concurrentes con una sola apertura/auditoría;
+antes/después auditados y rollback real del UPDATE ante fallo controlado de
+auditoría; calendario conservado. Se autorizó por separado el SHUTDOWN y se
+confirmó apagado normal, sin Stop-Process, sin acceso a 3306 y sin cambios en
+backend/.env o servicios existentes. Arnés/resultados locales ignorados por Git
+en backend/tmp/integracion-apertura-preparada/. No reutilizar esa instancia.
+Cierre anual, reapertura y cierre diario permanecen pendientes.
 
 ## Secciones (6C)
 
@@ -156,12 +213,13 @@ bloqueo del actor, coordinándose con concesiones y revocaciones administrativas
 Ver [adenda histórica 6C-A](../../../../docs/requisitos/adenda_6c_a_inicial_supervision.md) y
 [estado de migración 002](../../../../docs/database/migrations/README.md).
 
-## Calendario 6D (esquema disponible, API pendiente)
+## Calendario 6D (esquema y API implementados)
 
 6D-1 creó/verificó periodos_lectivos mediante 003 en MySQL local, según las
-comprobaciones previas de la sesión. No reejecutar la migración. No existe aún
-código de calendario; la futura funcionalidad se ubicará en calendario-lectivo/
-cuando sea autorizada, sin reorganizar años/secciones.
+comprobaciones previas de la sesión. No reejecutar la migración. 6D-2 implementa
+el calendario en calendario-lectivo/, sin reorganizar años/secciones. Sus
+[contratos, archivos, tablas y verificación](calendario-lectivo/README.md)
+describen los ocho endpoints, permisos y protocolo común de bloqueos.
 
 Períodos inclusivos por año/nivel sin solapamientos y dentro del año; lunes–viernes
 lectivos dentro de ellos y fines de semana no lectivos por defecto. Excepciones
@@ -180,4 +238,4 @@ QR futuro consumirá el calendario efectivo: solo registrará asistencia con añ
 ABIERTO y día lectivo, incluidas recuperaciones explícitas fuera de períodos o
 en fin de semana; otros estados/días se rechazan sin alterar datos existentes.
 No se implementa QR/PORTERIA en 6D ni se introducen reglas de cierre diario.
-Ver [estado y decisiones aprobadas](../../../../README.md#calendario-6d-esquema-completado-api-pendiente).
+Ver [estado y decisiones aprobadas](../../../../README.md#calendario-6d-esquema-y-api-implementados).

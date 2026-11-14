@@ -1,8 +1,19 @@
 import { HttpError } from '../../../shared/http-error.js';
 import { validateId, validatePagination } from '../../../shared/query-validation.js';
 import { createAniosEscolaresRepository } from './repository.js';
-import { validateNewYear } from './validation.js';
+import { validateNewYear, validateOpenYear } from './validation.js';
 import { unauthorized } from '../../auth/auth.errors.js';
+
+function authorizeAdmin(actor) {
+  if (!actor || !(actor.activo === 1 || actor.activo === true)) throw unauthorized();
+  if (actor.rol !== 'ADMIN') throw new HttpError(403, 'Acceso reservado a ADMIN.');
+}
+function concurrentConflict(error) {
+  if (['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT'].includes(error.code)) {
+    return new HttpError(409, 'Conflicto concurrente: vuelve a intentar la operación.');
+  }
+  return error;
+}
 
 function publicYear(row) {
   return {
@@ -18,20 +29,24 @@ function publicYear(row) {
 
 export function createAniosEscolaresService({ repository = createAniosEscolaresRepository() } = {}) {
   return {
+    async open(id, body, actorId) {
+      validateId(id);
+      validateOpenYear(body);
+      try {
+        return publicYear(await repository.open(id, actorId, authorizeAdmin, year => {
+          if (!year) throw new HttpError(404, 'Año escolar no encontrado.');
+          if (year.estado !== 'PLANIFICADO') throw new HttpError(409, 'Solo puede abrirse un año PLANIFICADO.');
+        }));
+      } catch (error) { throw concurrentConflict(error); }
+    },
     async create(body, actorId) {
       const data = validateNewYear(body);
       try {
-        const row = await repository.create(data, actorId, actor => {
-          if (!actor || !(actor.activo === 1 || actor.activo === true)) throw unauthorized();
-          if (actor.rol !== 'ADMIN') throw new HttpError(403, 'Acceso reservado a ADMIN.');
-        });
+        const row = await repository.create(data, actorId, authorizeAdmin);
         return publicYear(row);
       } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') throw new HttpError(409, 'El año escolar ya está registrado.');
-        if (['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT'].includes(error.code)) {
-          throw new HttpError(409, 'Conflicto concurrente: vuelve a intentar la operación.');
-        }
-        throw error;
+        throw concurrentConflict(error);
       }
     },
     async list(query = {}) {

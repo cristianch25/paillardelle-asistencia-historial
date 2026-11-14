@@ -31,6 +31,11 @@ export function createSeccionesService({ repository = createSeccionesRepository(
     return {};
   }
   return {
+    // Operación interna para asignaciones: usa la conexión ya transaccional del llamador.
+    async assignmentContext(id, connection) {
+      validateId(id);
+      return repository.assignmentContext(id, connection);
+    },
     async list(query, actor) {
       const { page, limit, offset, filters } = validateSectionQuery(query);
       const access = await scope(actor, filters.nivel);

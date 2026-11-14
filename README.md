@@ -6,26 +6,31 @@ manual de padrones con revisión, sin sincronización automática.
 
 ## Estado del proyecto
 
-Punto de control de código: `a131fec70d1545971ea20e38a76d8a5d54517b70`
-(`fix: revalidar admin en alta transaccional de usuarios`), posterior al cierre
-de 6C-A en `911be67`. Última suite verificada en ese cierre de seguridad:
-**171 pruebas exitosas**, con conexiones simuladas, sin escrituras en MySQL real.
+Último commit confirmado: `b0639eb` (`feat: implementar apertura del anio escolar`).
+El bloque de estudiantes, matrícula inicial y padrón por fecha se encuentra en el
+árbol de trabajo, pendiente de commit; no se ha accedido a MySQL principal.
 
 El backend tiene código y dependencias; el frontend conserva solo carpetas
 preparadas, sin aplicación React ni manifiesto de paquetes. Una carpeta vacía
 no representa una funcionalidad terminada. **6D-1 completó el esquema de períodos;
-las API y reglas operativas de calendario siguen pendientes.**
+6D-2 implementa las API y reglas operativas de calendario.** La suite de 6D-2
+comprueba 216 pruebas con conexiones simuladas, sin MySQL real.
+El bloque inicial de asignaciones añade 24 pruebas y la apertura anual otras 16:
+256 pruebas previas. Estudiantes/matrículas/padrón añade 47: suite actual de
+**303 pruebas exitosas** con conexiones simuladas.
 
 | Área | Implementado en backend | Pendiente |
 | --- | --- | --- |
 | Salud | `GET /api/health`, independiente de MySQL | No acredita esquema ni conexión SQL |
 | Autenticación | Login bcrypt, JWT Bearer, perfil y usuario activo consultado en cada petición | Recuperación de contraseña, refresh/logout y despliegue HTTPS |
-| Usuarios | Listado/detalle/alta, edición y estado, protección del último ADMIN, auditoría | Administración de asignaciones; no hay eliminación física |
+| Usuarios y asignaciones | Administración de usuarios; consulta de asignaciones por ámbito y alta exclusiva de ADMIN con auditoría | Edición/finalización de asignaciones; no hay eliminación física |
 | Supervisión | Niveles adicionales explícitos de SUBDIRECCION, administrados por ADMIN | Sin permisos dinámicos; PORTERIA aprobado para una etapa futura |
-| Años escolares | Listado/detalle para tres roles; creación ADMIN en PLANIFICADO | Edición, apertura, cierre y reapertura |
+| Años escolares | Listado/detalle para tres roles; creación en PLANIFICADO y apertura global exclusivas de ADMIN | Edición general, cierre y reapertura |
 | Secciones | Listado/detalle por ámbito; creación ADMIN/SUBDIRECCION en año PLANIFICADO o ABIERTO | Edición y desactivación |
 | Auditoría | Escritura transaccional de operaciones administrativas implementadas | API de consulta e historial de asistencia |
-| Calendario, estudiantes, matrículas, asistencia, importaciones, reportes y bitácora | Sin endpoints funcionales | Implementación por etapas según v5 |
+| Calendario | Períodos, excepciones, lectividad efectiva y bloqueos atómicos por nivel; integración mínima verificada en MySQL 8.4.13 aislado | Frontend |
+| Estudiantes y matrículas | Identidad individual ADMIN; alta conjunta por ámbito; matrícula inicial atómica y padrón por fecha con doble asignación de REGISTRADOR | Edición, traslados, retiros, reingresos e integración MySQL aislada de este bloque |
+| Asistencia, importaciones, reportes y bitácora | Sin endpoints funcionales | Implementación por etapas según v5 |
 | QR y configuración | Campos y tablas de referencia; permisos individuales editables en usuarios | QR futuro automático sobre asistencia, opcional y deshabilitado por defecto; configuración global |
 | PORTERIA | No soportado todavía por SQL/backend | Cuarto rol independiente: login, escaneo y resultados propios, sin funciones administrativas |
 
@@ -36,6 +41,8 @@ para REGISTRADOR. No se precargan profesoras, salones ni permisos adicionales.
 
 Contratos y comandos: [backend](backend/README.md), [usuarios](backend/src/modules/usuarios/README.md)
 y [organización escolar](backend/src/modules/organizacion-escolar/README.md).
+El [mapa de estudiantes, matrículas y padrón](backend/src/modules/matriculas/README.md)
+documenta endpoints, decisiones de esta etapa, permisos, archivos, tablas y pruebas.
 
 ## Referencias funcionales vigentes
 
@@ -47,7 +54,8 @@ y [organización escolar](backend/src/modules/organizacion-escolar/README.md).
 
 V5 consolida las decisiones aprobadas, no declara que todas estén programadas.
 Incluye calendario 6D, estado de 003 y el futuro QR/PORTERIA. Su análisis conserva
-los modelos y conflictos pendientes. Citar versión junto a RN/RF/RNF: algunos
+los modelos y conflictos pendientes; su estado de implementación corresponde al
+momento de consolidación previo a 6D-2. Citar versión junto a RN/RF/RNF: algunos
 códigos cambiaron de significado respecto de versiones anteriores.
 
 Antecedentes históricos conservados sin sobrescribir:
@@ -101,9 +109,9 @@ dejar resultado incierto; se descarta la conexión y no se reintenta automática
 
 | Módulo | Responsabilidad actual o futura |
 | --- | --- |
-| `auth/`, `usuarios/` | Implementados; asignaciones aún sin API propia |
-| `organizacion-escolar/` | Años y secciones implementados; calendario pendiente |
-| `estudiantes/`, `matriculas/` | Identidad/contactos y movimientos con historial; pendientes |
+| `auth/`, `usuarios/` | Autenticación y usuarios implementados; asignaciones con GET/POST propios |
+| `organizacion-escolar/` | Años, secciones y calendario implementados |
+| `estudiantes/`, `matriculas/` | Identidad, matrícula inicial y padrón por fecha implementados; contactos y movimientos posteriores pendientes |
 | `asistencias/` | Registro, correcciones, justificaciones e historial; pendiente |
 | `importaciones/` | Vista previa, validación y conciliación confirmada; pendiente |
 | `reportes/` | Seguimiento mensual y fichas; pendiente |
@@ -111,11 +119,13 @@ dejar resultado incierto; se descarta la conexión y no se reintenta automática
 | `bitacora/` | Seguimiento individual por estudiante, solo anexar; pendiente |
 | `qr/` | QR futuro opcional que registrará asistencia automáticamente; PORTERIA y horarios pendientes |
 
-## Calendario 6D: esquema completado, API pendiente
+## Calendario 6D: esquema y API implementados
 
 6D-1 creó y verificó mediante 003 la tabla periodos_lectivos por año/nivel,
-complementaria de calendario_lectivo para excepciones diarias. No hay endpoints
-ni servicios de calendario todavía. El año sigue siendo global para los tres niveles.
+complementaria de calendario_lectivo para excepciones diarias. 6D-2 implementa
+ocho endpoints de períodos, excepciones y calendario efectivo, con permisos,
+bloqueos y auditoría transaccional. El año sigue siendo global para los tres niveles.
+Consultar [contratos, mapa técnico y verificación](backend/src/modules/organizacion-escolar/calendario-lectivo/README.md).
 
 Decisiones aprobadas en 6D-0 y confirmadas al iniciar 6D-1:
 
@@ -178,4 +188,5 @@ procedimientos excepcionales, conservación/recuperación, fechas efectivas/cont
 activación de bitácora, horarios y facultades específicas de ADMIN/Secretaría,
 conflictos manual/QR y relación PORTERIA–puede_escanear_qr. Definir consulta de auditoría
 y operadores de emisión/revocación/exportación QR antes de implementarlos.
-Esta etapa es documental: no autoriza implementar funciones, ejecutar SQL ni crear commits.
+6D-2 no ejecuta SQL de migración ni implementa otras etapas. Los commits y las
+siguientes etapas requieren autorización del usuario.

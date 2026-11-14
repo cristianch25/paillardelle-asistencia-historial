@@ -4,7 +4,8 @@ Para instalación, variables de entorno, arranque y pruebas, consulta el
 [README del backend](../../../README.md).
 
 Las referencias funcionales vigentes son [los cuatro TXT v5](../../../../README.md#referencias-funcionales-vigentes).
-Este README describe únicamente contratos implementados hasta `a131fec`;
+Este README describe los contratos de usuarios hasta `a131fec` y el bloque
+inicial de asignaciones aprobado después de 6D-2;
 las decisiones futuras no amplían estos contratos por documentación.
 
 Todos los endpoints requieren JWT válido y rol ADMIN actual. Las respuestas usan
@@ -211,3 +212,85 @@ rechazo sin alterar datos existentes. No duplicará asistencias ni tendrá salid
 o múltiples ingresos diarios. REGISTRADOR podrá corregir según permisos/auditoría.
 Los conflictos entre registros manuales y QR siguen sin política definida.
 Consultar [decisiones v5](../../../../docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v5.txt).
+
+## Asignaciones de REGISTRADOR — bloque inicial
+
+Implementa v5 RF-01/RF-02/RF-09, RN-14 y RNF-02/RNF-05/RNF-08, con el alcance
+aprobado específico: ADMIN crea; ADMIN consulta todas, SUBDIRECCION consulta
+niveles efectivos y REGISTRADOR consulta únicamente asignaciones propias.
+Los filtros se intersectan con ese ámbito; nunca lo sustituyen. Nivel explícito
+ajeno para SUBDIRECCION devuelve 403. No se usa nivel_asignado aislado para
+ampliar las consultas de REGISTRADOR. Las asignaciones futuras no conceden
+acceso anticipado a secciones o calendarios.
+
+`GET /api/asignaciones` (también con barra final) devuelve
+`{ asignaciones: [...], pagination: { page, limit, has_more } }`.
+Filtros opcionales únicos: usuario_id, seccion_id, anio_escolar_id (IDs de texto),
+nivel (PRIMARIA/SECUNDARIA/INICIAL) y vigencia (VIGENTE/FUTURA/FINALIZADA).
+Sin vigencia se consultan todos los períodos, incluidos históricos y futuros.
+VIGENTE: inicio <= hoy y fin null o >= hoy; FUTURA: inicio > hoy;
+FINALIZADA: fin < hoy. Hoy se calcula en America/Lima; extremos inclusivos.
+Consulta admite años CERRADO y no oculta implícitamente secciones inactivas.
+Page/limit siguen el contrato común: 1/20, máximo 100; ID ASC y una fila extra.
+Campos desconocidos o repetidos y paginación insegura devuelven 400.
+
+`POST /api/asignaciones` requiere ADMIN activo y JSON exclusivamente con
+usuario_id, seccion_id y fecha_inicio; fecha_fin es opcional, texto o null.
+IDs BIGINT UNSIGNED como cadenas; fechas civiles reales YYYY-MM-DD.
+Fin no puede ser anterior al inicio. El destinatario debe existir, estar activo
+y ser REGISTRADOR. Su nivel_asignado, si no es null, debe coincidir con la sección.
+La sección debe existir y estar activa; su año debe ser PLANIFICADO o ABIERTO.
+Las fechas explícitas deben estar dentro del intervalo del año; no se exige
+día lectivo ni año ABIERTO para preparar asignaciones. Fechas pasadas admitidas.
+Fin omitido/null conserva la vigencia abierta del esquema: no se rellena con el
+fin del año ni se cierra automáticamente. No hay PATCH, DELETE ni detalle por ID.
+
+Se rechaza cualquier solapamiento inclusivo del mismo usuario/sección, incluido
+duplicado exacto o un período abierto. Se permiten varias secciones por usuario
+y varios usuarios en una sección, sin imponer exclusividad ni reglas por cargo.
+No se modifican asignaciones anteriores. Respuesta 201: `{ asignacion: {...} }`.
+Campos públicos: id, usuario_id, seccion_id (texto), fecha_inicio, fecha_fin y
+created_at. GET y POST usan Cache-Control: no-store y JSON de hasta 8 KB en POST.
+
+Transacción: ADMIN activos por ID, actor revalidado, destinatario revalidado,
+año/sección y asignaciones del par mediante lecturas actuales FOR UPDATE.
+El bloqueo del destinatario y el prefijo común coordinan con la edición de
+usuarios y evitan carreras incluso si todavía no hay asignaciones. El año se
+localiza sin bloqueo de sección previo; la decisión usa año/sección bloqueados.
+Ningún usuario se adquiere después del año. INSERT y auditoría CREAR_ASIGNACION,
+entidad asignaciones, anteriores null y nuevos públicos se confirman juntos.
+El ID se recupera como texto con LAST_INSERT_ID() en la misma conexión antes
+de auditar; COMMIT incierto, rollback y limpieza usan shared/transaction.js.
+No hay reintentos automáticos. Errores: 400 validación/fechas, 401 autenticación
+o actor inactivo, 403 permisos, 404 destinatario/sección/año inexistente,
+409 incompatibilidad/solapamiento/deadlock/timeout y 500 interno seguro.
+
+Mapa: usuarios.asignaciones.routes.js/controller.js contienen HTTP;
+usuarios.asignaciones.validation.js valida entradas; usuarios.asignaciones.service.js
+aplica permisos/reglas; usuarios.asignaciones.repository.js concentra SQL y auditoría.
+app.js inyecta el servicio de secciones para la lectura bloqueada, evitando
+importaciones circulares. shared/inserted-id.js se comparte con calendario.
+Tablas: asignaciones y auditoria_administrativa (anexado), usuarios,
+secciones y anios_escolares (lectura/bloqueos), usuario_niveles_adicionales
+(consulta del ámbito de SUBDIRECCION). No cambia el esquema ni otros históricos.
+
+Verificar desde backend con `npm.cmd test`: cuatro test/asignaciones.*.test.js
+y test-support/asignaciones-pool.js, con conexiones simuladas. Se prueban roles,
+filtros, vigencias, fechas, solapamientos, auditoría, BIGINT, fallos transaccionales
+y carreras con la edición real de usuarios sobre un mismo doble de conexión.
+Consulta manual con JWT existente: `/api/asignaciones?vigencia=VIGENTE&limit=20`.
+POST persiste datos: usar exclusivamente una copia aislada autorizada para pruebas.
+Integración mínima verificada el 13/11/2026 en una nueva instancia MySQL 8.4.13
+aislada en 127.0.0.1:3307, con datos/configuración independientes y sin conexiones
+a 3306. Seis comprobaciones satisfactorias: identidad/esquema v1+002+003,
+alta/consulta HTTP, solapamientos con fin NULL entrante o existente, rechazo
+de combinaciones incompatibles de usuario/sección/año aun con fin NULL,
+permisos de los tres roles y auditoría con rollback real ante fallo controlado.
+Vigencia abierta no omite validaciones ni impone exclusividad entre pares
+usuario/sección distintos. Se verificaron backend/.env y estados de servicios
+sin cambios. La instancia temporal terminó con SHUTDOWN normal autorizado,
+sin Stop-Process. Arnés/resultados locales ignorados por Git en
+backend/tmp/integracion-asignaciones-41f6021f54/. La integración de siete
+comprobaciones anterior corresponde a calendario 6D-2. Estudiantes, matrículas
+y asistencia siguen pendientes. La apertura del año ya dispone de PATCH
+exclusivo de ADMIN: ver el [contrato de organización escolar](../organizacion-escolar/README.md).
