@@ -5,7 +5,8 @@ export async function authBrowser(harness = 'authHarness.jsx') {
   const vite = await createServer({ plugins: [{ name: 'auth-test-routes', configureServer(server) {
     server.middlewares.use(async (req, res, next) => {
       const path = req.url?.split('?')[0];
-      if (!['/login', '/inicio', '/secciones', '/secciones/asistencia'].includes(path)) return next();
+      if (!['/login', '/inicio', '/secciones', '/secciones/asistencia'].includes(path)
+        && !path?.startsWith('/asistencias/supervision')) return next();
       const html = `<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><div id="root"></div><script type="module" src="/test/support/${harness}"></script></body></html>`;
       res.setHeader('Content-Type', 'text/html'); res.end(await server.transformIndexHtml(req.url, html));
     });

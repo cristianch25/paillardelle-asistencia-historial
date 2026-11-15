@@ -4,10 +4,10 @@ import { createServer } from 'vite';
 import { AxiosError } from 'axios';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Routes, Route } from 'react-router';
 import { supervisionResult, year } from './support/supervisionFixture.mjs';
 
-let vite, http, api, access, query, Page, Auth, navigation;
+let vite, http, api, access, query, Page, Auth, navigation, Workspace;
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   http = await vite.ssrLoadModule('/src/shared/api/httpClient.ts');
@@ -16,6 +16,7 @@ before(async () => {
   access = await vite.ssrLoadModule(`${root}supervisionAccess.ts`);
   query = await vite.ssrLoadModule(`${root}useSupervisionQuery.ts`);
   Page = (await vite.ssrLoadModule(`${root}SupervisionPage.tsx`)).default;
+  Workspace = (await vite.ssrLoadModule(`${root}SupervisionWorkspace.tsx`)).default;
   Auth = (await vite.ssrLoadModule('/src/features/auth/AuthContext.ts')).AuthContext;
   navigation = await vite.ssrLoadModule('/src/app/layout/navigation.ts');
 });
@@ -76,7 +77,8 @@ test('matriz específica y navegación solo ADMIN/SUBDIRECCION; pantalla sin pro
     const user = { id: '1', rol, nivel_asignado };
     assert.deepEqual(access.supervisionLevels(user), levels);
     assert.equal(navigation.navigationFor(rol).some(item => item.path === '/asistencias/supervision'), rol !== 'REGISTRADOR');
-    const html = renderToStaticMarkup(h(MemoryRouter, null, h(Auth.Provider, { value: { session: { user } } }, h(Page))));
+    const html = renderToStaticMarkup(h(MemoryRouter, null, h(Auth.Provider, { value: { session: { user } } },
+      h(Routes, null, h(Route, { element: h(Workspace) }, h(Route, { path: '/', element: h(Page) }))))));
     assert.equal(html.includes('Supervisión de asistencias'), rol !== 'REGISTRADOR');
   }
 });

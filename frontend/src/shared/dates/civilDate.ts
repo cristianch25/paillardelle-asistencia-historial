@@ -13,3 +13,7 @@ export function validCivilDate(value: string): boolean {
   const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   return month >= 1 && month <= 12 && day >= 1 && day <= (days[month - 1] ?? 0);
 }
+
+export function formatCivilDate(value: string): string {
+  return validCivilDate(value) ? value.split('-').reverse().join('/') : value;
+}

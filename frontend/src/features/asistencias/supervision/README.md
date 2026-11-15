@@ -1,4 +1,4 @@
-# Supervisión 7A.1 y 7A.2
+# Supervisión 7A.1–7A.3
 
 Ruta `/asistencias/supervision`, exclusivamente ADMIN/SUBDIRECCION. Lecturas GET
 mediante Axios y autenticación compartidos; sin apertura, marcado, cierre ni detalle.
@@ -49,11 +49,42 @@ si fueron devueltos en un resumen real. No se calculan porcentajes ni se corrige
 totales. No se consultan detalles ni resúmenes individuales; no hay nuevas llamadas
 HTTP. Referencias: RN-04/05 y RF-10, RNF-01/04 v5, con el contrato posterior del
 backend ya citado. Se conservan filtros, permisos y aislamiento de consultas.
-7A.3 y la navegación al detalle quedan fuera de esta entrega.
+
+7A.3 añade `/asistencias/supervision/:sesionId` para ADMIN/SUBDIRECCION, con
+recarga y acceso directo. Solo tarjetas con sesión existente enlazan por sesion_id,
+nunca por seccion_id; SIN_REGISTRO no ofrece enlace. No abre/recupera sesiones.
+Reutiliza getAttendance y AttendanceDetail para GET de detalle y la fila de
+estudiante existente exclusivamente en modo lectura. No usa hooks de edición,
+apertura, guardado, cierre ni selección del flujo diario.
+
+Revisión de contrato (backend ff3ca53, README y service.js): el detalle devuelve
+sesion, padron y resumen; sesion tiene IDs de año/sección y fecha, pero no nivel,
+grado ni nombre de sección. Tras autorizar el GET de detalle se realiza un segundo
+GET al listado de asistencia con año/fecha/seccion_id recibidos y page=1/limit=1.
+Se valida la correspondencia de sección y sesión antes de mostrar el padrón. No se
+consulta el catálogo general de secciones ni /resumen por estudiante/sección.
+El resumen y el estado mostrados provienen del detalle, no de una segunda lectura.
+Las dos lecturas no comparten instantánea; si falla cualquiera no se publica el
+detalle parcial, y se permite reintentar. El servidor conserva la autorización.
+
+El detalle presenta identidad académica, fecha, situación, totales y nombres/estados
+del padrón. Todos/Presentes/Tardanzas/Faltas/Pendientes filtran localmente con su
+cantidad y estado vacío; pendiente se presenta como «Sin marcar» en la fila.
+No muestra IDs internos, actores, timestamps de auditoría, versiones ni motivos.
+Actualizar detalle retira temporalmente la información y revalida los dos GET.
+403/404 y errores de red retiran los datos; 401 usa el manejo global existente.
+La limpieza de efectos descarta respuestas y errores de otra sesión o cuenta.
+
+SupervisionWorkspace conserva solo filtros en memoria entre listado y detalle,
+con clave de cuenta/rol/nivel/expiración; no persiste estudiantes en almacenamiento
+ni historia de navegación. Volver y Atrás conservan los filtros dentro del ámbito;
+cambiar de cuenta o recargar reinicia los filtros del listado. El detalle se vuelve
+a consultar desde su ID al recargar. No hay correcciones ni justificaciones.
 
 Verificación: `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd test`,
 `npm.cmd run test:browser`, `npm.cmd run build`. Las pruebas usan adaptadores
 Axios simulados y Edge headless; no consultan MySQL ni alteran el backend.
 Captura móvil: `frontend/node_modules/.tmp/supervision-320.png` (no versionada).
+Captura del detalle: `frontend/node_modules/.tmp/supervision-detail-320.png`.
 Las pruebas 7A.1B cubren 230 opciones, tres páginas, errores intermedios, respuesta
 obsoleta, cambio de cuenta, ausencia de opciones y recorrido inconsistente/sin fin.

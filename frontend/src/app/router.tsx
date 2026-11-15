@@ -9,13 +9,18 @@ import EstudiantesSeccionPage from '../features/organizacion-escolar/secciones/E
 import AsistenciaDiariaPage from '../features/asistencias/AsistenciaDiariaPage';
 import NavigationShell from './NavigationShell';
 import SupervisionPage from '../features/asistencias/supervision/SupervisionPage';
+import SupervisionWorkspace from '../features/asistencias/supervision/SupervisionWorkspace';
+import SupervisionDetailPage from '../features/asistencias/supervision/SupervisionDetailPage';
 
 export const router = createBrowserRouter(createRoutesFromElements(
   <Route element={<NavigationShell />}>
     <Route path="/login" element={<LoginPage />} />
     <Route element={<ProtectedRoute />}>
       <Route element={<AppLayout />}>
-        <Route path="/asistencias/supervision" element={<SupervisionPage />} />
+        <Route path="/asistencias/supervision" element={<SupervisionWorkspace />}>
+          <Route index element={<SupervisionPage />} />
+          <Route path=":sesionId" element={<SupervisionDetailPage />} />
+        </Route>
       </Route>
       <Route element={<SeccionSelectionProvider><AppLayout /></SeccionSelectionProvider>}>
         <Route path="/inicio" element={<HomePage />} />

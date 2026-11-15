@@ -12,7 +12,8 @@ export function supervisionResult(params) {
 export function supervisionCards(params) {
   const base = supervisionResult(params).secciones[0];
   return [
-    { ...base, situacion: 'ABIERTA', es_lectivo: true, sesion_id: '9007199254741995',
+    { ...base, seccion: { ...base.seccion, id: '9007199254740995', letra: 'CREATIVOS' },
+      situacion: 'ABIERTA', es_lectivo: true, sesion_id: '9007199254741995',
       resumen: { total: 30, presentes: 24, tardanzas: 2, faltas: 1, pendientes: 3 } },
     { ...base, seccion: { ...base.seccion, id: '9007199254740996', letra: 'GENIALES' },
       situacion: 'CERRADA', es_lectivo: false, sesion_id: '9007199254741996',

@@ -31,10 +31,10 @@ test('7A.2: tarjetas, filtros rápidos, móvil y solo lectura',
         assert.equal(await evaluate(`${mainCalls}.length`), 1);
         assert.equal(await evaluate('supervisionTest.calls.every(c => ["/anios-escolares", "/asistencias/sesiones"].includes(c.url) && c.method === "get")'), true);
       });
-      await t.test('320 px: tarjetas legibles, sin controles de detalle ni desbordamiento', async () => {
+      await t.test('320 px: tarjetas legibles y enlaces de detalle sin controles de escritura ni desbordamiento', async () => {
         const layout = await evaluate(`({ width: document.documentElement.scrollWidth,
           cards: ${rows}.map(row => { const r = row.getBoundingClientRect(); return { left: r.left, right: r.right, width: r.width }; }),
-          controls: ${rows}.some(row => row.querySelector('a,button,input,select')) })`);
+          controls: ${rows}.some(row => row.querySelector('button,input,select')) })`);
         assert.ok(layout.width <= 320); assert.ok(layout.cards.every(card => card.left >= 0 && card.right <= 320 && card.width > 200));
         assert.equal(layout.controls, false);
         await evaluate(`${rows}[0].scrollIntoView({ block: 'start' })`);

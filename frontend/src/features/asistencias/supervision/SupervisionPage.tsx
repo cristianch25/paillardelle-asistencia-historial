@@ -1,9 +1,5 @@
-import { useState } from 'react';
-import { Navigate } from 'react-router';
 import { useAuth } from '../../auth/AuthContext';
-import type { AuthSession } from '../../auth/auth.types';
 import { useSchoolYears } from '../../organizacion-escolar/anios-escolares/useSchoolYears';
-import { peruToday } from '../../../shared/dates/civilDate';
 import Button from '../../../shared/components/Button';
 import EmptyState from '../../../shared/components/EmptyState';
 import ErrorState from '../../../shared/components/ErrorState';
@@ -14,19 +10,12 @@ import SupervisionFilters from './SupervisionFilters';
 import SupervisionSectionCard from './SupervisionSectionCard';
 import { useSupervisionQuery } from './useSupervisionQuery';
 import { useSupervisionSections } from './useSupervisionSections';
-import type { SupervisionFilters as Filters } from './supervision.types';
+import { useSupervisionWorkspace } from './useSupervisionWorkspace';
 
 export default function SupervisionPage() {
   const { session } = useAuth();
-  if (!session) return <Navigate to="/login" replace />;
-  if (session.user.rol !== 'ADMIN' && session.user.rol !== 'SUBDIRECCION') return <Navigate to="/inicio" replace />;
-  const key = JSON.stringify([session.user.id, session.user.rol, session.user.nivel_asignado, session.expiresAt]);
-  return <SupervisionConsultation key={key} session={session} />;
-}
-
-function SupervisionConsultation({ session }: { session: AuthSession }) {
   const years = useSchoolYears();
-  const [filters, setFilters] = useState<Filters>({ anio_escolar_id: '', fecha: peruToday(), nivel: '', seccion_id: '', page: 1 });
+  const { filters, setFilters } = useSupervisionWorkspace();
   const query = useSupervisionQuery(filters);
   const sections = useSupervisionSections(filters);
   return <div className="min-w-0 space-y-6">
@@ -39,7 +28,7 @@ function SupervisionConsultation({ session }: { session: AuthSession }) {
       <ErrorState message={years.error} /><Button variant="secondary" onClick={years.retry}>Reintentar años escolares</Button>
     </> : <>
       <section aria-label="Filtros de supervisión" className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
-        <SupervisionFilters years={years.years} levels={supervisionLevels(session.user)} options={sections} value={filters} onChange={setFilters} />
+        <SupervisionFilters years={years.years} levels={supervisionLevels(session!.user)} options={sections} value={filters} onChange={setFilters} />
       </section>
       {!filters.anio_escolar_id ? <EmptyState message="Selecciona un año escolar para consultar la supervisión." />
         : !filters.fecha ? <EmptyState message="Selecciona una fecha para consultar la supervisión." /> : null}

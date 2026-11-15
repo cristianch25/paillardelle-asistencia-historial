@@ -3,11 +3,12 @@ import { before, after, test } from 'node:test';
 import { createServer } from 'vite';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router';
 import { supervisionCards, year } from './support/supervisionFixture.mjs';
 
 let vite, Card, http;
 const items = supervisionCards({ anio_escolar_id: year.id, fecha: '2026-11-15' });
-const markup = item => renderToStaticMarkup(h(Card, { item }));
+const markup = item => renderToStaticMarkup(h(MemoryRouter, null, h(Card, { item })));
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   Card = (await vite.ssrLoadModule('/src/features/asistencias/supervision/SupervisionSectionCard.tsx')).default;
@@ -49,12 +50,14 @@ test('SIN_REGISTRO y cualquier resumen null no crean totales ni ceros virtuales'
   assert.match(markup(items[2]), /Sin registro/);
 });
 
-test('tarjetas son lectura pura sin enlaces, controles, solicitudes ni exposición de IDs/estudiantes', () => {
+test('tarjetas solo enlazan sesiones existentes por sesion_id, sin controles de escritura ni consultas', () => {
   let requests = 0;
   http.httpClient.defaults.adapter = async () => { requests++; throw new Error('No debe consultar'); };
   for (const item of items) {
     const before = structuredClone(item), html = markup(item);
-    assert.doesNotMatch(html, /<a\b|<button|<input|<select|tabindex|900719925|estudiante_id|Guardar|Editar|Abrir asistencia/);
+    assert.doesNotMatch(html, /<button|<input|<select|tabindex|estudiante_id|Guardar|Editar|Abrir asistencia/);
+    if (item.situacion === 'SIN_REGISTRO') assert.doesNotMatch(html, /<a\b/);
+    else assert.ok(html.includes(`href="/asistencias/supervision/${item.sesion_id}"`));
     assert.deepEqual(item, before);
   }
   assert.equal(requests, 0);
