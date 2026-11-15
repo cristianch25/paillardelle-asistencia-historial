@@ -3,8 +3,11 @@ import type { Section } from './secciones.types';
 import { educationLevelLabels, formatSectionName } from './sectionPresentation';
 import type { SchoolYear } from '../anios-escolares/aniosEscolares.types';
 
-type Props = { sections: Section[]; years?: SchoolYear[]; selectedId?: string; checking: boolean; onSelect: (section: Section) => void };
-export default function SeccionesList({ sections, years, selectedId, checking, onSelect }: Props) {
+type Props = { sections: Section[]; years?: SchoolYear[]; selectedId?: string; checking: boolean } & (
+  { onSelect: (section: Section) => void; onOpen?: never }
+  | { onSelect?: never; onOpen: (section: Section, destination: 'asistencia' | 'estudiantes') => void }
+);
+export default function SeccionesList({ sections, years, selectedId, checking, onSelect, onOpen }: Props) {
   return (
     <ul aria-label="Secciones disponibles" className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
       {sections.map(section => {
@@ -18,11 +21,16 @@ export default function SeccionesList({ sections, years, selectedId, checking, o
             {section.turno && <div><dt className="inline font-medium">Turno: </dt><dd className="inline break-words">{section.turno}</dd></div>}
             <div><dt className="inline font-medium">Estado: </dt><dd className="inline">{section.activo ? 'Activa' : 'Inactiva'}</dd></div>
           </dl>
-          <Button className="mt-5 w-full" variant={section.id === selectedId ? 'secondary' : 'primary'}
+          {onOpen ? <div className="mt-4 flex flex-col gap-2">
+            <Button disabled={checking || !year} aria-label={`Asistencia diaria de ${formatSectionName(section)} — ${educationLevelLabels[section.nivel]}`}
+              onClick={() => onOpen(section, 'asistencia')}>Asistencia diaria</Button>
+            <Button variant="secondary" disabled={checking || !year} aria-label={`Ver estudiantes de ${formatSectionName(section)} — ${educationLevelLabels[section.nivel]}`}
+              onClick={() => onOpen(section, 'estudiantes')}>Ver estudiantes</Button>
+          </div> : <Button className="mt-5 w-full" variant={section.id === selectedId ? 'secondary' : 'primary'}
             disabled={checking || (years !== undefined && !year)} aria-pressed={section.id === selectedId}
             aria-label={`Seleccionar ${formatSectionName(section)} — ${educationLevelLabels[section.nivel]}`} onClick={() => onSelect(section)}>
             {section.id === selectedId ? 'Seleccionada' : 'Seleccionar'}
-          </Button>
+          </Button>}
           {years !== undefined && !year && !checking && <p className="mt-2 text-sm text-slate-600">No se puede seleccionar sin los datos del año escolar.</p>}
         </li>
       ); })}

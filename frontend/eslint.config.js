@@ -17,4 +17,8 @@ export default tseslint.config(
     files: ['vite.config.ts', 'eslint.config.js', 'test/**/*.mjs'],
     languageOptions: { globals: globals.node },
   },
+  {
+    files: ['test/support/*.jsx'],
+    languageOptions: { globals: globals.browser, parserOptions: { ecmaFeatures: { jsx: true } } },
+  },
 );

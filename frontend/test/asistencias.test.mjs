@@ -104,10 +104,33 @@ test('día no lectivo informa sin afirmar inexistencia de sesión; recuperación
   const html = renderToStaticMarkup(h(CalendarDayInfo, { day: {
     fecha: '2026-11-14', es_lectivo: false, origen: 'EXCEPCION', descripcion: 'Feriado',
   } }));
-  assert.match(html, /Fecha no lectiva/); assert.match(html, /Feriado/);
-  assert.match(html, /Esto no indica si ya existe una sesión/);
+  assert.match(html, /No hay clases en esta fecha/); assert.match(html, /Feriado/);
+  assert.match(html, /Si ya existe una sesión, puedes consultarla/);
   assert.doesNotMatch(html, /<button|disabled/);
   assert.match(markup(), />Abrir asistencia<\/button>/);
+});
+
+test('calendario normal no añade avisos; excepciones y ausencia de clases sí se muestran', async () => {
+  const today = (await vite.ssrLoadModule('/src/shared/dates/civilDate.ts')).peruToday();
+  assert.equal(renderToStaticMarkup(h(CalendarDayInfo, { day: {
+    fecha: today, es_lectivo: true, origen: 'REGLA_SEMANAL', descripcion: null,
+  } })), '');
+  const noClasses = renderToStaticMarkup(h(CalendarDayInfo, { day: {
+    fecha: today, es_lectivo: false, origen: 'REGLA_SEMANAL', descripcion: null,
+  } }));
+  assert.match(noClasses, /Hoy no hay clases/);
+  const recovery = renderToStaticMarkup(h(CalendarDayInfo, { day: {
+    fecha: today, es_lectivo: true, origen: 'EXCEPCION', descripcion: 'Recuperación autorizada',
+  } }));
+  assert.match(recovery, /Clases habilitadas en el calendario/); assert.match(recovery, /Recuperación autorizada/);
+  assert.doesNotMatch(recovery, /no hay clases|No se puede iniciar/);
+});
+
+test('estado después de abrir distingue nueva, abierta existente y cerrada sin modificar registros', () => {
+  const opened = { ...data, sesion: { ...data.sesion, estado: 'ABIERTA' } };
+  assert.match(renderToStaticMarkup(h(View, { data: opened, created: true, editable: true })), /Asistencia iniciada/);
+  assert.match(renderToStaticMarkup(h(View, { data: opened, created: false, editable: true })), /Sesión abierta/);
+  assert.match(renderToStaticMarkup(h(View, { data, created: false, editable: true })), /Sesión cerrada · Solo consulta/);
 });
 
 test('sesiones abiertas y cerradas muestran estados y resumen recibido solo como lectura', () => {

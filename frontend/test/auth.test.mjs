@@ -15,6 +15,7 @@ let LoginPage;
 let ProtectedRoute;
 let navigation;
 let userPresentation;
+let AuthContext;
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   http = await vite.ssrLoadModule('/src/shared/api/httpClient.ts');
@@ -24,6 +25,7 @@ before(async () => {
   ProtectedRoute = (await vite.ssrLoadModule('/src/features/auth/ProtectedRoute.tsx')).default;
   navigation = await vite.ssrLoadModule('/src/app/layout/navigation.ts');
   userPresentation = await vite.ssrLoadModule('/src/features/auth/userPresentation.ts');
+  AuthContext = (await vite.ssrLoadModule('/src/features/auth/AuthContext.ts')).AuthContext;
 });
 after(async () => { await vite?.close(); });
 
@@ -60,13 +62,21 @@ function renderRoute(element, path) {
 }
 
 test('login público muestra campos reales y escudo, sin contenido autenticado', () => {
-  const markup = renderRoute(createElement(LoginPage), '/login');
+  const markup = renderToStaticMarkup(createElement(AuthContext.Provider,
+    { value: { session: null, notice: '', initialization: 'ready' } },
+    createElement(MemoryRouter, { initialEntries: ['/login'] }, createElement(LoginPage))));
   assert.match(markup, /name="usuario"/);
   assert.match(markup, /name="password"/);
   assert.match(markup, /type="password"/);
   assert.match(markup, /autocomplete="current-password"/i);
   assert.match(markup, /images\/escudo-paillardelle.png/);
   assert.doesNotMatch(markup, /Sesión iniciada/);
+});
+
+test('al inicializar muestra comprobación sin formulario de login ni contenido autenticado', () => {
+  const markup = renderRoute(createElement(LoginPage), '/login');
+  assert.match(markup, /Comprobando sesión/);
+  assert.doesNotMatch(markup, /name="password"|name="usuario"/);
 });
 
 test('ruta protegida sin sesión no renderiza su contenido', () => {

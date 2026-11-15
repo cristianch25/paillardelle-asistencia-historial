@@ -121,6 +121,17 @@ test('lista conserva nombres completos, grupo, turno y estado, sin acciones de a
   assert.doesNotMatch(markup, /Registrar asistencia/);
 });
 
+test('tarjetas directas ofrecen asistencia y estudiantes por sección sin selección visual intermedia', () => {
+  const sections = [1, 2].map(id => ({ id: String(id), anio_escolar_id: '1', nivel: 'SECUNDARIA', grado: id, letra: 'A', activo: true, turno: null }));
+  const markup = renderToStaticMarkup(createElement(List, { sections, years: [{ id: '1', anio: 2026, estado: 'ABIERTO' }],
+    checking: false, onOpen() {} }));
+  assert.equal((markup.match(/>Asistencia diaria<\/button>/g) ?? []).length, 2);
+  assert.equal((markup.match(/>Ver estudiantes<\/button>/g) ?? []).length, 2);
+  assert.doesNotMatch(markup, />Seleccionar<|Sección seleccionada|disabled=/);
+  const unavailable = renderToStaticMarkup(createElement(List, { sections, years: [], checking: false, onOpen() {} }));
+  assert.equal((unavailable.match(/disabled=""/g) ?? []).length, 4);
+});
+
 test('nombres de sección conservan el grado y nombre completos para los tres niveles', () => {
   for (const [nivel, grado, letra, expected] of [
     ['INICIAL', 4, 'CREATIVOS', '4 años · CREATIVOS'],

@@ -13,23 +13,30 @@ import { educationLevelLabels, formatSectionName } from '../organizacion-escolar
 import { useAsistenciaSession } from './useAsistenciaSession';
 import AttendanceCalendarInfo from './AttendanceCalendarInfo';
 import AsistenciaSessionView from './AsistenciaSessionView';
+import { useAttendanceDraft } from './useAttendanceDraft';
+import AttendanceSaveBar from './AttendanceSaveBar';
+import AttendanceReview from './AttendanceReview';
+import { useNavigationProtection } from '../../shared/navigation/NavigationProtectionContext';
 
 export default function AsistenciaDiariaPage() {
   const { session } = useAuth();
-  const { selected, checking, error, revalidate } = useSectionSelection();
+  const { selected, checking, unverified, error, revalidate } = useSectionSelection();
   const location = useLocation();
   const navigate = useNavigate();
+  const { request } = useNavigationProtection();
   const [fecha, setFecha] = useState(() => {
     const candidate: unknown = location.state?.fecha;
     return typeof candidate === 'string' && validCivilDate(candidate) ? candidate : peruToday();
   });
   const selection = session && !checking && !error ? selected : null;
-  const attendance = useAsistenciaSession(session?.user.id ?? null, selection, fecha, checking);
+  const paused = checking || Boolean(unverified);
+  const attendance = useAsistenciaSession(session?.user.id ?? null, selection, fecha, paused);
+  const draft = useAttendanceDraft(session?.user.id ?? null, attendance.data, paused, revalidate);
   const valid = validCivilDate(fecha);
   const backLabel = session?.user.rol === 'REGISTRADOR' ? 'mis secciones' : 'secciones';
   return (
     <div className="space-y-4">
-      <Button variant="secondary" onClick={() => navigate(`/secciones${location.search}`)}>
+      <Button variant="secondary" disabled={draft.busy} onClick={() => void navigate(`/secciones${location.search}`)}>
         <ArrowLeft aria-hidden="true" className="size-5 shrink-0" />Volver a {backLabel}
       </Button>
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Asistencia diaria</h1>
@@ -39,22 +46,35 @@ export default function AsistenciaDiariaPage() {
       ) : !selection ? <EmptyState message="Selecciona una sección para consultar su asistencia diaria." /> : (
         <>
           <section aria-label="Detalle de sección" className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h2 className="break-words text-lg font-semibold">{formatSectionName(selection.section)} · {educationLevelLabels[selection.section.nivel]}</h2>
-            <p className="text-sm text-slate-600">Año escolar {selection.year.anio}</p>
-            {selection.section.turno && <p className="break-words text-sm text-slate-600">Turno: {selection.section.turno}</p>}
+            <h2 className="break-words text-lg font-semibold">{formatSectionName(selection.section)} — {educationLevelLabels[selection.section.nivel]}</h2>
+            {session?.user.rol === 'REGISTRADOR' ? <details className="text-xs text-slate-600">
+              <summary className="cursor-pointer">Detalles</summary>
+              <p>Año escolar {selection.year.anio}{selection.section.turno && ` · Turno: ${selection.section.turno}`}</p>
+            </details> : <>
+              <p className="text-sm text-slate-600">Año escolar {selection.year.anio}</p>
+              {selection.section.turno && <p className="break-words text-sm text-slate-600">Turno: {selection.section.turno}</p>}
+            </>}
           </section>
           <div className="flex flex-wrap items-end gap-3">
-            <div className="w-full max-w-xs sm:w-60"><FormField label="Fecha de asistencia" type="date" value={fecha}
-              onChange={event => setFecha(event.target.value)} error={valid ? undefined : 'Selecciona una fecha completa y válida.'} /></div>
-            <Button disabled={!valid || attendance.pending} onClick={attendance.open} aria-describedby="opening-hint">
+            <div className="w-full max-w-xs sm:w-60"><FormField label="Fecha de asistencia" type="date" value={fecha} disabled={draft.busy}
+              onChange={event => { const next = event.target.value; void request(() => setFecha(next)); }} error={valid ? undefined : 'Selecciona una fecha completa y válida.'} /></div>
+            {!draft.base && <Button disabled={!valid || attendance.pending || draft.busy} onClick={() => void request(attendance.open)} aria-describedby="opening-hint">
               {attendance.pending ? 'Abriendo asistencia…' : 'Abrir asistencia'}
-            </Button>
+            </Button>}
           </div>
-          <p id="opening-hint" className="text-sm text-slate-600">Recupera la sesión existente o inicia una nueva.</p>
+          {!draft.base && <p id="opening-hint" className="text-xs text-slate-600">Abre o inicia la asistencia de esta fecha.</p>}
           {valid && <AttendanceCalendarInfo selection={selection} fecha={fecha} />}
           {attendance.pending && <LoadingState message="Abriendo o recuperando la sesión de asistencia…" />}
           {attendance.error && <ErrorState message={attendance.error} />}
-          {attendance.data && <AsistenciaSessionView data={attendance.data} />}
+          {draft.phase === 'denied' && <ErrorState message={draft.message} />}
+          {draft.base && <>
+            <AttendanceReview data={draft.base} changes={draft.changes} conflicts={draft.conflicts}
+              onResolve={draft.resolve} disabled={draft.busy} />
+            <AsistenciaSessionView data={draft.base} changes={draft.changes} created={attendance.data?.creada} editable={draft.editable} disabled={draft.disabled} updated={draft.updated}
+              onSelect={draft.select} onMarkPending={draft.markAllPending} />
+            <AttendanceSaveBar count={draft.count} phase={draft.phase} message={draft.message} success={draft.success} conflicts={draft.conflicts.length}
+              disabled={draft.disabled} onSave={() => void draft.save()} onRefresh={() => void draft.refresh()} />
+          </>}
         </>
       )}
     </div>
