@@ -70,7 +70,7 @@ test('6B.2B: rechazos, revisión, incertidumbre y permisos',
         await evaluate('attendanceTest.saveStatus = 409; attendanceTest.sessionState = "CERRADA"');
         await click('Guardar avances'); await wait('document.body.textContent.includes("La sesión fue cerrada")');
         assert.equal(await evaluate('document.querySelectorAll("button[aria-pressed]").length'), 0);
-        assert.equal(await evaluate(`${button('Guardar avances')}.disabled`), true);
+        assert.equal(await evaluate(`Boolean(${button('Guardar avances')})`), false);
         assert.match(await evaluate('document.body.textContent'), /Selecciones que quedaron sin guardar/);
       });
       await t.test('403/404 ocultan datos aunque siga siendo visible la sección y revalidan permisos', async () => {

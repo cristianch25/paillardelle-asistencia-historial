@@ -5,6 +5,7 @@ export function attendanceMock() {
   const controls = { calls: [], prompts: [], confirmAnswer: true, holdSections: false, allow: true, release: null,
     sessionState: 'ABIERTA', sessionCreated: false, account: '5', server: structuredClone(data), extraSections: [], sectionStatus: null, saveStatus: null, readStatus: null,
     calendar: { es_lectivo: true, origen: 'REGLA_SEMANAL', descripcion: null },
+    closeStatus: null, applyCloseBeforeError: false, holdClose: false, releaseClose: null,
     applyBeforeError: false, holdPatch: false, releasePatch: null, holdRead: false, releaseRead: null, sessionAllowed: true };
   function summary() {
     const count = state => controls.server.padron.filter(row => row.estado === state).length;
@@ -14,6 +15,7 @@ export function attendanceMock() {
   controls.reset = () => Object.assign(controls, { calls: [], server: structuredClone(data), extraSections: [],
     account: String(Number(controls.account ?? '5') + 1), sessionState: 'ABIERTA', sessionCreated: false, confirmAnswer: true,
     calendar: { es_lectivo: true, origen: 'REGLA_SEMANAL', descripcion: null },
+    closeStatus: null, applyCloseBeforeError: false, holdClose: false, releaseClose: null,
     holdSections: false, allow: true, sectionStatus: null, saveStatus: null, readStatus: null, applyBeforeError: false,
     holdPatch: false, holdRead: false, releasePatch: null, releaseRead: null, sessionAllowed: true });
   controls.summary = summary;
@@ -54,7 +56,17 @@ export function attendanceMock() {
             created_at: '2026-03-02 12:00:00', updated_at: '2026-03-02 12:00:00' } })) };
     } else if (config.url.startsWith('/asistencias/sesiones')) {
       if (!controls.sessionAllowed) fail(404);
-      if (config.method === 'patch') {
+      if (config.url.endsWith('/cierre') && config.method === 'post') {
+        if (controls.holdClose) await new Promise(resolve => { controls.releaseClose = resolve; });
+        if (!controls.closeStatus || controls.applyCloseBeforeError) {
+          if (Object.keys(body).length !== 1 || body.version !== controls.server.sesion.version) fail(409);
+          if (controls.sessionState !== 'CERRADA') {
+            controls.sessionState = 'CERRADA'; controls.server.sesion.version++;
+          }
+        }
+        if (controls.closeStatus) fail(['network', 'timeout'].includes(controls.closeStatus) ? undefined : controls.closeStatus,
+          controls.closeStatus === 'timeout' ? 'ECONNABORTED' : '');
+      } else if (config.method === 'patch') {
         if (controls.holdPatch) await new Promise(resolve => { controls.releasePatch = resolve; });
         if (!controls.saveStatus || controls.applyBeforeError) { const status = apply(body); if (status !== 200) fail(status); }
         if (controls.saveStatus) fail(['network', 'timeout'].includes(controls.saveStatus) ? undefined : controls.saveStatus,
@@ -64,7 +76,9 @@ export function attendanceMock() {
         if (controls.readStatus) fail(controls.readStatus);
       }
       result = { ...structuredClone(controls.server), sesion: { ...controls.server.sesion, estado: controls.sessionState },
-        ...(config.method === 'post' ? { creada: controls.sessionCreated } : {}) };
+        ...(config.method === 'post' && !config.url.endsWith('/cierre') ? { creada: controls.sessionCreated } : {}),
+        ...(config.url.endsWith('/cierre') ? { advertencias: controls.server.resumen.pendientes
+          ? [{ codigo: 'PENDIENTES_AL_CERRAR', cantidad: controls.server.resumen.pendientes }] : [] } : {}) };
     } else throw new Error(`Solicitud inesperada: ${config.method} ${config.url}`);
     const status = result.creada ? 201 : 200;
     if (result.creada) controls.sessionCreated = false;

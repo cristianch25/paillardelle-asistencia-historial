@@ -16,6 +16,7 @@ import AsistenciaSessionView from './AsistenciaSessionView';
 import { useAttendanceDraft } from './useAttendanceDraft';
 import AttendanceSaveBar from './AttendanceSaveBar';
 import AttendanceReview from './AttendanceReview';
+import AttendanceCloseAction from './AttendanceCloseAction';
 import { useNavigationProtection } from '../../shared/navigation/NavigationProtectionContext';
 
 export default function AsistenciaDiariaPage() {
@@ -72,11 +73,14 @@ export default function AsistenciaDiariaPage() {
               onResolve={draft.resolve} disabled={draft.busy} />
             <AsistenciaSessionView data={draft.base} changes={draft.changes} created={attendance.data?.creada} editable={draft.editable} disabled={draft.disabled} updated={draft.updated}
               onSelect={draft.select} onMarkPending={draft.markAllPending} />
-            <AttendanceSaveBar count={draft.count} phase={draft.phase} message={draft.message} success={draft.success} conflicts={draft.conflicts.length}
-              disabled={draft.disabled} onSave={() => void draft.save()} onRefresh={() => void draft.refresh()} />
           </>}
         </>
       )}
+      <AttendanceCloseAction key={draft.key} available={Boolean(selection && draft.base?.sesion.estado === 'ABIERTA')}
+        pending={draft.base?.resumen.pendientes ?? 0} dirty={draft.count} disabled={paused || draft.phase !== 'idle'} onClose={draft.close} />
+      {selection && draft.base && <AttendanceSaveBar count={draft.count} phase={draft.phase} message={draft.message}
+        success={draft.success} conflicts={draft.conflicts.length} closed={draft.base.sesion.estado === 'CERRADA'}
+        disabled={draft.disabled} onSave={() => void draft.save()} onRefresh={() => void draft.refresh()} />}
     </div>
   );
 }

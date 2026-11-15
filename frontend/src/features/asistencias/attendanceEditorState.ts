@@ -2,7 +2,7 @@ import { attendanceDraftKey, markPendingPresent, selectAttendanceState, type Att
 import type { AttendanceDetail, AttendanceState } from './asistencias.types';
 import { reconcileAttendance } from './attendanceReconciliation';
 
-export type EditorPhase = 'idle' | 'saving' | 'refreshing' | 'refresh-required' | 'denied';
+export type EditorPhase = 'idle' | 'saving' | 'closing' | 'refreshing' | 'refresh-required' | 'denied';
 export type AttendanceEditor = {
   accountId: string | null; key: string | null; source: AttendanceDetail | null;
   base: AttendanceDetail | null; changes: AttendanceChanges; conflicts: string[]; updated: string[];
@@ -16,6 +16,7 @@ export type EditorAction =
   | { type: 'reset'; accountId: string | null; source: AttendanceDetail | null }
   | { type: 'select'; id: string; state: AttendanceState }
   | { type: 'bulk' }
+  | { type: 'discard'; epoch: object }
   | { type: 'resolve'; id: string; local: boolean }
   | { type: 'phase'; epoch: object; phase: EditorPhase; message: string }
   | { type: 'saved' | 'refreshed'; epoch: object; data: AttendanceDetail; message: string };
@@ -23,6 +24,7 @@ export type EditorAction =
 export function attendanceEditorReducer(editor: AttendanceEditor, action: EditorAction): AttendanceEditor {
   if (action.type === 'reset') return createAttendanceEditor(action.accountId, action.source);
   if ('epoch' in action && action.epoch !== editor.epoch) return editor;
+  if (action.type === 'discard') return { ...editor, changes: {}, conflicts: [], updated: [], success: false };
   if (action.type === 'phase') return { ...editor, phase: action.phase, message: action.message, success: false,
     ...(action.phase === 'denied' ? { base: null, changes: {}, conflicts: [], updated: [] } : {}) };
   if (action.type === 'saved') return { ...editor, base: action.data, changes: {}, conflicts: [], updated: [],

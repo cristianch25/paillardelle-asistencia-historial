@@ -14,7 +14,7 @@ export function useAttendanceDraft(accountId: string | null, data: AttendanceDet
     dispatch({ type: 'reset', accountId, source: data });
   }
   const count = Object.keys(editor.changes).length;
-  const busy = editor.phase === 'saving' || editor.phase === 'refreshing';
+  const busy = editor.phase === 'saving' || editor.phase === 'closing' || editor.phase === 'refreshing';
   const editable = !checking && Boolean(accountId) && editor.base?.sesion.estado === 'ABIERTA';
   const disabled = !editable || editor.phase !== 'idle' || editor.conflicts.length > 0;
   const saving = useAttendanceSave(editor, dispatch, checking, revalidate);

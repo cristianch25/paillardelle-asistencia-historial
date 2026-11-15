@@ -32,6 +32,9 @@ export type AttendanceDetail = {
   resumen: { total: number; presentes: number; tardanzas: number; faltas: number; pendientes: number };
 };
 export type AttendanceOpening = AttendanceDetail & { creada: boolean };
+export type AttendanceClosing = AttendanceDetail & {
+  advertencias: { codigo: 'PENDIENTES_AL_CERRAR'; cantidad: number }[];
+};
 export type AttendancePatch = {
   version: number;
   cambios: { asistencia_id: string; version: number; estado: AttendanceState }[];
