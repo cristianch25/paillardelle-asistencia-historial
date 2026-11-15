@@ -46,12 +46,12 @@ export function createEnrollmentQueries(poolProvider = getPool) {
       [...where.params, ...(limit === undefined ? [] : [limit, offset])]);
       return rows.map(row => String(row.estudiante_id));
     },
-    async list({ filters, access, date, limit, offset = 0 }, connection = poolProvider()) {
+    async list({ filters, access, date, limit, offset = 0 }, connection = poolProvider(), lock = false) {
       const where = conditions(filters, access, date);
       const [rows] = await connection.execute(`SELECT m.id, m.estudiante_id, m.anio_escolar_id,
         m.fecha_ingreso, m.fecha_retiro, m.estado, ms.id AS matricula_seccion_id, ms.seccion_id,
         ms.fecha_inicio, ms.fecha_fin ${where.sql} ORDER BY m.id ASC
-        ${limit === undefined ? '' : 'LIMIT ? OFFSET ?'}`,
+        ${limit === undefined ? '' : 'LIMIT ? OFFSET ?'}${lock ? ' FOR UPDATE' : ''}`,
       [...where.params, ...(limit === undefined ? [] : [limit, offset])]);
       return rows.map(publicRow);
     },

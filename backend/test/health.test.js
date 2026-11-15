@@ -32,7 +32,7 @@ test('GET /api/health responde 200 con el JSON de funcionamiento', async () => {
 });
 
 test('una API no implementada responde 404', async () => {
-  const response = await fetch(`${baseUrl}/api/asistencias`);
+  const response = await fetch(`${baseUrl}/api/modulo-inexistente`);
   await response.text();
 
   assert.equal(response.status, 404);

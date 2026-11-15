@@ -52,6 +52,7 @@ export function studentsFixture() {
       async execute(raw, p = []) {
         const sql = raw.replace(/\s+/g, ' ').trim(); state.calls.push({ sql, params: p, tx });
         if (typeof state.fail === 'function') state.fail(sql);
+        if (sql.includes('FROM sesiones_asistencia')) return [[]];
         if (sql.includes('FROM usuarios u LEFT JOIN')) {
           const user = state.users.get(p[0]);
           return [user ? (state.additional.get(p[0])?.length ? state.additional.get(p[0]) : [null])

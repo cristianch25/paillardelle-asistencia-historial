@@ -40,6 +40,7 @@ export function createEnrollmentRepository(poolProvider = getPool) {
         const access = await hooks.authorize(await actor(connection, actorId), connection);
         const context = await hooks.sectionContext(data.seccion_id, connection);
         hooks.validateContext(context, access);
+        await hooks.beforeInsert?.(connection);
         const identity = await hooks.identity(connection, access);
         // La fila del estudiante serializa altas aunque aún no tenga matrículas.
         const [existing] = await connection.execute(`SELECT id FROM matriculas

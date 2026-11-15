@@ -1,4 +1,4 @@
-import { createCalendarRepository } from './repository.js';
+import { createCalendarRepository, readCalendar } from './repository.js';
 import { createCalendarWriter } from './write.repository.js';
 import { createCalendarAccess, assertYear } from './access.js';
 import { validateCalendarQuery } from './validation.js';
@@ -18,6 +18,12 @@ export function createCalendarService({ repository = createCalendarRepository(),
       pagination: { page: data.page, limit: data.limit, has_more: rows.length > data.limit } };
   }
   return {
+    // Interno: el escritor conserva la misma conexión y ya bloqueó el año.
+    async lectiveOn(connection, yearId, level, date) {
+      const context = await readCalendar(connection, { anio_escolar_id: yearId, nivel: level }, true);
+      if (!context.year || date < context.year.fecha_inicio || date > context.year.fecha_fin) return false;
+      return effectiveDay(date, context.periods, context.exceptions).es_lectivo;
+    },
     ...createPeriodOperations(repository, writer, authorize),
     ...createExceptionOperations(writer, authorize),
     listPeriods: (query, actor) => list(query, actor, 'periods'),

@@ -3,9 +3,10 @@ import { peruDate } from '../../shared/peru-date.js';
 import { createEnrollmentRepository } from './repository.js';
 import { listQuery, enrollmentData, padronQuery } from './validation.js';
 import { requireActor, enrollmentContext, enrollmentConflict } from './access.js';
+import { createAttendanceImpactService } from '../asistencias/impact.service.js';
 
 export function createEnrollmentService({ repository = createEnrollmentRepository(), usuariosService,
-  seccionesService, identitiesService, getToday = peruDate } = {}) {
+  seccionesService, identitiesService, getToday = peruDate, attendanceImpact = createAttendanceImpactService() } = {}) {
   if (!usuariosService || !seccionesService || !identitiesService) throw new Error('Falta composición de servicios.');
   async function accessFor(actor, date, connection, writing = false) {
     requireActor(actor, writing, Boolean(connection));
@@ -29,6 +30,7 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
         authorize: (current, connection) => accessFor(current, getToday(), connection, true),
         sectionContext: (id, connection) => seccionesService.assignmentContext(id, connection),
         validateContext: (context, access) => enrollmentContext(context, data, access),
+        beforeInsert: connection => attendanceImpact.assertInitialEnrollment(connection, data),
         async identity(connection, access) {
           if (joint) {
             const ids = access.levels ? await visibleIds(access, connection) : undefined;
@@ -47,6 +49,17 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
     } catch (error) { throw enrollmentConflict(error); }
   }
   return {
+    // Interno: autorización y año ya bloqueados por asistencia; lecturas actuales.
+    async rosterForAttendance(yearId, sectionId, date, connection) {
+      const rows = await repository.list({ filters: { anio_escolar_id: yearId }, access: {}, date }, connection, true);
+      const selected = rows.filter(row => row.seccion_id === sectionId);
+      const counts = new Map();
+      for (const row of rows) counts.set(row.estudiante_id, (counts.get(row.estudiante_id) ?? 0) + 1);
+      if (!selected.length || selected.some(row => counts.get(row.estudiante_id) !== 1)) {
+        throw new HttpError(409, 'Se requiere un padrón no vacío y sin vínculos ambiguos.');
+      }
+      return selected;
+    },
     async importContext(ids, yearId, actor) {
       requireActor(actor, true);
       const access = await accessFor(actor, getToday());

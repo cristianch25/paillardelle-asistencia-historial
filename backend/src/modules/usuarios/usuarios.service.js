@@ -75,9 +75,9 @@ function userDetails(user) {
 export function createUsuariosService({ repository = createUsuariosRepository(), getToday = peruDate,
   supervision = createSupervisionService() } = {}) {
   return {
-    async historicalSectionIds(id, date, today = getToday()) {
+    async historicalSectionIds(id, date, today = getToday(), connection) {
       validateUserId(id);
-      const rows = await repository.historicalSectionIds(id, date, today);
+      const rows = await repository.historicalSectionIds(id, date, today, connection);
       return rows.map(row => String(row.seccion_id));
     },
     supervisionLevels: (user, connection) => supervision.levelsFor(user, connection),

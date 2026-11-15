@@ -38,14 +38,14 @@ test('revalida actor y adicionales bajo bloqueo antes de adquirir año/insertar'
     assert.equal(f.state.students.length, 0);
   }
 });
-test('orden común de bloqueos: actor/adicionales, año, sección, estudiante y matrícula', async () => {
+test('orden común: actor, año, sección, sesiones afectadas, estudiante y matrícula', async () => {
   const f = studentsFixture(), { estudiante } = await f.students.create(identity, f.actor('1'));
   f.state.calls.length = 0;
   await f.matriculas.create({ ...enrollment, estudiante_id: estudiante.id }, f.actor('1'));
   const locks = f.state.calls.filter(c => c.sql.includes('FOR UPDATE')).map(c => c.sql);
   assert.match(locks[0], /FROM usuarios/); assert.match(locks[1], /FROM anios_escolares/);
-  assert.match(locks[2], /FROM secciones/); assert.match(locks[3], /FROM estudiantes/);
-  assert.match(locks[4], /FROM matriculas/);
+  assert.match(locks[2], /FROM secciones/); assert.match(locks[3], /FROM sesiones_asistencia/);
+  assert.match(locks[4], /FROM estudiantes/); assert.match(locks[5], /FROM matriculas/);
 });
 for (const failAt of ['INSERT INTO estudiantes', 'INSERT INTO matriculas', 'INSERT INTO matricula_secciones',
   'CREAR_ESTUDIANTE_AUDIT', 'CREAR_MATRICULA_AUDIT']) {

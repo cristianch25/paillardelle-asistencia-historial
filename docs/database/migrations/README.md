@@ -110,7 +110,44 @@ concurrencia y protección de asistencias se implementarán en backend. La API
 de calendario se implementa en 6D-2; 6D-1 solo completó su esquema. Ver
 [contratos y protocolo de bloqueos](../../../backend/src/modules/organizacion-escolar/calendario-lectivo/README.md).
 
-## Próximas migraciones: diseño pendiente
+## Migración 004 — asistencia diaria (aplicada en local el 14/11/2026)
+
+Ejecución autorizada por el usuario tras aprobar
+[el diseño técnico](../ASISTENCIA_DIARIA_DISENO_v1.md). No reejecutar 004 en esta
+base. SQL v1 y migraciones 002/003 se conservan intactos. No hay ejecución automática
+en servidor, tests o carga demo. No se borró ni recreó la base local.
+
+Inspección previa real: MySQL 8.4.13, asistencia_paillardelle en
+DESKTOP-8KUPAM1:3306, 19 tablas; asistencias e historial_asistencias vacías.
+Respaldo completo: 48.685 bytes, SHA-256
+`63506facea31b60e22df3b0a20916ddf7fea6b0cf6b37caba28a332adb4a30e4`.
+Archivo local ignorado: `backend/tmp/asistencia-004/backup-before-004.sql`.
+No versionar el volcado: contiene credenciales con hash del ADMIN y cuentas demo.
+
+Se restauró el respaldo en esquemas nuevos de una instancia temporal independiente
+en 127.0.0.1:3310. Estructuras y datos restaurados coincidieron exactamente con el
+origen. El primer ensayo detectó que MySQL no admitía eliminar y recrear una FK
+con el mismo nombre en un ALTER; se corrigió solo el nombre a
+fk_asistencia_registrado_por y se repitió sobre otra copia íntegra.
+Los cuatro pasos DDL y la restauración del estado previo resultaron satisfactorios.
+
+Aplicación local: cuatro sentencias exitosas; 20 tablas y 23 CHECK habilitados.
+Nueva sesiones_asistencia; ampliaciones de asistencias e historial_asistencias;
+una UNIQUE compuesta adicional en matricula_secciones. No se generaron sesiones,
+marcas ni historial durante el DDL. Las filas de todas las tablas previas
+coincidieron con sus huellas originales: 15 matrículas, 15 vínculos, 3 secciones,
+6 usuarios, 48 auditorías y demás datos conservados, incluido el ADMIN completo.
+
+Requisito para otra instalación: respaldo/restauración comprobados y autorización
+específica. Exigir esquema previo esperado y asistencia/historial vacíos; si no,
+detenerse y diseñar la transición. DDL tiene commits implícitos: no reintentar
+tras fallo parcial ni prometer rollback conjunto. La recuperación comprobada
+restaura el respaldo en otra base aislada; no elimina ni reemplaza la base local.
+
+El script demo conserva su manifiesto de 19 tablas sin modificaciones: su
+detención tras 004 es intencional. No forzarlo para aceptar el nuevo esquema.
+
+## Antecedentes de diseño posteriores a 003
 
 Las [referencias funcionales v5](../../../README.md#referencias-funcionales-vigentes)
 no modifican automáticamente el esquema. SQL v1, 002 y 003 se conservan intactos;

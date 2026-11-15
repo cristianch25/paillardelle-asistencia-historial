@@ -2,6 +2,7 @@ import { getPool } from '../../../config/database.js';
 import { inTransaction } from '../../../shared/transaction.js';
 import { readInsertedId } from '../../../shared/inserted-id.js';
 import { readCalendar, periodColumns, exceptionColumns, periodRow, exceptionRow } from './repository.js';
+import { createAttendanceImpactService } from '../../asistencias/impact.service.js';
 
 async function audit(connection, actorId, entity, action, before, after) {
   await connection.execute(
@@ -73,7 +74,8 @@ export function createCalendarWriter(poolProvider = getPool) {
              WHERE s.anio_escolar_id = ? AND s.nivel = ? AND a.fecha BETWEEN ? AND ? ORDER BY a.id FOR UPDATE`,
             [scope.anio_escolar_id, scope.nivel, start, end],
           );
-          return [...new Set(rows.map(row => row.fecha))];
+          const sessions = await createAttendanceImpactService().dates(connection, scope.anio_escolar_id, scope.nivel, start, end);
+          return [...new Set([...rows.map(row => row.fecha), ...sessions])];
         };
         const plan = await decide(context);
         if (plan.period) return savePeriod(connection, actorId, plan.period);

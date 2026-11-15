@@ -15,9 +15,10 @@ import { createStudentIdentitiesService, createStudentsService } from './modules
 import { createStudentsRoutes } from './modules/estudiantes/routes.js';
 import { createEnrollmentService } from './modules/matriculas/service.js';
 import { createEnrollmentRoutes } from './modules/matriculas/routes.js';
+import { createAttendanceRoutes } from './modules/asistencias/routes.js';
 
 export function createApp({ authService = createAuthService(), usuariosService, aniosEscolaresService,
-  seccionesService, calendarService, assignmentsService, studentsService, matriculasService } = {}) {
+  seccionesService, calendarService, assignmentsService, studentsService, matriculasService, attendanceService } = {}) {
   const app = express();
   app.use('/api/health', healthRoutes);
   app.use('/api/auth', createAuthRoutes(authService));
@@ -38,6 +39,7 @@ export function createApp({ authService = createAuthService(), usuariosService, 
   const calendar = createCalendarRoutes(authService, calendarService);
   app.use('/api/periodos-lectivos', calendar.periods);
   app.use('/api/calendario-lectivo', calendar.calendar);
+  app.use('/api/asistencias', createAttendanceRoutes(authService, attendanceService));
   app.use(errorHandler);
   return app;
 }

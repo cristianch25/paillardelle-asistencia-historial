@@ -11,7 +11,7 @@ export const today = '2026-11-13';
 export function calendarFixture(options = {}) {
   const state = { users: new Map([['1', { ...admin }], ['2', { ...admin, id: '2' }]]),
     year: { id: '1', fecha_inicio: '2026-01-01', fecha_fin: '2026-12-31', estado: 'ABIERTO' },
-    periods: [], exceptions: [], attendance: [], audits: [], transactions: [], calls: [],
+    periods: [], exceptions: [], attendance: [], sessions: [], audits: [], transactions: [], calls: [],
     sections: [{ id: '10', nivel: 'PRIMARIA' }, { id: '11', nivel: 'INICIAL' }],
     assignments: [], additional: new Map(), error: new Error('SQL y credenciales privados'),
     cleanup: new Error('Error privado de limpieza'), ...options };
@@ -68,6 +68,10 @@ export function calendarFixture(options = {}) {
             step('attendance');
             return [state.attendance.filter(row => row.anio_escolar_id === params[0] && row.nivel === params[1]
               && row.fecha >= params[2] && row.fecha <= params[3]).map((row, i) => ({ id: String(i + 1), fecha: row.fecha }))];
+          }
+          if (sql.includes('FROM sesiones_asistencia sa')) {
+            return [state.sessions.filter(row => row.anio_escolar_id === params[0] && row.nivel === params[1]
+              && row.fecha >= params[2] && row.fecha <= params[3])];
           }
           if (sql.startsWith('INSERT INTO auditoria_administrativa')) {
             step('audit'); pendingAudits.push(params); lastInsertedId = String(500 + pendingAudits.length);
