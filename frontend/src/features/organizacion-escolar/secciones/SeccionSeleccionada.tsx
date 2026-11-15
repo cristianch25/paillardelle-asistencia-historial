@@ -24,10 +24,12 @@ export default function SeccionSeleccionada() {
         <p role="status" className="mt-3 break-words font-medium">{formatSectionName(selected.section)} — {educationLevelLabels[selected.section.nivel]}</p>
         <p className="mt-2 text-sm text-slate-600">Año escolar {selected.year.anio} · {selected.year.estado}</p>
         <p className="mt-2 text-sm text-slate-600">{selected.section.activo ? 'Activa' : 'Inactiva'}{selected.section.turno ? ` · Turno: ${selected.section.turno}` : ''}</p>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <Link to={`/secciones/asistencia${location.search}`}
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-institutional-800 bg-institutional-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-institutional-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-institutional-700">Asistencia diaria</Link>
           <Link to={`/secciones/estudiantes${location.search}`}
-            className="inline-flex min-h-11 items-center rounded-lg bg-institutional-800 px-4 py-2.5 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-institutional-700">Ver estudiantes</Link>
-          <Button variant="secondary" onClick={clear}>Limpiar selección</Button>
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-institutional-950 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-institutional-700">Ver estudiantes</Link>
+          <Button variant="tertiary" className="sm:ml-auto" onClick={clear}>Limpiar selección</Button>
         </div>
       </section>}
     </>

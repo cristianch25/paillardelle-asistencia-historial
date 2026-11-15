@@ -1,12 +1,13 @@
 import type { ComponentProps } from 'react';
 
 type ButtonProps = ComponentProps<'button'> & {
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'tertiary';
 };
 
 const variants = {
   primary: 'border-institutional-800 bg-institutional-800 text-white enabled:hover:bg-institutional-950',
   secondary: 'border-slate-300 bg-white text-institutional-950 enabled:hover:bg-slate-100',
+  tertiary: 'border-transparent bg-transparent text-slate-600 enabled:hover:bg-slate-100',
 };
 
 export default function Button({ variant = 'primary', type = 'button', className = '', ...props }: ButtonProps) {

@@ -7,6 +7,7 @@ import HomePage from '../features/inicio/HomePage';
 import SeccionesPage from '../features/organizacion-escolar/secciones/SeccionesPage';
 import SeccionSelectionProvider from '../features/organizacion-escolar/secciones/SeccionSelectionProvider';
 import EstudiantesSeccionPage from '../features/organizacion-escolar/secciones/EstudiantesSeccionPage';
+import AsistenciaDiariaPage from '../features/asistencias/AsistenciaDiariaPage';
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
               <Route path="/inicio" element={<HomePage />} />
               <Route path="/secciones" element={<SeccionesPage />} />
               <Route path="/secciones/estudiantes" element={<EstudiantesSeccionPage />} />
+              <Route path="/secciones/asistencia" element={<AsistenciaDiariaPage />} />
             </Route>
             <Route path="/sesion" element={<Navigate to="/inicio" replace />} />
           </Route>

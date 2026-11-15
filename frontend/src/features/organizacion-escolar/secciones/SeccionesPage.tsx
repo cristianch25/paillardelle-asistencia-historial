@@ -1,4 +1,6 @@
-import { useSectionListLocation } from './useSectionListLocation';
+import { useEffect } from 'react';
+import { normalizeSectionFilters, useSectionListLocation } from './useSectionListLocation';
+import { useSectionLevels } from './useSectionLevels';
 import Button from '../../../shared/components/Button';
 import EmptyState from '../../../shared/components/EmptyState';
 import ErrorState from '../../../shared/components/ErrorState';
@@ -28,8 +30,17 @@ function FilteredSeccionesPage() {
   const selection = useSectionSelection();
   const { yearId, filters, page, update, setPage } = useSectionListLocation(selection.selected?.year.id);
   const years = useSchoolYears();
+  const levels = useSectionLevels(session?.user ?? null);
+  const normalized = levels.data?.length ? normalizeSectionFilters(filters, levels.data) : null;
+  const filtersReady = normalized && normalized.filters.nivel === filters.nivel && normalized.filters.grado === filters.grado;
+  useEffect(() => {
+    if (normalized && !filtersReady) {
+      update({ yearId, filters: normalized.filters, page: normalized.resetPage ? 1 : page });
+      if (normalized.resetPage) selection.clear();
+    }
+  }, [normalized, filtersReady, update, yearId, page, selection]);
   const year = years.years.find(item => item.id === yearId);
-  const sections = useSecciones(!years.loading && !years.error && year ? year.id : '', filters, page);
+  const sections = useSecciones(!years.loading && !years.error && filtersReady && year ? year.id : '', filters, page);
 
   function changeYear(id: string) {
     update({ yearId: id, filters: emptyFilters, page: 1 });
@@ -45,11 +56,16 @@ function FilteredSeccionesPage() {
         <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">Consulta las secciones de la institución por año escolar.</p>
         {session && primaryLevelLabel(session.user) && <p className="mt-2 text-sm text-slate-600">{primaryLevelLabel(session.user)}</p>}
       </div>
+      {levels.loading && <LoadingState message="Comprobando niveles autorizados…" />}
+      {levels.error && <div className="space-y-3"><ErrorState message={levels.error} />
+        <Button variant="secondary" onClick={levels.retry}>Reintentar niveles autorizados</Button></div>}
+      {levels.data?.length === 0 && <EmptyState message="No hay niveles autorizados disponibles para tu cuenta." />}
       {years.loading ? <LoadingState message="Cargando años escolares…" /> : years.error ? (
         <div className="space-y-3"><ErrorState message={years.error} /><Button variant="secondary" onClick={years.retry}>Reintentar carga de años</Button></div>
-      ) : !years.years.length ? <EmptyState message="No hay años escolares disponibles." /> : (
+      ) : !years.years.length ? <EmptyState message="No hay años escolares disponibles." /> : levels.data && levels.data.length > 0 && (
         <section aria-label="Filtros de secciones" className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-          <SeccionesFilters years={years.years} yearId={yearId} filters={filters} onYearChange={changeYear} onFiltersChange={changeFilters} />
+          <SeccionesFilters years={years.years} yearId={yearId} filters={filters} onYearChange={changeYear} onFiltersChange={changeFilters}
+            levels={levels.data} allLevelsLabel={session?.user.rol === 'SUBDIRECCION' ? 'Todos mis niveles' : 'Todos los niveles'} />
         </section>
       )}
       <SeccionSeleccionada />

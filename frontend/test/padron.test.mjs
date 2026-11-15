@@ -21,7 +21,7 @@ const response = (config, data) => ({ config, data, status: 200, statusText: 'OK
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   http = await vite.ssrLoadModule('/src/shared/api/httpClient.ts');
-  dates = await vite.ssrLoadModule(`${root}padronDate.ts`);
+  dates = await vite.ssrLoadModule('/src/shared/dates/civilDate.ts');
   api = await vite.ssrLoadModule(`${root}padron.api.ts`);
   requests = await vite.ssrLoadModule(`${root}usePadron.ts`);
   List = (await vite.ssrLoadModule(`${root}EstudiantesList.tsx`)).default;
@@ -46,10 +46,10 @@ test('fecha peruana conserva día civil aunque UTC ya esté en el siguiente día
   assert.equal(dates.peruToday(new Date('2026-11-16T02:30:00Z')), '2026-11-15');
   assert.equal(dates.peruToday(new Date('2026-11-16T05:00:00Z')), '2026-11-16');
   for (const date of ['1000-01-01', '9999-12-31', '2024-02-29', '2026-03-01', '2027-01-02']) {
-    assert.equal(dates.validPadronDate(date), true, date);
+    assert.equal(dates.validCivilDate(date), true, date);
   }
   for (const date of ['', '2026-1-01', '2026-02-29', '2026-02-30', '2026-13-01', '0999-12-31', '2026-03-01T00:00:00Z']) {
-    assert.equal(dates.validPadronDate(date), false, date);
+    assert.equal(dates.validCivilDate(date), false, date);
   }
 });
 
@@ -114,6 +114,20 @@ test('menú mantiene secciones activo en rutas hijas por segmento, para los tres
       const link = html.match(/<a[^>]*href="\/secciones"[^>]*>/)[0];
       assert.doesNotMatch(link, /aria-current/);
     }
+  }
+});
+
+test('tarjeta prioriza asistencia, mantiene estudiantes y limpiar con rutas y filtros para los tres roles', () => {
+  for (const role of ['REGISTRADOR', 'SUBDIRECCION', 'ADMIN']) {
+    const html = markup(Selected, { role });
+    const attendance = html.match(/<a[^>]*href="\/secciones\/asistencia\?page=3&amp;nivel=INICIAL"[^>]*>Asistencia diaria<\/a>/)?.[0];
+    const students = html.match(/<a[^>]*href="\/secciones\/estudiantes\?page=3&amp;nivel=INICIAL"[^>]*>Ver estudiantes<\/a>/)?.[0];
+    assert.ok(attendance); assert.ok(students);
+    assert.ok(html.indexOf(attendance) < html.indexOf(students));
+    assert.match(attendance, /bg-institutional-800/);
+    assert.match(students, /bg-white/);
+    assert.match(html, /<button[^>]*class="[^"]*border-transparent[^"]*"[^>]*>Limpiar selección<\/button>/);
+    assert.match(html, /flex-col[^"]*sm:flex-row/);
   }
 });
 

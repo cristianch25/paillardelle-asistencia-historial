@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { apiErrorMessage } from '../../../shared/api/apiError';
 import { getPadron } from './padron.api';
-import { validPadronDate } from './padronDate';
+import { validCivilDate } from '../../../shared/dates/civilDate';
 import type { PadronResponse } from './padron.types';
 import type { SectionSelection } from './secciones.types';
 
@@ -31,7 +31,7 @@ export function usePadron(selection: SectionSelection | null, fecha: string) {
   const [revision, setRevision] = useState(0);
   // La identidad de la selección cambia también después de una revalidación por foco.
   const key = useMemo(() => ({ selection, fecha, revision }), [selection, fecha, revision]);
-  const enabled = Boolean(selection) && validPadronDate(fecha);
+  const enabled = Boolean(selection) && validCivilDate(fecha);
   const [result, setResult] = useState<Outcome & { key: typeof key | null }>({ key: null, data: null, error: '' });
   useEffect(() => {
     if (!enabled || !selection) return;

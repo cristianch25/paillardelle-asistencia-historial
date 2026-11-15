@@ -1,5 +1,20 @@
 import { useSearchParams } from 'react-router';
-import type { SectionFilters } from './secciones.types';
+import type { EducationLevel, SectionFilters } from './secciones.types';
+import { gradesForLevel } from './sectionPresentation';
+
+export function sectionFiltersForLevel(filters: SectionFilters, nivel: EducationLevel | ''): SectionFilters {
+  const changesMeaning = filters.nivel !== '' && nivel !== ''
+    && (filters.nivel === 'INICIAL') !== (nivel === 'INICIAL');
+  const validGrade = gradesForLevel(nivel).map(String).includes(filters.grado);
+  return { ...filters, nivel, grado: !changesMeaning && validGrade ? filters.grado : '' };
+}
+
+export function normalizeSectionFilters(filters: SectionFilters, levels: readonly EducationLevel[]) {
+  const unauthorized = filters.nivel !== '' && !levels.includes(filters.nivel);
+  const nivel = levels.length === 1 ? levels[0]! : unauthorized ? '' : filters.nivel;
+  const next = sectionFiltersForLevel(filters, nivel);
+  return { filters: next, resetPage: unauthorized || next.grado !== filters.grado };
+}
 
 export function readSectionListLocation(params: URLSearchParams, defaultYear = '') {
   const nivel = params.get('nivel') ?? '';

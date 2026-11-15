@@ -1,0 +1,62 @@
+import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
+import { ArrowLeft } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import Button from '../../shared/components/Button';
+import EmptyState from '../../shared/components/EmptyState';
+import ErrorState from '../../shared/components/ErrorState';
+import FormField from '../../shared/components/FormField';
+import LoadingState from '../../shared/components/LoadingState';
+import { peruToday, validCivilDate } from '../../shared/dates/civilDate';
+import { useSectionSelection } from '../organizacion-escolar/secciones/SeccionSelectionContext';
+import { educationLevelLabels, formatSectionName } from '../organizacion-escolar/secciones/sectionPresentation';
+import { useAsistenciaSession } from './useAsistenciaSession';
+import AttendanceCalendarInfo from './AttendanceCalendarInfo';
+import AsistenciaSessionView from './AsistenciaSessionView';
+
+export default function AsistenciaDiariaPage() {
+  const { session } = useAuth();
+  const { selected, checking, error, revalidate } = useSectionSelection();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [fecha, setFecha] = useState(() => {
+    const candidate: unknown = location.state?.fecha;
+    return typeof candidate === 'string' && validCivilDate(candidate) ? candidate : peruToday();
+  });
+  const selection = session && !checking && !error ? selected : null;
+  const attendance = useAsistenciaSession(session?.user.id ?? null, selection, fecha, checking);
+  const valid = validCivilDate(fecha);
+  const backLabel = session?.user.rol === 'REGISTRADOR' ? 'mis secciones' : 'secciones';
+  return (
+    <div className="space-y-4">
+      <Button variant="secondary" onClick={() => navigate(`/secciones${location.search}`)}>
+        <ArrowLeft aria-hidden="true" className="size-5 shrink-0" />Volver a {backLabel}
+      </Button>
+      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Asistencia diaria</h1>
+      {checking ? <LoadingState message="Comprobando la sección…" /> : error ? (
+        <div className="space-y-3"><ErrorState message={error} />
+          <Button variant="secondary" onClick={() => void revalidate()}>Volver a comprobar selección</Button></div>
+      ) : !selection ? <EmptyState message="Selecciona una sección para consultar su asistencia diaria." /> : (
+        <>
+          <section aria-label="Detalle de sección" className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 className="break-words text-lg font-semibold">{formatSectionName(selection.section)} · {educationLevelLabels[selection.section.nivel]}</h2>
+            <p className="text-sm text-slate-600">Año escolar {selection.year.anio}</p>
+            {selection.section.turno && <p className="break-words text-sm text-slate-600">Turno: {selection.section.turno}</p>}
+          </section>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-full max-w-xs sm:w-60"><FormField label="Fecha de asistencia" type="date" value={fecha}
+              onChange={event => setFecha(event.target.value)} error={valid ? undefined : 'Selecciona una fecha completa y válida.'} /></div>
+            <Button disabled={!valid || attendance.pending} onClick={attendance.open} aria-describedby="opening-hint">
+              {attendance.pending ? 'Abriendo asistencia…' : 'Abrir asistencia'}
+            </Button>
+          </div>
+          <p id="opening-hint" className="text-sm text-slate-600">Recupera la sesión existente o inicia una nueva.</p>
+          {valid && <AttendanceCalendarInfo selection={selection} fecha={fecha} />}
+          {attendance.pending && <LoadingState message="Abriendo o recuperando la sesión de asistencia…" />}
+          {attendance.error && <ErrorState message={attendance.error} />}
+          {attendance.data && <AsistenciaSessionView data={attendance.data} />}
+        </>
+      )}
+    </div>
+  );
+}

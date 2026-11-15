@@ -146,7 +146,7 @@ test('etiquetas y opciones de grado/edad son legibles sin cambiar los valores de
     ['INICIAL', 'Edad', ['value="4">4 años', 'value="5">5 años']],
     ['PRIMARIA', 'Grado', ['value="1">1.º', 'value="6">6.º']],
     ['SECUNDARIA', 'Grado', ['value="1">1.º', 'value="5">5.º']],
-    ['', 'Grado / edad', ['value="4">4.º / 4 años', 'value="5">5.º / 5 años']],
+    ['', 'Grado / edad', []],
   ]) {
     const markup = renderToStaticMarkup(createElement(Filters, {
       years: [], yearId: '', filters: { nivel, grado: '', activo: '' }, onYearChange() {}, onFiltersChange() {},
@@ -154,5 +154,12 @@ test('etiquetas y opciones de grado/edad son legibles sin cambiar los valores de
     assert.ok(markup.includes(`>${label}<select`));
     for (const option of options) assert.ok(markup.includes(option));
     if (nivel === 'SECUNDARIA') assert.doesNotMatch(markup, /value="6"/);
+    assert.doesNotMatch(markup, /4\.º \/ 4 años|5\.º \/ 5 años/);
+    if (!nivel) {
+      const grade = markup.match(/<select[^>]*id="[^"]*-grade"[^>]*>[\s\S]*?<\/select>/)[0];
+      assert.match(grade, / disabled=""/);
+      assert.equal((grade.match(/<option/g) ?? []).length, 1);
+      assert.match(grade, />Todos<\/option>/);
+    }
   }
 });
