@@ -1,4 +1,4 @@
-# Supervisión 7A.1
+# Supervisión 7A.1 y 7A.2
 
 Ruta `/asistencias/supervision`, exclusivamente ADMIN/SUBDIRECCION. Lecturas GET
 mediante Axios y autenticación compartidos; sin apertura, marcado, cierre ni detalle.
@@ -39,10 +39,17 @@ principal y expiración identifican la instancia de consulta, incluidos sus año
 opciones. Se conserva la señal HTTP de sesión para el tratamiento global de 401.
 Reintentar/actualizar revalida la página; remontar la pantalla vuelve a cargar años.
 
-7A.2 queda pendiente: presentación completa de situación, lectividad y resúmenes.
-El detalle y su navegación están fuera de esta entrega. No se infieren faltas,
-pendientes ni incumplimientos de SIN_REGISTRO. En 7A.1 solo se presenta la identidad
-de las secciones devueltas y la paginación del backend.
+7A.2 presenta tarjetas de solo lectura con nivel, grado/sección, situación de la
+sesión (abierta/cerrada/sin registro), fecha lectiva/no lectiva y los cinco conteos
+recibidos en resumen. Faltas, tardanzas y pendientes tienen etiquetas y fondos
+discretos para facilitar la lectura; no dependen exclusivamente del color.
+Con resumen null no se muestran contadores: SIN_REGISTRO informa ausencia de
+sesión, sin atribuir faltas, pendientes ni incumplimientos. Los ceros solo aparecen
+si fueron devueltos en un resumen real. No se calculan porcentajes ni se corrigen
+totales. No se consultan detalles ni resúmenes individuales; no hay nuevas llamadas
+HTTP. Referencias: RN-04/05 y RF-10, RNF-01/04 v5, con el contrato posterior del
+backend ya citado. Se conservan filtros, permisos y aislamiento de consultas.
+7A.3 y la navegación al detalle quedan fuera de esta entrega.
 
 Verificación: `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd test`,
 `npm.cmd run test:browser`, `npm.cmd run build`. Las pruebas usan adaptadores

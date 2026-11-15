@@ -8,3 +8,15 @@ export function supervisionResult(params) {
     es_lectivo: false, situacion: 'SIN_REGISTRO', sesion_id: null, resumen: null }],
     pagination: { page, limit: Number(params.limit ?? 20), has_more: !params.seccion_id && page === 1 } };
 }
+
+export function supervisionCards(params) {
+  const base = supervisionResult(params).secciones[0];
+  return [
+    { ...base, situacion: 'ABIERTA', es_lectivo: true, sesion_id: '9007199254741995',
+      resumen: { total: 30, presentes: 24, tardanzas: 2, faltas: 1, pendientes: 3 } },
+    { ...base, seccion: { ...base.seccion, id: '9007199254740996', letra: 'GENIALES' },
+      situacion: 'CERRADA', es_lectivo: false, sesion_id: '9007199254741996',
+      resumen: { total: 32, presentes: 28, tardanzas: 1, faltas: 3, pendientes: 0 } },
+    { ...base, seccion: { ...base.seccion, id: '9007199254740997', letra: 'EXPLORADORES' } },
+  ];
+}

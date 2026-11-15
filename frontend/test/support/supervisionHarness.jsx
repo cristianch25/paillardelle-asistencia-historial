@@ -1,10 +1,10 @@
 import './authHarness.jsx';
 import { AxiosError } from 'axios';
 import { httpClient } from '../../src/shared/api/httpClient';
-import { supervisionResult, year } from './supervisionFixture.mjs';
+import { supervisionResult, supervisionCards, year } from './supervisionFixture.mjs';
 
 const authAdapter = httpClient.defaults.adapter;
-const controls = { calls: [], pending: [], hold: false, status: null, empty: false,
+const controls = { calls: [], pending: [], hold: false, status: null, empty: false, cards: false,
   optionsPending: [], optionsHoldPage: 0, optionsStatus: null, optionsCount: 2,
   role: 'ADMIN', level: null, account: '9007199254740993' };
 window.supervisionTest = controls;
@@ -32,6 +32,7 @@ httpClient.defaults.adapter = async config => {
       }));
       data.pagination.has_more = start + 100 < controls.optionsCount;
     } else if (controls.empty) data.secciones = [];
+    else if (controls.cards) data.secciones = supervisionCards(config.params);
     const status = options ? controls.optionsStatus : controls.status;
     if (options && config.params.page === controls.optionsHoldPage) {
       await new Promise(resolve => controls.optionsPending.push(resolve));

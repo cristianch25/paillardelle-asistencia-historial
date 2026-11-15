@@ -3,7 +3,6 @@ import { Navigate } from 'react-router';
 import { useAuth } from '../../auth/AuthContext';
 import type { AuthSession } from '../../auth/auth.types';
 import { useSchoolYears } from '../../organizacion-escolar/anios-escolares/useSchoolYears';
-import { educationLevelLabels, formatSectionName } from '../../organizacion-escolar/secciones/sectionPresentation';
 import { peruToday } from '../../../shared/dates/civilDate';
 import Button from '../../../shared/components/Button';
 import EmptyState from '../../../shared/components/EmptyState';
@@ -12,6 +11,7 @@ import LoadingState from '../../../shared/components/LoadingState';
 import Pagination from '../../../shared/components/Pagination';
 import { supervisionLevels } from './supervisionAccess';
 import SupervisionFilters from './SupervisionFilters';
+import SupervisionSectionCard from './SupervisionSectionCard';
 import { useSupervisionQuery } from './useSupervisionQuery';
 import { useSupervisionSections } from './useSupervisionSections';
 import type { SupervisionFilters as Filters } from './supervision.types';
@@ -52,10 +52,7 @@ function SupervisionConsultation({ session }: { session: AuthSession }) {
         </div>
         {query.data.secciones.length === 0 ? <EmptyState message="No hay secciones para los filtros seleccionados." />
           : <ul aria-label="Secciones de supervisión" className="grid gap-3 sm:grid-cols-2">
-            {query.data.secciones.map(({ seccion }) => <li key={seccion.id} className="min-w-0 break-words rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-sm text-slate-600">{educationLevelLabels[seccion.nivel]}</p>
-              <p className="font-semibold text-institutional-950">{formatSectionName(seccion)}</p>
-            </li>)}
+            {query.data.secciones.map(item => <SupervisionSectionCard key={item.seccion.id} item={item} />)}
           </ul>}
         <Pagination pagination={query.data.pagination} onPageChange={page => setFilters(current => ({ ...current, page }))} />
       </section>}
