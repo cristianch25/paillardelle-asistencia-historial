@@ -5,7 +5,10 @@ import { states } from './validation.js';
 export async function scopeFor(actor, date, today, users, connection) {
   requireActor(actor, false, true);
   if (actor.rol === 'ADMIN') return {};
-  if (actor.rol === 'SUBDIRECCION') return { levels: await users.supervisionLevels(actor, connection) };
+  // Matriz institucional de asistencia aprobada: adicionales y cargo no amplían el ámbito.
+  if (actor.rol === 'SUBDIRECCION') return { levels: actor.nivel_asignado === 'PRIMARIA'
+    ? ['INICIAL', 'PRIMARIA'] : actor.nivel_asignado === 'SECUNDARIA' ? ['SECUNDARIA']
+      : actor.nivel_asignado === 'INICIAL' ? ['INICIAL'] : [] };
   return { ids: await users.historicalSectionIds(actor.id, date, today, connection) };
 }
 export function assertScope(section, access) {
@@ -42,7 +45,7 @@ export function planChanges(session, rows, data) {
 }
 export function summary(rows) {
   const counts = Object.fromEntries(states.map(state => [state, 0]));
-  for (const row of rows) counts[row.estado]++;
-  return { total: rows.length, presentes: counts.PRESENTE, tardanzas: counts.TARDANZA,
+  for (const row of rows) counts[row.estado] += row.cantidad ?? 1;
+  return { total: Object.values(counts).reduce((total, count) => total + count, 0), presentes: counts.PRESENTE, tardanzas: counts.TARDANZA,
     faltas: counts.FALTA, pendientes: counts.PENDIENTE };
 }

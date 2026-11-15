@@ -1,5 +1,6 @@
 export function createAttendanceController(service) {
   return {
+    async list(req, res) { res.json(await service.list(req.query, req.authUser)); },
     async open(req, res) {
       const result = await service.open(req.body, req.authUser);
       res.status(result.creada ? 201 : 200).json(result);

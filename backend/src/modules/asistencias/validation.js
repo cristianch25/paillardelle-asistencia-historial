@@ -1,6 +1,7 @@
 import { HttpError } from '../../shared/http-error.js';
-import { validateId } from '../../shared/query-validation.js';
+import { validateId, validatePagination } from '../../shared/query-validation.js';
 import { validDate } from '../../shared/date-validation.js';
+import { educationLevels } from '../../shared/education-levels.js';
 
 export const states = ['PENDIENTE', 'PRESENTE', 'TARDANZA', 'FALTA'];
 function invalid() { throw new HttpError(400, 'Datos de asistencia inválidos.'); }
@@ -16,6 +17,18 @@ export function opening(body) {
   object(body, ['seccion_id', 'fecha']); validateId(body.seccion_id);
   if (!validDate(body.fecha)) invalid();
   return { seccion_id: body.seccion_id, fecha: body.fecha };
+}
+export function listQuery(query) {
+  object(query, ['anio_escolar_id', 'fecha', 'nivel', 'seccion_id', 'page', 'limit']);
+  validateId(query.anio_escolar_id);
+  if (!validDate(query.fecha)) invalid();
+  const data = { anio_escolar_id: query.anio_escolar_id, fecha: query.fecha, ...validatePagination(query) };
+  if (query.nivel !== undefined) {
+    if (!educationLevels.includes(query.nivel)) invalid();
+    data.nivel = query.nivel;
+  }
+  if (query.seccion_id !== undefined) data.seccion_id = validateId(query.seccion_id);
+  return data;
 }
 export function sessionInput(id, query = {}) {
   validateId(id); object(query, []); return id;

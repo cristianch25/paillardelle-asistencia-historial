@@ -11,6 +11,7 @@ import { createAttendanceReader } from './read.repository.js';
 import { createAttendanceWriter } from './write.repository.js';
 import { scopeFor, assertScope, assertWritable, assertVersion, planChanges, summary } from './rules.js';
 import { opening, closing, changes, sessionInput } from './validation.js';
+import { createAttendanceListService } from './list.service.js';
 
 export function createAttendanceService(options = {}) {
   const users = options.users ?? createUsuariosService();
@@ -50,6 +51,7 @@ export function createAttendanceService(options = {}) {
         apellido_materno: row.apellido_materno, nombres: row.nombres }, ultimo_cambio: latest.get(row.id) ?? null })), resumen: summary(rows) };
   }
   return {
+    ...createAttendanceListService({ repository: options.listRepository, users, calendar, getToday: today }),
     async open(body, actor) {
       const location = opening(body);
       return run(location, actor, async context => {

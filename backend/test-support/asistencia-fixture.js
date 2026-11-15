@@ -5,7 +5,7 @@ export function attendanceFixture() {
     year: { id: '1', estado: 'ABIERTO', fecha_inicio: '2026-03-02', fecha_fin: '2026-12-18' },
     section: { id: '1', anio_escolar_id: '1', nivel: 'INICIAL', activo: 1 },
     users: { '1': { id: '1', rol: 'ADMIN', activo: 1 }, '2': { id: '2', rol: 'REGISTRADOR', activo: 1 },
-      '3': { id: '3', rol: 'SUBDIRECCION', activo: 1 } }, assigned: ['1'], levels: ['INICIAL'], roster: [1, 2, 3, 4, 5] };
+      '3': { id: '3', rol: 'SUBDIRECCION', activo: 1, nivel_asignado: 'PRIMARIA' } }, assigned: ['1'], levels: ['INICIAL'], roster: [1, 2, 3, 4, 5] };
   const users = { supervisionLevels: async () => state.levels, historicalSectionIds: async () => state.assigned };
   const repository = { async transact(locator, actorId, _sections, authorize, work) {
     const original = structuredClone({ session: state.session, rows: state.rows, history: state.history, audits: state.audits });

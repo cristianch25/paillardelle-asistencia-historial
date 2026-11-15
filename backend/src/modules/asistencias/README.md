@@ -5,11 +5,13 @@ Requiere esquema v1 + 002 + 003 + 004 ya migrado; no aplica SQL al arrancar.
 No incluye justificaciones, regularización, QR, importación, PDF ni frontend.
 
 Todas las rutas requieren JWT Bearer y devuelven Cache-Control: no-store.
-ADMIN opera globalmente; SUBDIRECCION por niveles efectivos; REGISTRADOR con
-asignación vigente hoy y en la fecha de asistencia. Un recurso ajeno devuelve 404.
+ADMIN opera globalmente; SUBDIRECCION usa la matriz institucional indicada abajo;
+REGISTRADOR requiere asignación vigente hoy y en la fecha de asistencia.
+Un recurso ajeno devuelve 404.
 
 | Método y ruta | Entrada / resultado |
 | --- | --- |
+| GET /api/asistencias/sesiones | Año y fecha obligatorios; filtros nivel/sección y paginación; consulta sin efectos |
 | POST /api/asistencias/sesiones | `{ seccion_id, fecha }`; 201 creada o 200 recuperada, sin reabrir |
 | GET /api/asistencias/sesiones/:id | Sesión, padrón estable, marcas, versiones y resumen |
 | PATCH /api/asistencias/sesiones/:id/registros | `{ version, cambios: [{ asistencia_id, version, estado, motivo? }] }` |
@@ -94,7 +96,73 @@ Pruebas: test/asistencias.service.test.js, test-support/asistencia-{fixture,mysq
 http-checks,schema-checks}.js y scripts/verificar-asistencia.js. Se adaptaron los
 dobles existentes de calendario/matrículas y la prueba health de ruta inexistente.
 
-Resultado de esta etapa: 690 pruebas de suite, 48 peticiones HTTP comprobadas y
+Resultado de la etapa inicial 004: 690 pruebas de suite, 48 peticiones HTTP comprobadas y
 10 pruebas negativas de restricciones SQL en una copia aislada. Apertura y guardado
 concurrentes, permisos históricos, recuperación de sábado, rollback e incertidumbre
-de COMMIT verificados. La base principal conserva cero sesiones y marcas hasta su uso.
+de COMMIT verificados. En aquella entrega la base principal conservó cero sesiones
+y marcas; esa observación no describe los registros que se hayan creado después.
+
+## Consulta y supervisión — decisión posterior aprobada el 15/11/2026
+
+La autorización común de asistencia (listado, detalle, resumen y las tres
+operaciones de escritura existentes) aplica esta matriz:
+
+- ADMIN: INICIAL, PRIMARIA y SECUNDARIA.
+- SUBDIRECCION con principal PRIMARIA: INICIAL y PRIMARIA, sin adicional requerido.
+- SUBDIRECCION con principal SECUNDARIA: exclusivamente SECUNDARIA.
+- Se conserva compatibilidad para principal INICIAL: solo INICIAL.
+- REGISTRADOR: sección asignada tanto hoy en America/Lima como en la fecha pedida;
+  las dos vigencias pueden proceder de asignaciones distintas.
+
+Cargo y niveles adicionales no amplían el ámbito de asistencia. Esta decisión
+posterior sustituye aquí la dependencia de adicionales de v6. La configuración
+y los contratos generales de supervisión de usuarios, calendario, matrícula,
+secciones y asignaciones permanecen intactos; no se cambian sus reglas globales.
+Las reglas de guardado, cierre, motivos, versiones y auditoría tampoco cambian.
+
+Ejemplo de consulta:
+
+```http
+GET /api/asistencias/sesiones?anio_escolar_id=1&fecha=2026-11-13&nivel=INICIAL&seccion_id=1&page=1&limit=20
+```
+
+anio_escolar_id y fecha son obligatorios. nivel, seccion_id, page y limit son
+opcionales; página 1 y límite 20 predeterminados, máximo 100. Se rechazan parámetros
+desconocidos, repetidos, IDs no textuales, fechas irreales y rangos de paginación
+inválidos (400). Fecha fuera del intervalo del año: 400; año inexistente: 404;
+nivel fuera de la matriz de SUBDIRECCION: 403; sección filtrada ajena, inexistente,
+de otro año o incompatible con el nivel filtrado: 404. Un REGISTRADOR sin secciones
+autorizadas recibe una lista vacía; un filtro explícito de sección ajena, 404.
+
+Respuesta: `{ anio_escolar_id, fecha, secciones, pagination }`.
+Cada elemento contiene `seccion` (id, anio_escolar_id, nivel, grado, letra, turno,
+activo), `es_lectivo`, `situacion`, `sesion_id` y `resumen`. situacion es ABIERTA,
+CERRADA o SIN_REGISTRO. Sin sesión, sesion_id y resumen son null: no se crean
+pendientes ni faltas virtuales. Con sesión, resumen contiene los cinco conteos
+del contrato anterior. No se incluyen estudiantes, contactos ni historial.
+
+Se incluyen las secciones autorizadas del año aunque estén inactivas actualmente.
+Se puede consultar un año PLANIFICADO, ABIERTO o CERRADO y fechas futuras dentro
+de sus límites. SIN_REGISTRO solo expresa ausencia de sesión: no implica omisión,
+falta ni incumplimiento, especialmente en fechas futuras o no lectivas.
+es_lectivo reutiliza calendario efectivo, con excepciones y recuperaciones.
+
+La autorización precede a paginación. Orden estable: ID de sección ascendente.
+Se consultan limit+1 secciones para has_more; los conteos se agregan solo para
+las sesiones de la página devuelta, sin totales institucionales ocultos.
+No hay llamadas al detalle por sección: dos consultas de calendario para los
+niveles presentes en la página y una agregación de marcas como máximo.
+
+list.service.js y list.repository.js separan esta lectura de las escrituras.
+Una transacción READ ONLY y REPEATABLE READ obtiene actor, permisos, secciones,
+sesiones, resúmenes y calendario desde la misma instantánea. No usa FOR UPDATE
+ni FOR SHARE y no altera las características de las siguientes transacciones
+del pool. Se reutiliza shared/transaction.js para limpieza y errores de COMMIT.
+
+Pruebas de esta ampliación: test/asistencias.list.test.js y
+test/asistencias.list.http.test.js; doble SQL en test-support/asistencia-list-fixture.js.
+Se comprueban cambios concurrentes sin mezclar instantáneas, ausencia de N+1 y
+efectos secundarios, la matriz común y la compatibilidad del flujo anterior.
+Resultado: 705 pruebas de suite aprobadas y 64 comprobaciones HTTP reales sobre
+la base local sin efectos secundarios (huellas idénticas en sus 20 tablas).
+Se verificó en MySQL que la transacción activa usa READ ONLY y REPEATABLE READ.

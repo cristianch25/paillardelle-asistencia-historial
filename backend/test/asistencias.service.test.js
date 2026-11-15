@@ -62,7 +62,7 @@ test('asistencia: año no abierto, día no lectivo, futuro, sección inactiva y 
 test('asistencia: doble asignación/ámbito revalidado y consulta histórica sin año abierto', async () => {
   const f = attendanceFixture(); await f.open('2026-11-13', '2');
   f.state.assigned = []; await assert.rejects(f.service.find('1', {}, f.actor('2')), { status: 404 });
-  f.state.levels = []; await assert.rejects(f.service.find('1', {}, f.actor('3')), { status: 404 });
+  f.state.users['3'].nivel_asignado = 'SECUNDARIA'; await assert.rejects(f.service.find('1', {}, f.actor('3')), { status: 404 });
   f.state.year.estado = 'CERRADO'; f.state.section.activo = 0;
   assert.equal((await f.open()).creada, false);
   f.state.users['1'].activo = 0; await assert.rejects(f.open(), { status: 401 });

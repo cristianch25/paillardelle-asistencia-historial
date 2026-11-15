@@ -18,6 +18,11 @@ export function createCalendarService({ repository = createCalendarRepository(),
       pagination: { page: data.page, limit: data.limit, has_more: rows.length > data.limit } };
   }
   return {
+    async effectiveForDate(connection, yearId, date, levels) {
+      const { periods, exceptions } = await repository.dayForLevels(connection, yearId, date, levels);
+      return new Map(levels.map(level => [level, effectiveDay(date, periods.filter(row => row.nivel === level),
+        exceptions.filter(row => row.nivel === level))]));
+    },
     // Interno: el escritor conserva la misma conexión y ya bloqueó el año.
     async lectiveOn(connection, yearId, level, date) {
       const context = await readCalendar(connection, { anio_escolar_id: yearId, nivel: level }, true);
