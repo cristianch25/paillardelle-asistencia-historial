@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Link, useLocation } from 'react-router';
 import Button from '../../../shared/components/Button';
 import ErrorState from '../../../shared/components/ErrorState';
 import LoadingState from '../../../shared/components/LoadingState';
@@ -7,6 +8,7 @@ import { educationLevelLabels, formatSectionName } from './sectionPresentation';
 
 export default function SeccionSeleccionada() {
   const { selected, checking, error, revalidate, clear } = useSectionSelection();
+  const location = useLocation();
   useEffect(() => { void revalidate(); }, [revalidate]);
   return (
     <>
@@ -22,7 +24,11 @@ export default function SeccionSeleccionada() {
         <p role="status" className="mt-3 break-words font-medium">{formatSectionName(selected.section)} — {educationLevelLabels[selected.section.nivel]}</p>
         <p className="mt-2 text-sm text-slate-600">Año escolar {selected.year.anio} · {selected.year.estado}</p>
         <p className="mt-2 text-sm text-slate-600">{selected.section.activo ? 'Activa' : 'Inactiva'}{selected.section.turno ? ` · Turno: ${selected.section.turno}` : ''}</p>
-        <Button variant="secondary" className="mt-4" onClick={clear}>Limpiar selección</Button>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Link to={`/secciones/estudiantes${location.search}`}
+            className="inline-flex min-h-11 items-center rounded-lg bg-institutional-800 px-4 py-2.5 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-institutional-700">Ver estudiantes</Link>
+          <Button variant="secondary" onClick={clear}>Limpiar selección</Button>
+        </div>
       </section>}
     </>
   );

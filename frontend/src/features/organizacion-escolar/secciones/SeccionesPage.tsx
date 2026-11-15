@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useSectionListLocation } from './useSectionListLocation';
 import Button from '../../../shared/components/Button';
 import EmptyState from '../../../shared/components/EmptyState';
 import ErrorState from '../../../shared/components/ErrorState';
@@ -26,22 +26,17 @@ export default function SeccionesPage() {
 function FilteredSeccionesPage() {
   const { session } = useAuth();
   const selection = useSectionSelection();
-  const [yearId, setYearId] = useState(selection.selected?.year.id ?? '');
-  const [filters, setFilters] = useState<SectionFilters>(emptyFilters);
-  const [page, setPage] = useState(1);
+  const { yearId, filters, page, update, setPage } = useSectionListLocation(selection.selected?.year.id);
   const years = useSchoolYears();
   const year = years.years.find(item => item.id === yearId);
   const sections = useSecciones(!years.loading && !years.error && year ? year.id : '', filters, page);
 
   function changeYear(id: string) {
-    setYearId(id);
-    setFilters(emptyFilters);
-    setPage(1);
+    update({ yearId: id, filters: emptyFilters, page: 1 });
     selection.clear();
   }
   function changeFilters(next: SectionFilters) {
-    setFilters(next);
-    setPage(1);
+    update({ yearId, filters: next, page: 1 });
     selection.clear();
   }
   return (

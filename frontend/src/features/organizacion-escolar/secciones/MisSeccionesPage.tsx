@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useSectionListLocation } from './useSectionListLocation';
 import Button from '../../../shared/components/Button';
 import EmptyState from '../../../shared/components/EmptyState';
 import ErrorState from '../../../shared/components/ErrorState';
@@ -11,7 +11,7 @@ import SeccionesList from './SeccionesList';
 import { useSecciones } from './useSecciones';
 
 export default function MisSeccionesPage() {
-  const [page, setPage] = useState(1);
+  const { page, setPage } = useSectionListLocation();
   const sections = useSecciones(null, { nivel: '', grado: '', activo: '' }, page);
   const years = useSchoolYears();
   const selection = useSectionSelection();

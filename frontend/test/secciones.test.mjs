@@ -4,6 +4,7 @@ import { createServer } from 'vite';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AxiosError } from 'axios';
+import { MemoryRouter } from 'react-router';
 
 // Contratos aislados: adaptadores en memoria, sin cuentas, JWT ni MySQL.
 let vite, client, yearsApi, sectionsApi, Filters, List, presentation, MySections, SelectionProvider;
@@ -23,7 +24,8 @@ after(async () => { await vite?.close(); });
 function response(config, data) { return { status: 200, statusText: 'OK', headers: {}, config, data }; }
 
 test('Mis secciones se presenta sin selectores ni selección automática de año', () => {
-  const markup = renderToStaticMarkup(createElement(SelectionProvider, null, createElement(MySections)));
+  const markup = renderToStaticMarkup(createElement(MemoryRouter, null,
+    createElement(SelectionProvider, null, createElement(MySections))));
   assert.match(markup, />Mis secciones<\/h1>/);
   assert.doesNotMatch(markup, /<select|Filtros de secciones|Selecciona un año/);
   assert.match(markup, /Cargando mis secciones/);
