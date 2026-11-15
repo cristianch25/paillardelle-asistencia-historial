@@ -2,6 +2,7 @@ import { useReducer } from 'react';
 import { attendanceDraftKey, draftSummary } from './attendanceDraft';
 import { attendanceEditorReducer, createAttendanceEditor } from './attendanceEditorState';
 import { useAttendanceSave } from './useAttendanceSave';
+import { useAttendanceAccess } from './useAttendanceAccess';
 import type { AttendanceDetail, AttendanceState } from './asistencias.types';
 import { useUnsavedChanges } from '../../shared/navigation/useUnsavedChanges';
 
@@ -18,8 +19,9 @@ export function useAttendanceDraft(accountId: string | null, data: AttendanceDet
   const editable = !checking && Boolean(accountId) && editor.base?.sesion.estado === 'ABIERTA';
   const disabled = !editable || editor.phase !== 'idle' || editor.conflicts.length > 0;
   const saving = useAttendanceSave(editor, dispatch, checking, revalidate);
+  useAttendanceAccess(editor, checking, saving.validateAccess);
 
-  useUnsavedChanges(accountId, count > 0, busy);
+  useUnsavedChanges(accountId, count > 0, busy, editor.closePending);
 
   function select(id: string, state: AttendanceState) {
     if (!disabled) dispatch({ type: 'select', id, state });

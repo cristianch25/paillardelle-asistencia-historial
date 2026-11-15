@@ -34,7 +34,10 @@ export async function navigationBrowser() {
   return { ...ui, dialog, rows, choose, prepare, setDate,
     guard: () => wait(`Boolean(${dialog})`),
     dirty: () => evaluate(`${rows}.filter(row => row.textContent.includes('Sin guardar')).length`),
-    cancel: async () => { await click('Continuar registrando'); await wait(`!${dialog}`); },
+    cancel: async () => {
+      const closing = await evaluate(`${dialog}?.textContent.includes('Cierre de asistencia pendiente') ?? false`);
+      await click(closing ? 'Permanecer aquí' : 'Continuar registrando'); await wait(`!${dialog}`);
+    },
     confirm: async () => { await click('Salir sin guardar'); await wait(`!${dialog}`); },
     menu: async path => {
       await evaluate(`document.querySelector('button[aria-label="Abrir menú principal"]').click()`);

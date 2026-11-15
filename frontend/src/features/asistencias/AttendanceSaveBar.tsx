@@ -7,7 +7,7 @@ type Props = {
   onSave: () => void; onRefresh: () => void;
 };
 export default function AttendanceSaveBar({ count, phase, message, success, disabled, conflicts, closed, onSave, onRefresh }: Props) {
-  const busy = phase === 'saving' || phase === 'closing' || phase === 'refreshing';
+  const busy = phase === 'saving' || phase === 'closing' || phase === 'checking-access' || phase === 'refreshing';
   return (
     <div aria-label="Guardado de asistencia" aria-busy={busy}
       className="sticky bottom-2 z-10 space-y-2 rounded-xl border border-slate-300 bg-white p-3 shadow-lg sm:p-4">

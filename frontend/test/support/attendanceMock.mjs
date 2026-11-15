@@ -72,10 +72,12 @@ export function attendanceMock() {
         if (controls.saveStatus) fail(['network', 'timeout'].includes(controls.saveStatus) ? undefined : controls.saveStatus,
           controls.saveStatus === 'timeout' ? 'ECONNABORTED' : '');
       } else if (config.method === 'get') {
+        result = { ...structuredClone(controls.server), sesion: { ...controls.server.sesion, estado: controls.sessionState } };
         if (controls.holdRead) await new Promise(resolve => { controls.releaseRead = resolve; });
-        if (controls.readStatus) fail(controls.readStatus);
+        if (controls.readStatus) fail(['network', 'timeout'].includes(controls.readStatus) ? undefined : controls.readStatus,
+          controls.readStatus === 'timeout' ? 'ECONNABORTED' : '');
       }
-      result = { ...structuredClone(controls.server), sesion: { ...controls.server.sesion, estado: controls.sessionState },
+      result ??= { ...structuredClone(controls.server), sesion: { ...controls.server.sesion, estado: controls.sessionState },
         ...(config.method === 'post' && !config.url.endsWith('/cierre') ? { creada: controls.sessionCreated } : {}),
         ...(config.url.endsWith('/cierre') ? { advertencias: controls.server.resumen.pendientes
           ? [{ codigo: 'PENDIENTES_AL_CERRAR', cantidad: controls.server.resumen.pendientes }] : [] } : {}) };

@@ -63,7 +63,7 @@ test('6B.3: confirmación de cierre, borrador, exclusión de guardado y móvil',
         assert.equal(await evaluate(`${rows}.every(row => Array.from(row.querySelectorAll('button')).every(b => b.disabled))`), true);
         assert.equal(await evaluate(`${button('Guardar avances')}.disabled`), true);
         await ui.menu('/inicio'); await ui.guard();
-        assert.equal(await evaluate(`${button('Salir sin guardar')}.disabled`), true);
+        assert.equal(await evaluate(`${button('Salir de todos modos')}.disabled`), true);
         await ui.cancel(); await evaluate('navigationTest.releaseClose()'); await confirmed();
       });
       await t.test('320 px: acción visible al final, diálogo accesible, foco, Escape y controles táctiles', async () => {

@@ -7,7 +7,7 @@ import type { AttendanceEditor, EditorAction } from './attendanceEditorState';
 export function useAttendanceSave(editor: AttendanceEditor, dispatch: Dispatch<EditorAction>,
   checking: boolean, revalidate: () => Promise<void>) {
   const operation = useRef<object | null>(null);
-  const intent = useRef<'save' | 'close'>('save');
+  const intent = useRef<'save' | 'close' | 'access'>('save');
   useEffect(() => {
     operation.current = null;
     return () => { operation.current = null; };
@@ -16,13 +16,13 @@ export function useAttendanceSave(editor: AttendanceEditor, dispatch: Dispatch<E
   async function denied(status: number | undefined, epoch: object) {
     if (![401, 403, 404].includes(status ?? 0)) return false;
     dispatch({ type: 'phase', epoch, phase: 'denied', message: attendanceRejection(status)! });
-    if (status !== 401) await revalidate();
+    if (status !== 401 && intent.current !== 'access') await revalidate();
     return true;
   }
   async function consult(snapshot: AttendanceEditor, reason: string, token: object) {
     const { epoch, base } = snapshot;
     if (!base || operation.current !== token) return;
-    dispatch({ type: 'phase', epoch, phase: 'refreshing', message: reason });
+    dispatch({ type: 'phase', epoch, phase: intent.current === 'access' ? 'checking-access' : 'refreshing', message: reason });
     try {
       const data = await getAttendance(base.sesion.id);
       if (operation.current !== token) return;
@@ -32,12 +32,14 @@ export function useAttendanceSave(editor: AttendanceEditor, dispatch: Dispatch<E
         : 'La sesión continúa abierta. El cierre no se confirmó; revisa la versión actual, el año abierto y la fecha lectiva antes de decidir otro intento.';
       dispatch({ type: 'refreshed', epoch, data, message: intent.current === 'close' ? closeMessage : data.sesion.estado === 'CERRADA'
         ? 'La sesión fue cerrada. No se pueden guardar nuevas marcas en esta etapa.'
+        : intent.current === 'access' ? 'Acceso a la sesión comprobado. Las selecciones compatibles se conservan; revisa las diferencias si existen.'
         : 'Lista consultada. Revisa las selecciones antes de volver a guardar. Las coincidencias ya no se enviarán.' });
     } catch (error) {
       if (operation.current !== token || await denied(attendanceFailureStatus(error), epoch)) return;
       dispatch({ type: 'phase', epoch, phase: 'refresh-required',
         message: intent.current === 'close'
           ? 'No se pudo verificar el cierre. El resultado es incierto; consulta el estado actual antes de volver a intentarlo.'
+          : intent.current === 'access' ? 'No se pudo comprobar el acceso a la sesión. Conservamos tus selecciones sin guardar; consulta el estado actual para continuar.'
           : 'No se pudo consultar el estado actual. Conservamos tus selecciones; consulta antes de volver a guardar.' });
     }
   }
@@ -93,5 +95,11 @@ export function useAttendanceSave(editor: AttendanceEditor, dispatch: Dispatch<E
     try { await consult(editor, 'Consultando el estado actual…', token); }
     finally { if (operation.current === token) operation.current = null; }
   }
-  return { save, close, refresh };
+  async function validateAccess() {
+    if (checking || operation.current || editor.phase !== 'idle' || !editor.base) return;
+    const token = {}; operation.current = token; intent.current = 'access';
+    try { await consult(editor, 'Comprobando acceso a la sesión…', token); }
+    finally { if (operation.current === token) operation.current = null; }
+  }
+  return { save, close, refresh, validateAccess };
 }
