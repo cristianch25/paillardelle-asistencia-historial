@@ -14,21 +14,42 @@ let Provider;
 let LoginPage;
 let ProtectedRoute;
 let navigation;
+let userPresentation;
 before(async () => {
-  vite = await createServer({ server: { middlewareMode: true, hmr: false } });
+  vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   http = await vite.ssrLoadModule('/src/shared/api/httpClient.ts');
   errors = await vite.ssrLoadModule('/src/shared/api/apiError.ts');
   Provider = (await vite.ssrLoadModule('/src/features/auth/AuthProvider.tsx')).default;
   LoginPage = (await vite.ssrLoadModule('/src/features/auth/LoginPage.tsx')).default;
   ProtectedRoute = (await vite.ssrLoadModule('/src/features/auth/ProtectedRoute.tsx')).default;
   navigation = await vite.ssrLoadModule('/src/app/layout/navigation.ts');
+  userPresentation = await vite.ssrLoadModule('/src/features/auth/userPresentation.ts');
 });
 after(async () => { await vite?.close(); });
 
-test('cada rol solo dispone de Inicio; no se anuncian módulos pendientes', () => {
+test('identificación usa cargos inequívocos y no deduce cargo ni turno desde el nivel', () => {
+  for (const [cargo, expected] of [['DOCENTE', 'Docente'], [' docente ', 'Docente'],
+    ['AUXILIAR', 'Auxiliar'], [null, 'Registrador'], ['', 'Registrador'],
+    ['RESPONSABLE', 'Registrador'], ['DOCENTE / AUXILIAR', 'Registrador']]) {
+    assert.equal(userPresentation.userIdentityLabel({ rol: 'REGISTRADOR', cargo, nivel_asignado: 'INICIAL' }), expected);
+  }
+  assert.equal(userPresentation.userIdentityLabel({ rol: 'ADMIN', cargo: 'DOCENTE' }), 'Administración');
+  assert.equal(userPresentation.userIdentityLabel({ rol: 'SUBDIRECCION', cargo: 'AUXILIAR' }), 'Subdirección');
+});
+
+test('Subdirección informa solo el nivel principal recibido, sin adicionales implícitos', () => {
+  for (const [nivel_asignado, label] of [['PRIMARIA', 'Primaria'], ['SECUNDARIA', 'Secundaria'], ['INICIAL', 'Inicial']]) {
+    assert.equal(userPresentation.primaryLevelLabel({ rol: 'SUBDIRECCION', nivel_asignado }), `Nivel principal: ${label}`);
+  }
+  assert.equal(userPresentation.primaryLevelLabel({ rol: 'SUBDIRECCION', nivel_asignado: null }), undefined);
+  assert.equal(userPresentation.primaryLevelLabel({ rol: 'REGISTRADOR', nivel_asignado: 'PRIMARIA' }), undefined);
+  assert.equal(userPresentation.primaryLevelLabel({ rol: 'ADMIN', nivel_asignado: 'SECUNDARIA' }), undefined);
+});
+
+test('cada rol dispone de Inicio y Secciones; no se anuncian módulos pendientes', () => {
   for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {
     assert.deepEqual(navigation.navigationFor(role).map(({ path, label }) => ({ path, label })),
-      [{ path: '/inicio', label: 'Inicio' }]);
+      [{ path: '/inicio', label: 'Inicio' }, { path: '/secciones', label: role === 'REGISTRADOR' ? 'Mis secciones' : 'Secciones' }]);
     assert.equal(typeof navigation.roleLabels[role], 'string');
   }
 });

@@ -1,5 +1,5 @@
 import { useAuth } from '../auth/AuthContext';
-import { roleLabels } from '../../app/layout/navigation';
+import { primaryLevelLabel, userIdentityLabel } from '../auth/userPresentation';
 
 export default function HomePage() {
   const { session } = useAuth();
@@ -22,12 +22,10 @@ export default function HomePage() {
         <dl className="mt-6 grid gap-6 text-sm sm:grid-cols-2 xl:grid-cols-3">
           <div><dt className="text-slate-500">Nombre completo</dt><dd className="mt-2 break-words font-medium">{session.user.nombres} {session.user.apellidos}</dd></div>
           <div><dt className="text-slate-500">Usuario</dt><dd className="mt-2 break-words font-medium">{session.user.usuario}</dd></div>
-          <div><dt className="text-slate-500">Rol</dt><dd className="mt-2 font-medium">{roleLabels[session.user.rol]}</dd></div>
+          <div><dt className="text-slate-500">Identificación</dt><dd className="mt-2 font-medium">{userIdentityLabel(session.user)}</dd>
+            {primaryLevelLabel(session.user) && <dd className="mt-2 text-slate-600">{primaryLevelLabel(session.user)}</dd>}</div>
         </dl>
       </section>
-      <p className="mt-6 max-w-2xl text-sm leading-6 text-slate-600">
-        Los módulos del sistema se incorporarán progresivamente. El menú mostrará las funciones que estén disponibles para tu cuenta.
-      </p>
     </div>
   );
 }

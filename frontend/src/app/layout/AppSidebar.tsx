@@ -1,7 +1,8 @@
 import { NavLink } from 'react-router';
 import { LogOut, X } from 'lucide-react';
 import { useAuth } from '../../features/auth/AuthContext';
-import { navigationFor, roleLabels } from './navigation';
+import { navigationFor } from './navigation';
+import { primaryLevelLabel, userIdentityLabel } from '../../features/auth/userPresentation';
 
 type AppSidebarProps = { onClose?: () => void };
 
@@ -31,7 +32,8 @@ export default function AppSidebar({ onClose }: AppSidebarProps) {
         ))}
       </nav>
       <div className="mx-5 border-t border-white/20 py-5">
-        <p className="text-xs font-medium text-sidebar-muted lg:text-sm">{roleLabels[session.user.rol]}</p>
+        <p className="text-xs font-medium text-sidebar-muted lg:text-sm">{userIdentityLabel(session.user)}</p>
+        {primaryLevelLabel(session.user) && <p className="mt-1 text-xs text-sidebar-muted lg:text-sm">{primaryLevelLabel(session.user)}</p>}
         <button type="button" onClick={signOut}
           className="mt-3 flex min-h-11 w-full items-center gap-3 rounded-lg px-2 text-sm font-medium hover:bg-sidebar-active focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:text-base">
           <LogOut aria-hidden="true" className="size-5" />Cerrar sesión

@@ -1,4 +1,4 @@
-import { House, type LucideIcon } from 'lucide-react';
+import { House, School, type LucideIcon } from 'lucide-react';
 import type { UserRole } from '../../features/auth/auth.types';
 
 type NavigationItem = {
@@ -6,18 +6,17 @@ type NavigationItem = {
   path: string;
   icon: LucideIcon;
   roles: readonly UserRole[];
+  registradorLabel?: string;
 };
 
-export const roleLabels: Record<UserRole, string> = {
-  ADMIN: 'Administración',
-  SUBDIRECCION: 'Subdirección',
-  REGISTRADOR: 'Registrador',
-};
+export { roleLabels } from '../../features/auth/userPresentation';
 
 const navigation: readonly NavigationItem[] = [
   { label: 'Inicio', path: '/inicio', icon: House, roles: ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'] },
+  { label: 'Secciones', registradorLabel: 'Mis secciones', path: '/secciones', icon: School, roles: ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'] },
 ];
 
 export function navigationFor(role: UserRole) {
-  return navigation.filter(item => item.roles.includes(role));
+  return navigation.filter(item => item.roles.includes(role))
+    .map(item => ({ ...item, label: role === 'REGISTRADOR' ? item.registradorLabel ?? item.label : item.label }));
 }
