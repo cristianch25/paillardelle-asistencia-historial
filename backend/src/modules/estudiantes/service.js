@@ -5,6 +5,7 @@ import { validateStudent } from './validation.js';
 
 export function createStudentIdentitiesService({ repository = createStudentsRepository() } = {}) {
   return {
+    matchImportIdentities: records => repository.matchImportIdentities(records),
     readIdentities: ids => repository.list({ ids, limit: Math.max(1, ids.length), offset: 0 }),
     // Internos: conservan la conexión y transacción del alta de matrícula.
     async lockIdentity(id, connection) {

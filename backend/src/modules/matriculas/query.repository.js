@@ -28,6 +28,17 @@ function publicRow(row) {
 }
 export function createEnrollmentQueries(poolProvider = getPool) {
   return {
+    async inspectForImport(ids, yearId) {
+      if (!ids.length) return [];
+      const [rows] = await poolProvider().execute(`SELECT m.id, m.estudiante_id, m.anio_escolar_id,
+        m.estado, m.fecha_ingreso, m.fecha_retiro, ms.id AS matricula_seccion_id,
+        ms.seccion_id, ms.fecha_inicio, ms.fecha_fin FROM matriculas m
+        LEFT JOIN matricula_secciones ms ON ms.matricula_id = m.id AND ms.anio_escolar_id = m.anio_escolar_id
+        WHERE m.anio_escolar_id = ? AND m.estudiante_id IN (${ids.map(() => '?').join(', ')})
+        ORDER BY m.id, ms.id`, [yearId, ...ids]);
+      return rows.map(row => ({ ...row, id: String(row.id), estudiante_id: String(row.estudiante_id),
+        anio_escolar_id: String(row.anio_escolar_id), seccion_id: row.seccion_id === null ? null : String(row.seccion_id) }));
+    },
     async studentIds({ filters, access, date, limit, offset = 0 }, connection = poolProvider()) {
       const where = conditions(filters, access, date);
       const [rows] = await connection.execute(`SELECT DISTINCT m.estudiante_id ${where.sql}

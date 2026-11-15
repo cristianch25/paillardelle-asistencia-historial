@@ -7,6 +7,32 @@ const columns = ['id', ...fields, 'created_at', 'updated_at'].join(', ');
 function publicRow(row) { return row ? { ...row, id: String(row.id) } : null; }
 export function createStudentsRepository(poolProvider = getPool) {
   return {
+    async matchImportIdentities(records) {
+      if (!records.length) return { matches: [], duplicates: [] };
+      const input = JSON.stringify(records);
+      const incoming = `WITH incoming AS (SELECT j.source_index, j.codigo COLLATE utf8mb4_0900_ai_ci AS codigo,
+        j.tipo COLLATE utf8mb4_0900_ai_ci AS tipo, j.numero COLLATE utf8mb4_0900_ai_ci AS numero
+        FROM JSON_TABLE(?, '$[*]' COLUMNS(
+        source_index INT PATH '$.index', codigo VARCHAR(30) PATH '$.codigo',
+        tipo VARCHAR(15) PATH '$.tipo', numero VARCHAR(20) PATH '$.numero')) j)`;
+      const same = (a, b) => `(${a}.codigo IS NOT NULL AND ${a}.codigo COLLATE utf8mb4_0900_ai_ci = ${b}.codigo COLLATE utf8mb4_0900_ai_ci)
+        OR (${a}.tipo IS NOT NULL AND ${a}.numero IS NOT NULL AND ${a}.tipo = ${b}.tipo AND ${a}.numero = ${b}.numero)`;
+      const [matches] = await poolProvider().execute(`${incoming}
+        SELECT i.source_index, e.id, e.codigo_estudiante, e.tipo_documento, e.numero_documento,
+          e.apellido_paterno, e.apellido_materno, e.nombres,
+          (e.codigo_estudiante = i.codigo) AS coincide_codigo,
+          (e.tipo_documento = i.tipo AND e.numero_documento = i.numero) AS coincide_documento
+        FROM incoming i JOIN estudiantes e ON (i.codigo IS NOT NULL AND e.codigo_estudiante = i.codigo)
+          OR (i.tipo IS NOT NULL AND i.numero IS NOT NULL AND e.tipo_documento = i.tipo AND e.numero_documento = i.numero)
+        ORDER BY i.source_index, e.id`, [input]);
+      // EXISTS limita el resultado a 2.000 índices incluso si todas las filas se repiten.
+      const [duplicates] = await poolProvider().execute(`${incoming} SELECT i.source_index FROM incoming i
+        WHERE EXISTS (SELECT 1 FROM incoming j WHERE i.source_index <> j.source_index AND (${same('i', 'j')}))
+        ORDER BY i.source_index`, [input]);
+      return { matches: matches.map(row => ({ ...row, id: String(row.id), source_index: Number(row.source_index),
+        coincide_codigo: Number(row.coincide_codigo) === 1, coincide_documento: Number(row.coincide_documento) === 1 })),
+        duplicates: duplicates.map(row => Number(row.source_index)) };
+    },
     async find(id, connection = poolProvider(), lock = false) {
       const [rows] = await connection.execute(
         `SELECT ${columns} FROM estudiantes WHERE id = ? LIMIT 1${lock ? ' FOR UPDATE' : ''}`, [id]);

@@ -31,6 +31,11 @@ export function createSeccionesService({ repository = createSeccionesRepository(
     return {};
   }
   return {
+    async matchForImport(records, yearId, level, actor) {
+      validateId(yearId);
+      const access = await scope(actor, level);
+      return repository.matchForImport(records, yearId, level, access);
+    },
     // Operación interna para asignaciones: usa la conexión ya transaccional del llamador.
     async assignmentContext(id, connection) {
       validateId(id);

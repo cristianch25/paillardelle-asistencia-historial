@@ -23,6 +23,15 @@ function conditions(filters, access) {
 
 export function createSeccionesRepository(poolProvider = getPool) {
   return {
+    async matchForImport(records, yearId, level, access) {
+      if (!records.length) return [];
+      const where = conditions({ anio_escolar_id: yearId, nivel: level }, access);
+      const [rows] = await poolProvider().execute(`SELECT j.source_index, ${columns} FROM JSON_TABLE(?, '$[*]' COLUMNS(
+        source_index INT PATH '$.index', grado INT PATH '$.grado', letra VARCHAR(30) PATH '$.letra')) j
+        JOIN secciones s ON s.grado = j.grado AND s.letra = j.letra COLLATE utf8mb4_0900_ai_ci ${where.sql} ORDER BY j.source_index`,
+      [JSON.stringify(records), ...where.params]);
+      return rows.map(row => ({ ...row, id: String(row.id), anio_escolar_id: String(row.anio_escolar_id) }));
+    },
     async assignmentContext(id, connection) {
       // Localizar el año sin bloquear sección antes que año. La decisión usa lecturas actuales.
       const [locations] = await connection.execute('SELECT anio_escolar_id FROM secciones WHERE id = ? LIMIT 1', [id]);

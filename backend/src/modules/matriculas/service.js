@@ -47,6 +47,13 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
     } catch (error) { throw enrollmentConflict(error); }
   }
   return {
+    async importContext(ids, yearId, actor) {
+      requireActor(actor, true);
+      const access = await accessFor(actor, getToday());
+      const visible = actor.rol === 'ADMIN' ? ids : await visibleIds(access);
+      const selected = ids.filter(id => visible.includes(id));
+      return { access, visibleIds: visible, enrollments: await repository.inspectForImport(selected, yearId) };
+    },
     create: (body, actor) => create(body, actor, false),
     createJoint: (body, actor) => create(body, actor, true),
     async createStandalone(data, actor) {
