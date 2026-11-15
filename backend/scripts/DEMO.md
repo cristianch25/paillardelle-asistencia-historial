@@ -38,6 +38,17 @@ contraseñas, copiarlas a logs ni añadir estos archivos al repositorio. Las cue
 son `demo26-sub-pri`, `demo26-sub-sec`, `demo26-reg-ini`, `demo26-reg-pri` y
 `demo26-reg-sec`. ADMIN mantiene sus credenciales anteriores.
 
+Cargos explícitos para nuevas cargas: reg-ini y reg-pri usan DOCENTE, reg-sec
+usa AUXILIAR y ambas cuentas sub usan SUBDIRECTOR. Cargo es un dato descriptivo;
+el rol de los tres registradores sigue siendo REGISTRADOR. No concede permisos.
+Login y GET /api/auth/me ya exponen el cargo dentro de user.
+
+Las cinco cuentas locales originales se corrigieron por el servicio auditado
+de usuarios, sin modificar el ADMIN, contraseñas, roles ni asignaciones. Repetir
+la misma actualización no produce cambios ni nuevas auditorías. No se modifica
+el manifiesto para ocultar esta corrección ni la migración 004: la carga original
+sigue deteniéndose ante el esquema/estado distinto y no debe forzarse su ejecución.
+
 Repetición: el estado debe coincidir exactamente con las huellas del manifiesto;
 los pasos confirmados se omiten sin escrituras ni nuevas auditorías. Incluso un
 cambio legítimo posterior (p. ej., asistencia) provoca detención conservadora.

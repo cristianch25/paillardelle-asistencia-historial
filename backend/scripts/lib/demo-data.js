@@ -7,9 +7,10 @@ export const sections = [
   { key: 'sec', nivel: 'SECUNDARIA', grado: 1, letra: 'A' },
 ];
 export const users = [
-  { key: 'sub-pri', rol: 'SUBDIRECCION', nivel_asignado: 'PRIMARIA' },
-  { key: 'sub-sec', rol: 'SUBDIRECCION', nivel_asignado: 'SECUNDARIA' },
-  ...sections.map(section => ({ key: `reg-${section.key}`, rol: 'REGISTRADOR', nivel_asignado: section.nivel })),
+  { key: 'sub-pri', rol: 'SUBDIRECCION', cargo: 'SUBDIRECTOR', nivel_asignado: 'PRIMARIA' },
+  { key: 'sub-sec', rol: 'SUBDIRECCION', cargo: 'SUBDIRECTOR', nivel_asignado: 'SECUNDARIA' },
+  ...sections.map(section => ({ key: `reg-${section.key}`, rol: 'REGISTRADOR',
+    cargo: section.key === 'sec' ? 'AUXILIAR' : 'DOCENTE', nivel_asignado: section.nivel })),
 ].map(user => ({ ...user, usuario: `demo26-${user.key}`, nombres: 'Cuenta ficticia',
   apellidos: `Demostracion ${user.key}`, activo: true, puede_escanear_qr: false, puede_usar_bitacora: false }));
 
