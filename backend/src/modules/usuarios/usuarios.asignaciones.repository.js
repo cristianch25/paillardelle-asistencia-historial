@@ -32,10 +32,12 @@ export function createAssignmentsRepository(poolProvider = getPool) {
     async list({ filters, access, today, limit, offset }) {
       const where = conditions(filters, access, today);
       const [rows] = await poolProvider().execute(
-        `SELECT ${columns} FROM asignaciones a JOIN secciones s ON s.id = a.seccion_id${where.sql} ORDER BY a.id ASC LIMIT ? OFFSET ?`,
+        `SELECT ${columns}, u.nombres, u.apellidos, u.cargo FROM asignaciones a
+         JOIN secciones s ON s.id = a.seccion_id JOIN usuarios u ON u.id = a.usuario_id${where.sql} ORDER BY a.id ASC LIMIT ? OFFSET ?`,
         [...where.params, limit, offset],
       );
-      return rows.map(publicRow);
+      return rows.map(row => ({ ...publicRow(row),
+        usuario: { nombres: row.nombres, apellidos: row.apellidos, cargo: row.cargo } }));
     },
     create(data, actorId, hooks) {
       return inTransaction(poolProvider(), async connection => {

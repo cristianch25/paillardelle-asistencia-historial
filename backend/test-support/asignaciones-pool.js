@@ -12,7 +12,9 @@ export const today = '2026-11-13';
 export const assignmentBody = { usuario_id: '3', seccion_id: '10', fecha_inicio: '2026-03-01', fecha_fin: null };
 function listRows(state, sql, params) {
   let rows = state.assignments.map(row => ({ ...row, ...state.sections.get(row.seccion_id),
-    ...row, nivel: state.sections.get(row.seccion_id)?.nivel ?? row.nivel }));
+    ...row, nivel: state.sections.get(row.seccion_id)?.nivel ?? row.nivel,
+    nombres: state.users.get(row.usuario_id).nombres, apellidos: state.users.get(row.usuario_id).apellidos,
+    cargo: state.users.get(row.usuario_id).cargo }));
   let index = 0;
   const where = sql.split(' WHERE ')[1]?.split(' ORDER BY ')[0] ?? '';
   for (const match of where.matchAll(/[as]\.(usuario_id|seccion_id|anio_escolar_id|nivel) = \?/g)) {
@@ -42,7 +44,7 @@ export function assignmentFixture() {
   state.pool = {
     async execute(sql, params) {
       state.calls.push({ sql, params });
-      if (sql.includes('FROM asignaciones a JOIN secciones')) {
+      if (/FROM asignaciones a\s+JOIN secciones/.test(sql)) {
         if (state.readFails) throw state.error;
         return [listRows(state, sql, params)];
       }

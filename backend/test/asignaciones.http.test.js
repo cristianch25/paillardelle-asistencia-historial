@@ -10,6 +10,8 @@ let fixture, server, url;
 const tokens = createTokenService(() => ({ secret: 'secreto-ficticio-asignaciones-http-solo-tests-123456', expiresIn: 900 }));
 beforeEach(() => {
   fixture = assignmentFixture();
+  Object.assign(fixture.state.users.get('3'), { nombres: 'Lucía', apellidos: 'Rojas Vega', cargo: 'DOCENTE' });
+  Object.assign(fixture.state.users.get('5'), { nombres: 'Mateo', apellidos: 'Díaz Ríos', cargo: null });
   const rows = [['101', '3', '10', today, today], ['102', '5', '11', '2026-01-01', null],
     ['103', '3', '12', '2026-11-14', null], ['104', '3', '10', '2026-01-01', '2026-11-12']];
   fixture.state.assignments.push(...rows.map(([id, usuario_id, seccion_id, fecha_inicio, fecha_fin]) =>
@@ -33,12 +35,35 @@ test('asignaciones HTTP: listado y barra final, campos públicos, orden y pagina
   const response = await request(); assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   const body = await response.json(); assert.deepEqual(body.asignaciones.map(row => row.id), ['101', '102', '103', '104']);
+  assert.deepEqual(body.asignaciones[0], { id: '101', usuario_id: '3', seccion_id: '10', fecha_inicio: today,
+    fecha_fin: today, created_at: '2026-01-01 00:00:00',
+    usuario: { nombres: 'Lucía', apellidos: 'Rojas Vega', cargo: 'DOCENTE' } });
+  assert.deepEqual(body.asignaciones[1].usuario, { nombres: 'Mateo', apellidos: 'Díaz Ríos', cargo: null });
+  assert.equal(fixture.state.calls.length, 1);
+  assert.match(fixture.state.calls[0].sql, /JOIN usuarios u ON u.id = a.usuario_id/);
+  assert.doesNotMatch(fixture.state.calls[0].sql, /SELECT \*|u\.\*|password_hash/);
   assert.equal(Object.hasOwn(body.asignaciones[0], 'secreto'), false); assert.equal(Object.hasOwn(body.asignaciones[0], 'nivel'), false);
   assert.deepEqual(await (await request('/')).json(), body);
   const page = await (await request('?page=2&limit=2')).json();
   assert.deepEqual(page.asignaciones.map(row => row.id), ['103', '104']); assert.equal(page.pagination.has_more, false);
   assert.equal((await (await request('?limit=2')).json()).pagination.has_more, true);
   assert.deepEqual((await (await request('?page=50')).json()).asignaciones, []);
+});
+
+test('asignaciones HTTP: identidad mínima dentro del ámbito, sin ampliar acceso a usuarios ni ocultar históricos', async () => {
+  const own = await (await request('?limit=1', '4')).json();
+  assert.deepEqual(own.asignaciones[0].usuario, { nombres: 'Lucía', apellidos: 'Rojas Vega', cargo: 'DOCENTE' });
+  assert.deepEqual(own.pagination, { page: 1, limit: 1, has_more: true });
+  const foreign = await (await request('?usuario_id=5&seccion_id=11', '4')).json();
+  assert.deepEqual(foreign.asignaciones, []);
+  assert.doesNotMatch(JSON.stringify(foreign), /Mateo|Díaz/);
+  fixture.state.users.get('5').activo = 0;
+  fixture.state.sections.get('11').activo = 0;
+  const historic = await (await request('?usuario_id=5')).json();
+  assert.deepEqual(historic.asignaciones[0].usuario, { nombres: 'Mateo', apellidos: 'Díaz Ríos', cargo: null });
+  const users = await fetch(url.replace('/api/asignaciones', '/api/usuarios'), {
+    headers: { Authorization: `Bearer ${tokens.issue('4').access_token}` } });
+  assert.equal(users.status, 403); await users.text();
 });
 
 test('asignaciones HTTP: SUBDIRECCION principal/adicional y REGISTRADOR solo propias, sin ampliar por filtros', async () => {
@@ -83,6 +108,7 @@ test('asignaciones HTTP: POST 201, validaciones estrictas, conflicto 409 y error
   let response = await request('', '1', 'POST', assignmentBody);
   assert.equal(response.status, 201); const row = (await response.json()).asignacion;
   assert.equal(row.id, '9007199254740993'); assert.equal(row.usuario_id, '3');
+  assert.deepEqual(Object.keys(row), ['id', 'usuario_id', 'seccion_id', 'fecha_inicio', 'fecha_fin', 'created_at']);
   response = await request('', '1', 'POST', assignmentBody); assert.equal(response.status, 409); await response.text();
   for (const path of ['?page=0', '?limit=101', '?usuario_id=3&usuario_id=5', '?nivel=PRIMARIA&nivel=INICIAL', '?vigencia=OTRA', '?extra=1']) {
     response = await request(path); assert.equal(response.status, 400); await response.text();
