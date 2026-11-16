@@ -11,8 +11,8 @@ type Outcome = { data: PadronResponse | null; error: string };
 // La limpieza invalida respuestas sin sustituir la señal de sesión del cliente HTTP.
 export function observePadron(sectionId: string, fecha: string, receive: (value: Outcome) => void) {
   let current = true;
-  void getPadron(sectionId, fecha).then(data => {
-    if (current) receive({ data, error: '' });
+  void Promise.resolve().then(() => current ? getPadron(sectionId, fecha) : null).then(data => {
+    if (current && data) receive({ data, error: '' });
   }).catch((failure: unknown) => {
     if (!current || axios.isCancel(failure)) return;
     const status = axios.isAxiosError(failure) ? failure.response?.status : undefined;

@@ -11,7 +11,7 @@ let vite, http, dates, api, requests, List, Page, Selection, Auth, Selected, Sid
 const root = '/src/features/organizacion-escolar/secciones/';
 const section = { id: '9007199254740993', anio_escolar_id: '1', nivel: 'INICIAL', grado: 4,
   letra: 'CREATIVOS', turno: null, activo: false };
-const selected = { section, year: { id: '1', anio: 2026, estado: 'CERRADO' } };
+const selected = { section, year: { id: '1', anio: 2026, estado: 'CERRADO', fecha_inicio: '2026-03-02', fecha_fin: '2026-12-18' } };
 const entry = { id: '9007199254740994', estudiante_id: '9007199254740995',
   matricula_seccion_id: '9007199254740996', estado: 'RETIRADA', estudiante: {
     id: '9007199254740995', apellido_paterno: 'Pérez', apellido_materno: null, nombres: 'Ana',
@@ -86,11 +86,11 @@ test('vacío y duplicados tienen mensajes distintos; nunca cuentan vínculos com
   assert.doesNotMatch(html, /2 estudiantes|Pérez Ana/);
 });
 
-test('tres roles ven fecha sin límites de calendario y regreso según rol con filtros/página', () => {
+test('tres roles ven fecha y regreso según rol con filtros/página', () => {
   for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {
     const html = markup(Page, { role });
     assert.match(html, /Estudiantes de la sección/);
-    assert.match(html, /Fecha de consulta/);
+    assert.match(html, role === 'REGISTRADOR' ? /Fecha de consulta/ : /Padrón al/);
     assert.match(html, /4 años · CREATIVOS/);
     assert.match(html, /Año escolar 2026/);
     assert.ok(html.includes(role === 'REGISTRADOR' ? 'Volver a mis secciones' : 'Volver a secciones'));
@@ -115,6 +115,47 @@ test('menú mantiene secciones activo en rutas hijas por segmento, para los tres
       assert.doesNotMatch(link, /aria-current/);
     }
   }
+});
+
+test('padrón conserva consulta y acceso a asistencia exclusivamente para REGISTRADOR', () => {
+  for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {
+    const html = markup(Page, { role });
+    if (role === 'REGISTRADOR') assert.match(html, /Fecha de consulta|type="date"/);
+    else { assert.doesNotMatch(html, /type="date"/); assert.match(html, /Personal asignado|Padrón al/); }
+    const link = /href="\/secciones\/asistencia\?page=3&amp;nivel=INICIAL"/;
+    if (role === 'REGISTRADOR') assert.match(html, link);
+    else assert.doesNotMatch(html, /Asistencia diaria|href="\/secciones\/asistencia/);
+    assert.match(html, /Estudiantes de la sección/);
+  }
+});
+
+test('roles y tres niveles conservan sus formatos y controles en años pasados, actuales y futuros', () => {
+  for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {
+    for (const [nivel, grado, letra, expected] of [['INICIAL', 5, 'GENIALES', '5 años · GENIALES'],
+      ['PRIMARIA', 2, 'B', role === 'REGISTRADOR' ? '2.º B' : '2 B'],
+      ['SECUNDARIA', 3, 'C', role === 'REGISTRADOR' ? '3.º C' : '3 C']]) {
+      for (const anio of [2001, 2026, 2199]) {
+        const html = markup(Page, { role, selection: {
+          section: { ...section, nivel, grado, letra },
+          year: { ...selected.year, anio, fecha_inicio: `${anio}-01-01`, fecha_fin: `${anio}-12-31` },
+        } });
+        assert.ok(html.includes(expected), `${role}/${nivel}/${anio}`);
+        if (role === 'REGISTRADOR') {
+          assert.match(html, /type="date"/);
+          assert.match(html, /Asistencia diaria/);
+          assert.doesNotMatch(html, /Personal asignado|Padrón al/);
+        } else {
+          assert.doesNotMatch(html, /type="date"|Asistencia diaria/);
+          assert.match(html, /Personal asignado|Padrón al/);
+          if (anio === 2001) assert.match(html, /Padrón al 31\/12\/2001/);
+          if (anio === 2199) assert.match(html, /Padrón al 01\/01\/2199/);
+        }
+      }
+    }
+  }
+  const html = markup(Page, { selection: { ...selected, year: { ...selected.year, fecha_fin: '2026-02-30' } } });
+  assert.match(html, /No se puede determinar la fecha del padrón/);
+  assert.doesNotMatch(html, /Personal asignado|Consultando estudiantes/);
 });
 
 test('tarjeta prioriza asistencia, mantiene estudiantes y limpiar con rutas y filtros para los tres roles', () => {

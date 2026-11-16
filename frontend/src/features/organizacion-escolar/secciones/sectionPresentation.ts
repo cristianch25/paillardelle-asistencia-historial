@@ -17,3 +17,7 @@ export function formatSectionName(section: Pick<Section, 'nivel' | 'grado' | 'le
     ? `${section.grado} años · ${section.letra}`
     : `${section.grado}.º ${section.letra}`;
 }
+
+export function formatAdministrativeSectionName(section: Pick<Section, 'nivel' | 'grado' | 'letra'>): string {
+  return section.nivel === 'INICIAL' ? formatSectionName(section) : `${section.grado} ${section.letra}`;
+}
