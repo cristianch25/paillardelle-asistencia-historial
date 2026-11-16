@@ -11,6 +11,7 @@ import NavigationShell from './NavigationShell';
 import SupervisionPage from '../features/asistencias/supervision/SupervisionPage';
 import SupervisionWorkspace from '../features/asistencias/supervision/SupervisionWorkspace';
 import SupervisionDetailPage from '../features/asistencias/supervision/SupervisionDetailPage';
+import AttendanceManagementPage from '../features/asistencias/gestion/AttendanceManagementPage';
 
 export const router = createBrowserRouter(createRoutesFromElements(
   <Route element={<NavigationShell />}>
@@ -20,6 +21,9 @@ export const router = createBrowserRouter(createRoutesFromElements(
         <Route path="/asistencias/supervision" element={<SupervisionWorkspace />}>
           <Route index element={<SupervisionPage />} />
           <Route path=":sesionId" element={<SupervisionDetailPage />} />
+        </Route>
+        <Route path="/asistencias/gestion" element={<SupervisionWorkspace />}>
+          <Route index element={<AttendanceManagementPage />} />
         </Route>
       </Route>
       <Route element={<SeccionSelectionProvider><AppLayout /></SeccionSelectionProvider>}>

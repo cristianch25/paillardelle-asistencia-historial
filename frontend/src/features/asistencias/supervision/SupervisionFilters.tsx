@@ -6,7 +6,7 @@ import type { SupervisionFilters as Filters } from './supervision.types';
 import type { useSupervisionSections } from './useSupervisionSections';
 import Button from '../../../shared/components/Button';
 
-type Props = { years: SchoolYear[]; levels: readonly EducationLevel[]; options: ReturnType<typeof useSupervisionSections>;
+type Props = { years: SchoolYear[]; levels: readonly EducationLevel[]; options: ReturnType<typeof useSupervisionSections>; sectionRequired?: boolean;
   value: Filters; onChange: (value: Filters) => void };
 const control = 'mt-2 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base font-normal focus-visible:outline-2 focus-visible:outline-institutional-700 disabled:bg-slate-100';
 
@@ -14,7 +14,7 @@ function changeSupervisionFilter<K extends keyof Omit<Filters, 'page'>>(filters:
   return { ...filters, [key]: value, page: 1, ...(key !== 'seccion_id' ? { seccion_id: '' } : {}) };
 }
 
-export default function SupervisionFilters({ years, levels, options, value, onChange }: Props) {
+export default function SupervisionFilters({ years, levels, options, value, onChange, sectionRequired = false }: Props) {
   const id = useId();
   const update = <K extends keyof Omit<Filters, 'page'>>(key: K, next: Filters[K]) => onChange(changeSupervisionFilter(value, key, next));
   return <div className="grid min-w-0 gap-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -40,14 +40,15 @@ export default function SupervisionFilters({ years, levels, options, value, onCh
         disabled={!options.ready || options.loading || Boolean(options.error) || options.sections.length === 0}
         aria-busy={options.loading}
         aria-describedby={`${id}-section-hint`} onChange={e => update('seccion_id', e.target.value)}>
-        <option value="">Todas las secciones autorizadas</option>
+        <option value="">{sectionRequired ? 'Selecciona una sección' : 'Todas las secciones autorizadas'}</option>
         {value.seccion_id && !options.sections.some(section => section.id === value.seccion_id)
           && <option value={value.seccion_id} disabled>Sección seleccionada sin revalidar</option>}
         {options.sections.map(section => <option key={section.id} value={section.id}>{educationLevelLabels[section.nivel]} · {formatSectionName(section)}</option>)}
       </select>
       <p id={`${id}-section-hint`} role={options.error ? 'alert' : 'status'} className="mt-2 text-xs font-normal text-slate-600">
         {options.loading ? 'Cargando secciones…' : options.error || (!options.ready ? 'Selecciona un año y una fecha.'
-          : options.sections.length === 0 ? 'No hay secciones autorizadas para esta consulta.' : 'Selecciona una sección o consulta todas.')}
+          : options.sections.length === 0 ? 'No hay secciones autorizadas para esta consulta.'
+            : sectionRequired ? 'Selecciona una sección para consultar sus estudiantes.' : 'Selecciona una sección o consulta todas.')}
       </p>
       {options.error && <Button variant="secondary" onClick={options.retry}>Reintentar secciones</Button>}
     </div>

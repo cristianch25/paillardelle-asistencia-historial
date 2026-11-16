@@ -1,7 +1,13 @@
-# Supervisión 7A.1–7A.3
+# Supervisión 7A.1–7A.3 y correcciones 7B.1
 
-Ruta `/asistencias/supervision`, exclusivamente ADMIN/SUBDIRECCION. Lecturas GET
-mediante Axios y autenticación compartidos; sin apertura, marcado, cierre ni detalle.
+Actualización de Gestión: las correcciones implementadas en 7B.1/7B.1B se
+reutilizan ahora desde `/asistencias/gestion`. Supervisión vuelve a consulta;
+el buscador y filtro forman una única lista administrativa, sin tarjeta duplicada.
+Los apartados anteriores describen el desarrollo por etapas. Contrato actual y
+dependencia de justificaciones: [Gestión](../gestion/README.md).
+
+Ruta `/asistencias/supervision`, exclusivamente ADMIN/SUBDIRECCION. El listado usa
+lecturas GET mediante Axios y autenticación compartidos, sin apertura ni cierre.
 Referencias: decisiones v5 D02/D03, RF-01/RF-10 y RNF-01/02/04/08 v5. La matriz
 específica de asistencia posterior, aprobada el 15/11/2026 y documentada en
 `backend/src/modules/asistencias/README.md` del commit `ff3ca53`, orienta el selector:
@@ -79,7 +85,7 @@ SupervisionWorkspace conserva solo filtros en memoria entre listado y detalle,
 con clave de cuenta/rol/nivel/expiración; no persiste estudiantes en almacenamiento
 ni historia de navegación. Volver y Atrás conservan los filtros dentro del ámbito;
 cambiar de cuenta o recargar reinicia los filtros del listado. El detalle se vuelve
-a consultar desde su ID al recargar. No hay correcciones ni justificaciones.
+a consultar desde su ID al recargar. Hasta 7A.3 no había correcciones. No hay justificaciones.
 
 Verificación: `npm.cmd run typecheck`, `npm.cmd run lint`, `npm.cmd test`,
 `npm.cmd run test:browser`, `npm.cmd run build`. Las pruebas usan adaptadores
@@ -88,3 +94,82 @@ Captura móvil: `frontend/node_modules/.tmp/supervision-320.png` (no versionada)
 Captura del detalle: `frontend/node_modules/.tmp/supervision-detail-320.png`.
 Las pruebas 7A.1B cubren 230 opciones, tres páginas, errores intermedios, respuesta
 obsoleta, cambio de cuenta, ausencia de opciones y recorrido inconsistente/sin fin.
+
+## Corrección de asistencias — 7B.1
+
+Contrato verificado en modo lectura mediante `git show d4db79b:backend/src/modules/asistencias/...`:
+routes.js, validation.js, rules.js, service.js, write.repository.js y README.md.
+También se consultaron 004_asistencia_diaria.sql y su README versionados en ese
+commit, sin incorporarlos a este worktree ni ejecutar SQL. El backend de esta
+rama frontend conserva una versión anterior y no representa el contrato actual.
+Referencias funcionales: v5 D08/D09, RN-06/RN-07/RN-10, RF-07/RF-09 y
+RNF-02/RNF-05/RNF-08; la matriz posterior específica de asistencia se conserva.
+
+Se reutiliza saveAttendance y el PATCH existente
+`/api/asistencias/sesiones/:id/registros`. Entrada:
+`{ version, cambios: [{ asistencia_id, version, estado, motivo? }] }`.
+Se envía una sola fila con versiones confirmadas e IDs BIGINT como texto.
+Estados permitidos por backend: PRESENTE, TARDANZA, FALTA, PENDIENTE; este último
+se presenta como «Sin marcar» y anula la marca conservando historial. Solo se
+ofrecen filas con version > 0: los pendientes iniciales no son correcciones.
+
+ADMIN y SUBDIRECCION autorizados pueden corregir sesiones abiertas y cerradas.
+Para CERRADA se exige motivo no vacío, Unicode válido y máximo 500 caracteres;
+se confirma sin reabrir. El motivo es de corrección, no una justificación.
+El servidor mantiene año ABIERTO, fecha lectiva no futura, alcance, actor bajo
+bloqueo y concurrencia por versión. Cambio e historial_asistencias son atómicos,
+con actor, fecha, valores anteriores/nuevos y motivo poscierre. No se crean rutas,
+permisos, migraciones ni reglas nuevas; no se cambia el registro diario.
+
+El detalle presenta un selector de asistencia registrada y un diálogo sencillo:
+estado actual, nuevo estado, motivo cuando corresponde, revisión y confirmación.
+Cancelar, editar o revisar no envían peticiones. Mientras guarda se deshabilitan
+edición, doble envío y actualización; la protección de navegación existente
+coordina salidas pendientes. No se actualiza ninguna marca de forma optimista.
+
+Solo una respuesta HTTP 200 compatible con sesión, padrón, estado solicitado,
+versiones incrementadas y resumen completo confirma el guardado. El detalle y sus
+totales usan la respuesta confirmada; volver al listado conserva filtros y vuelve
+a consultar sus resúmenes, sin caché local de marcas ni nuevas estadísticas.
+
+400/413 muestran rechazo sin éxito. 403/404 retiran padrón y controles, con
+revalidación explícita del detalle; 401 usa la invalidación global. Un 409, fallo
+de red/timeout/500 o confirmación incompatible oculta los datos anteriores y
+exige «Consultar estado actual» antes de permitir una nueva corrección. Ese GET
+no reenvía el PATCH ni afirma que una coincidencia pruebe el guardado anterior.
+Si falla, se mantiene bloqueada la escritura hasta poder consultar. Cambiar de
+sesión/cuenta invalida operaciones y respuestas pendientes sin sustituir la
+señal de sesión del cliente Axios compartido.
+
+Archivos nuevos: supervisionCorrection.ts (validación/confirmación y adaptación
+del PATCH), useSupervisionCorrection.ts (operación y recuperación),
+SupervisionCorrectionAction.tsx, SupervisionCorrectionDialog.tsx y
+SupervisionSessionDetail.tsx. SupervisionDetailPage.tsx compone el detalle.
+No se cambia AttendanceStudentRow, los hooks diarios ni sus contratos/tipos.
+
+Pruebas: supervisionCorrection.test.mjs, supervisionCorrection.browser.mjs y
+supervisionCorrectionFailures.browser.mjs; soporte supervisionCorrectionBrowser.mjs
+y supervisionCorrectionHarness.jsx. Cubren estados, cancelación, motivos,
+matriz de permisos, concurrencia, errores, incertidumbre, resúmenes, móvil y
+respuestas tardías. Adaptadores simulados, sin MySQL ni escrituras al backend.
+Captura no versionada: frontend/node_modules/.tmp/supervision-correction-320.png.
+
+### Selección por búsqueda local — 7B.1B
+
+SupervisionStudentSearch sustituye el desplegable de asistencia por un campo
+etiquetado «Buscar estudiante». correctionStudentSearch compara términos contra
+nombres, apellidos y código ya cargados, ignorando mayúsculas, tildes y espacios
+adicionales. Se conserva el filtro de filas previamente registradas (version > 0).
+No hay solicitudes nuevas ni cambios del filtro de la lista inferior.
+
+Los resultados muestran nombre completo, código (o «No disponible») y estado.
+La lista tiene altura máxima y desplazamiento, sin truncar coincidencias. Los
+botones nativos admiten Tab/Enter, foco visible y aria-pressed. La selección se
+identifica en una tarjeta; elegir otra la reemplaza. Editar la búsqueda invalida
+la selección anterior y «Limpiar selección» restablece búsqueda, selección y
+foco. Sin selección válida el botón de corrección sigue deshabilitado. Se mantiene
+el diálogo de confirmación y el protocolo de guardado/concurrencia de 7B.1.
+
+Pruebas adicionales: correctionStudentSearch.test.mjs y
+supervisionStudentSearch.browser.mjs. Se adaptan las pruebas previas de selección
+al buscador sin modificar sus verificaciones del guardado.

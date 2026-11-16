@@ -14,7 +14,7 @@ export function useSupervisionSections({ anio_escolar_id, fecha, nivel }: Superv
   useEffect(() => {
     if (!ready) return;
     let current = true;
-    getSupervisionSections({ anio_escolar_id, fecha, ...(nivel ? { nivel } : {}) }, () => current)
+    Promise.resolve().then(() => current ? getSupervisionSections({ anio_escolar_id, fecha, ...(nivel ? { nivel } : {}) }, () => current) : null)
       .then(sections => {
         if (current && sections) setResult({ key, sections, error: '' });
       }).catch((error: unknown) => {

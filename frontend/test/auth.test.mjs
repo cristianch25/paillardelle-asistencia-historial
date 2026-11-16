@@ -52,7 +52,8 @@ test('cada rol dispone de Inicio y Secciones; no se anuncian módulos pendientes
   for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {
     assert.deepEqual(navigation.navigationFor(role).map(({ path, label }) => ({ path, label })),
       [{ path: '/inicio', label: 'Inicio' }, { path: '/secciones', label: role === 'REGISTRADOR' ? 'Mis secciones' : 'Secciones' },
-        ...(role === 'REGISTRADOR' ? [] : [{ path: '/asistencias/supervision', label: 'Supervisión de asistencias' }])]);
+        ...(role === 'REGISTRADOR' ? [] : [{ path: '/asistencias/supervision', label: 'Supervisión de asistencias' },
+          { path: '/asistencias/gestion', label: 'Gestión de asistencias' }])]);
     assert.equal(typeof navigation.roleLabels[role], 'string');
   }
 });
