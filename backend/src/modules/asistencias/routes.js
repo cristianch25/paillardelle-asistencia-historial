@@ -7,6 +7,7 @@ export function createAttendanceRoutes(authService, service = createAttendanceSe
   const router = Router(), controller = createAttendanceController(service);
   router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   router.use(authenticate(authService));
+  router.get('/busqueda-estudiantes', controller.searchStudents);
   router.get('/sesiones', controller.list);
   router.post('/sesiones', json({ limit: '8kb' }), controller.open);
   router.get('/sesiones/:id', controller.find);

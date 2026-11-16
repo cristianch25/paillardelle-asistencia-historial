@@ -49,6 +49,8 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
     } catch (error) { throw enrollmentConflict(error); }
   }
   return {
+    // Interno: asistencia autoriza al actor y comparte su instantánea de solo lectura.
+    searchForAttendance: (data, access, connection) => repository.searchForAttendance(data, access, connection),
     // Interno: autorización y año ya bloqueados por asistencia; lecturas actuales.
     async rosterForAttendance(yearId, sectionId, date, connection) {
       const rows = await repository.list({ filters: { anio_escolar_id: yearId }, access: {}, date }, connection, true);

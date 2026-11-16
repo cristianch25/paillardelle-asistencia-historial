@@ -166,3 +166,59 @@ efectos secundarios, la matriz común y la compatibilidad del flujo anterior.
 Resultado: 705 pruebas de suite aprobadas y 64 comprobaciones HTTP reales sobre
 la base local sin efectos secundarios (huellas idénticas en sus 20 tablas).
 Se verificó en MySQL que la transacción activa usa READ ONLY y REPEATABLE READ.
+
+## Búsqueda de estudiantes para gestión de asistencias
+
+`GET /api/asistencias/busqueda-estudiantes?fecha=2026-11-13&q=Ana&page=1&limit=20`
+requiere JWT, actor activo y ADMIN o SUBDIRECCION. REGISTRADOR y otros roles
+reciben 403. Reutiliza la matriz de asistencia: ADMIN tres niveles;
+SUBDIRECCION principal PRIMARIA incluye INICIAL/PRIMARIA, SECUNDARIA solo su
+nivel y compatibilidad principal INICIAL solo INICIAL. Adicionales/cargo no amplían
+esta búsqueda; no cambia la autorización de otros módulos ni las correcciones.
+
+fecha es obligatoria, civil real YYYY-MM-DD. q es opcional (vacío lista dentro
+del ámbito), máximo 120 caracteres Unicode válidos, sin controles; se recortan
+extremos y normalizan espacios. Cada palabra debe coincidir parcialmente en
+nombres/apellidos/código, sin importar orden. MySQL utf8mb4_0900_ai_ci ignora
+mayúsculas/tildes; %, _ y ! se buscan literalmente con parámetros SQL.
+page/limit: 1/20 predeterminados, límite 100; parámetros desconocidos o repetidos,
+fechas/textos/paginación inválidos producen 400. Sin coincidencias: 200 y lista vacía.
+
+Respuesta: `{ fecha, q, resultados, pagination: { page, limit, has_more } }`.
+Cada resultado tiene estudiante `{ id, nombres, apellido_paterno, apellido_materno,
+codigo_estudiante }`, matricula_id, matricula_seccion_id, anio_escolar `{ id, anio }`,
+seccion `{ id, nivel, grado, letra, turno }`, fecha, situacion, estado,
+sesion_id, sesion_estado, sesion_version, asistencia_id y asistencia_version.
+IDs como texto; versiones enteras. Situaciones de resultado, no estados SQL:
+
+- CON_REGISTRO: existe fila; estado PRESENTE/TARDANZA/FALTA o PENDIENTE real.
+- SIN_ASISTENCIA: existe sesión pero no fila para esa matrícula; estado y datos
+  de asistencia null, manteniendo ID/estado/versión reales de sesión.
+- SIN_SESION: no existe sesión ni asistencia; estado y referencias/versiones null.
+
+No fabrica PENDIENTE ni versiones. Las versiones devueltas se envían al PATCH
+existente; pueden quedar obsoletas y producir 409. SIN_ASISTENCIA/SIN_SESION no
+autorizan corrección ni creación por esta consulta. No incluye documentos,
+contactos, justificaciones ni historial técnico.
+
+Matrícula y vínculo efectivos con extremos inclusivos, dentro del intervalo del
+año: se reutiliza la resolución SQL de matrículas. Se consultan años anteriores,
+cerrados y secciones actualmente inactivas, sin exigir lectividad. Fecha fuera
+de todo contexto académico: lista vacía. Si coinciden intervalos de años distintos,
+devuelve cada matrícula con su año, sin elegir uno arbitrario. Una fila por
+matrícula, orden estudiante/año/matrícula, sin fusionar homónimos. Vínculos
+superpuestos o asistencia incompatible con el vínculo efectivo: 409 seguro,
+sin elegir sección ni mover marcas. El padrón de sesión no se recalcula.
+
+Autorización y búsqueda antes de paginación, limit+1 sin totales ajenos. Una
+instantánea READ ONLY/REPEATABLE READ revalida actor, obtiene página académica
+en servidor y consulta marcas/sesiones en lote solo para esa página (sin N+1).
+No bloquea con FOR UPDATE/SHARE ni modifica sesiones, marcas, versiones o auditorías.
+Errores de COMMIT usan shared/transaction.js, descarte y ausencia de reintentos.
+La búsqueda parcial puede requerir escanear el ámbito autorizado; no se añaden
+índices/tablas ni se declara búsqueda de texto completo.
+
+Mapa nuevo: search.validation/service/repository en asistencias; search.repository
+y query-conditions en matrículas. Matrículas expone un método interno con conexión
+compartida; la SQL de vigencias se comparte con el padrón anterior. Pruebas:
+asistencias.search{,.http,.history}.test.js y asistencia-search-fixture.js.

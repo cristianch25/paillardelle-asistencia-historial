@@ -12,6 +12,7 @@ import { createAttendanceWriter } from './write.repository.js';
 import { scopeFor, assertScope, assertWritable, assertVersion, planChanges, summary } from './rules.js';
 import { opening, closing, changes, sessionInput } from './validation.js';
 import { createAttendanceListService } from './list.service.js';
+import { createAttendanceSearchService } from './search.service.js';
 
 export function createAttendanceService(options = {}) {
   const users = options.users ?? createUsuariosService();
@@ -52,6 +53,7 @@ export function createAttendanceService(options = {}) {
   }
   return {
     ...createAttendanceListService({ repository: options.listRepository, users, calendar, getToday: today }),
+    ...createAttendanceSearchService({ repository: options.searchRepository, enrollments, users, getToday: today }),
     async open(body, actor) {
       const location = opening(body);
       return run(location, actor, async context => {
