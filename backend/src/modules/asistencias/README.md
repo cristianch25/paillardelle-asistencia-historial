@@ -1,8 +1,10 @@
 # Asistencia diaria
 
 Implementa registro manual según v6 D06-D09/D36-D45 y RN-03-RN-10/RN-35-RN-45.
-Requiere esquema v1 + 002 + 003 + 004 ya migrado; no aplica SQL al arrancar.
-No incluye justificaciones, regularización, QR, importación, PDF ni frontend.
+Requiere esquema v1 + 002 + 003 + 004 + 005 + 006 migrado; no aplica SQL al arrancar.
+005 fue aplicada en local; 006 solo está preparada. Las correcciones sin motivo
+en sesiones CERRADAS requieren autorizar, ensayar y aplicar 006 antes de habilitar
+7B.3 sobre MySQL real. No incluye regularización, QR, PDF ni frontend.
 
 Todas las rutas requieren JWT Bearer y devuelven Cache-Control: no-store.
 ADMIN opera globalmente; SUBDIRECCION usa la matriz institucional indicada abajo;
@@ -14,14 +16,15 @@ Un recurso ajeno devuelve 404.
 | GET /api/asistencias/sesiones | Año y fecha obligatorios; filtros nivel/sección y paginación; consulta sin efectos |
 | POST /api/asistencias/sesiones | `{ seccion_id, fecha }`; 201 creada o 200 recuperada, sin reabrir |
 | GET /api/asistencias/sesiones/:id | Sesión, padrón estable, marcas, versiones y resumen |
-| PATCH /api/asistencias/sesiones/:id/registros | `{ version, cambios: [{ asistencia_id, version, estado, motivo? }] }` |
+| PATCH /api/asistencias/sesiones/:id/registros | `{ version, cambios: [{ asistencia_id, version, estado, motivo?, justificada?, motivo_justificacion? }] }` |
 | POST /api/asistencias/sesiones/:id/cierre | `{ version }`; sesión y advertencias de pendientes |
 | GET /api/asistencias/sesiones/:id/resumen | `{ sesion_id, version, resumen }` |
 
 IDs: cadenas BIGINT UNSIGNED. Fechas civiles: YYYY-MM-DD. Versiones: enteros JSON.
 Abrir/recuperar devuelve `{ creada, sesion, padron, resumen }`. Cada fila contiene
 asistencia_id, matricula_id, matricula_seccion_id, estudiante con datos mínimos,
-estado, version y ultimo_cambio `{ usuario_id, fecha }` o null. No expone historial
+estado, version, justificada (booleano), motivo_justificacion (texto o null)
+y ultimo_cambio `{ usuario_id, fecha }` o null. No expone historial
 técnico, versiones anteriores ni motivos históricos. Timestamps nuevos en UTC.
 Resumen: total, presentes, tardanzas, faltas y pendientes. La suma coincide con total.
 
@@ -52,8 +55,9 @@ se confirma atómicamente. ID ajeno, duplicado en el lote, versión obsoleta, es
 inválido o motivo faltante impiden todo el lote. Versión de sesión aumenta una
 vez por solicitud efectiva; no-op con versiones vigentes no genera eventos.
 Cerrar aumenta versión y audita sin convertir pendientes en faltas. Reiterar
-cierre con versión vigente no genera eventos. Corregir después no reabre y exige
-motivo no vacío por fila (hasta 500 caracteres). Nunca hay borrado físico.
+cierre con versión vigente no genera eventos. Desde 7B.3 cerrar es opcional y
+corregir después no reabre ni exige motivo de corrección. El campo motivo sigue
+admitido, opcional y no vacío si se envía (hasta 500 caracteres). Nunca hay borrado físico.
 
 Crear, marcar y cerrar: año ABIERTO, fecha no futura y lectividad efectiva del
 nivel, incluidas recuperaciones explícitas en sábado/domingo o fuera de períodos.
@@ -84,7 +88,7 @@ para inspección, sin borrar la instancia o la base local. No guardar tokens en 
 
 Los scripts demo previos se detienen tras 004 por su verificación estricta del
 manifiesto; no se modificó su estado para ocultar el cambio. Los datos demo siguen
-disponibles mediante API. Pendiente: justificaciones y el resto del alcance futuro.
+disponibles mediante API. Justificaciones sencillas se incorporan en 7B.2, abajo.
 
 Mapa de archivos: en asistencias/, routes/controller manejan HTTP; validation y
 rules, contratos y decisiones; service, orquestación; context/read/write.repository,
@@ -118,7 +122,8 @@ Cargo y niveles adicionales no amplían el ámbito de asistencia. Esta decisión
 posterior sustituye aquí la dependencia de adicionales de v6. La configuración
 y los contratos generales de supervisión de usuarios, calendario, matrícula,
 secciones y asignaciones permanecen intactos; no se cambian sus reglas globales.
-Las reglas de guardado, cierre, motivos, versiones y auditoría tampoco cambian.
+Esta decisión de ámbito no altera versiones ni auditoría. El guardado sin cierre
+ni motivo de corrección se incorpora posteriormente en 7B.3, al final del documento.
 
 Ejemplo de consulta:
 
@@ -199,7 +204,8 @@ IDs como texto; versiones enteras. Situaciones de resultado, no estados SQL:
 No fabrica PENDIENTE ni versiones. Las versiones devueltas se envían al PATCH
 existente; pueden quedar obsoletas y producir 409. SIN_ASISTENCIA/SIN_SESION no
 autorizan corrección ni creación por esta consulta. No incluye documentos,
-contactos, justificaciones ni historial técnico.
+contactos ni historial técnico. Desde 7B.2 añade justificada (booleano) y
+motivo_justificacion (texto o null); sin asistencia devuelve false/null.
 
 Matrícula y vínculo efectivos con extremos inclusivos, dentro del intervalo del
 año: se reutiliza la resolución SQL de matrículas. Se consultan años anteriores,
@@ -222,3 +228,94 @@ Mapa nuevo: search.validation/service/repository en asistencias; search.reposito
 y query-conditions en matrículas. Matrículas expone un método interno con conexión
 compartida; la SQL de vigencias se comparte con el padrón anterior. Pruebas:
 asistencias.search{,.http,.history}.test.js y asistencia-search-fixture.js.
+
+## 7B.2 — justificación sencilla, decisión posterior aprobada
+
+Amplía el mismo PATCH, compartido por los tres roles con su ámbito existente.
+Admite justificación en FALTA/TARDANZA, incluida la primera marca en un único
+guardado; PRESENTE/PENDIENTE no son justificables. No cambia el estado base.
+
+```json
+{
+  "version": 1,
+  "cambios": [{
+    "asistencia_id": "1",
+    "version": 0,
+    "estado": "FALTA",
+    "justificada": true,
+    "motivo_justificacion": "Atención médica"
+  }]
+}
+```
+
+justificada es un booleano estricto opcional. Si es true, exige un motivo
+Unicode válido, no vacío tras trim, máximo 500 caracteres en la entrada;
+se guarda recortado. Si es false, motivo_justificacion se omite o es null.
+No se admite motivo_justificacion sin justificada. Omitir ambos preserva los
+valores existentes, para compatibilidad con clientes anteriores.
+
+**Limitación para el frontend:** una marca ya justificada queda protegida:
+no permite cambiar su estado, modificar su motivo ni retirar la justificación.
+El servidor devuelve 409 y rechaza todo el lote. Mostrar al usuario esta
+restricción; no ofrecer edición/retiro en esta etapa. Reenviar los mismos valores
+o usar el contrato anterior sin cambio real es no-op, con versiones vigentes.
+Una asistencia sin justificar conserva sus correcciones ordinarias.
+
+Sesiones ABIERTAS/CERRADAS, sin reapertura; año ABIERTO, día lectivo no futuro.
+Desde 7B.3, un cambio de estado no exige motivo de corrección. Para añadir
+exclusivamente la justificación, su motivo sigue sirviendo también como motivo
+del evento si se omite motivo. El motivo de justificación siempre es obligatorio
+al enviar true, incluso al guardar marca y justificación juntas.
+
+Respuesta PATCH y detalle/apertura: padron añade justificada y
+motivo_justificacion. La búsqueda de estudiantes añade esos mismos campos.
+Resumen y listado de sesiones conservan sus contratos. Éxito PATCH: 200;
+400 por contrato/motivos inválidos; 401/404 por autenticación/ámbito;
+409 por protección de marca, versiones o condiciones de escritura.
+
+Todo el lote se confirma junto con historial. Cada cambio efectivo genera
+un evento, incluyendo estado y justificación si cambian juntos. Solo metadatos
+usa tipo JUSTIFICACION; la primera marca conjunta conserva PRIMERA_MARCA.
+Historial conserva motivos anterior/nuevo, actor validado y UTC_TIMESTAMP(6).
+No se duplica el evento individual en auditoría administrativa.
+
+Diferencias pendientes de formalización: v5 D10/RN-08/RF-08 exigían canal y
+RF-08 incluía retiro. Esta decisión posterior elimina el canal y aplaza edición,
+retiro y cambio de estado de marcas justificadas. No modifica los TXT v5/V7.
+Pruebas: asistencias.justification{,.http,.repository,.concurrency}.test.js,
+con conexiones simuladas; no acreditan ejecución del DDL en MySQL.
+
+## 7B.3 — registro diario sin cierre obligatorio
+
+Decisión posterior autorizada: sustituye para este módulo la exigencia de motivo
+tras cierre de v5 D09/RN-07/RN-10/RF-07 y v6 D09/RN-10/RN-36. No modifica los
+TXT históricos ni V7. El contrato, permisos y las protecciones de 7B.2 se conservan.
+
+Guardar avances no requiere cerrar: permite parciales, completar pendientes,
+corregir, anular a PENDIENTE y reactivar según las reglas existentes. El mismo
+PATCH acepta cambios sin motivo en ABIERTA y CERRADA para los tres roles dentro
+de sus ámbitos. Una sesión CERRADA conserva estado, identificador y datos de
+cierre. posterior_cierre sigue reflejando el cierre histórico real en cada evento;
+no se falsea para eludir restricciones. El motivo opcional recibido se conserva.
+No se inventan motivos automáticos para correcciones ordinarias.
+
+Cada modificación efectiva sigue generando exactamente un evento individual con
+antes/después, justificación y motivo de justificación cuando corresponde, actor,
+timestamp real y versiones. Lote e historial atómicos; no-op sin eventos ni avance
+de versiones. Se conservan año ABIERTO, día lectivo, fechas no futuras, vigencias,
+revalidación bajo bloqueo y tratamiento de COMMIT incierto.
+
+POST /api/asistencias/sesiones/:id/cierre permanece compatible, con advertencias
+de pendientes, auditoría y control de versión. El frontend debe dejar de exigir
+o presentar el cierre como finalización del día, retirar el motivo obligatorio
+de corrección y permitir editar marcas no justificadas aunque la sesión figure
+CERRADA. Seguir enviando versiones y manteniendo el motivo de justificación y
+el bloqueo de marcas justificadas. No se cambia el frontend en esta entrega.
+
+006 elimina solo chk_hist_motivo: con 005 únicamente, MySQL todavía rechaza el
+historial de una corrección cerrada con motivo NULL y revierte el guardado. No
+habilitar ese flujo antes de aplicar 006 con autorización. El historial anterior
+no se reescribe, incluidos sus motivos. Los scripts manuales del ensayo 004 son
+antecedentes para ese esquema y no validan 7B.3/006.
+Pruebas nuevas: asistencias.daily{,.http}.test.js; se amplían las de servicio,
+justificaciones, repositorio y concurrencia, sin ejecutar SQL de migración.

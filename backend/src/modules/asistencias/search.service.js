@@ -19,7 +19,9 @@ function result(row, record, fecha) {
   anio_escolar: { id: row.anio_escolar_id, anio: row.anio },
   seccion: { id: row.seccion_id, nivel: row.nivel, grado: row.grado, letra: row.letra, turno: row.turno }, fecha,
   situacion: record?.asistencia_id != null ? 'CON_REGISTRO' : record?.sesion_id != null ? 'SIN_ASISTENCIA' : 'SIN_SESION',
-  estado: record?.estado ?? null, sesion_id: id(record?.sesion_id), sesion_estado: record?.sesion_estado ?? null,
+  estado: record?.estado ?? null, justificada: Boolean(record?.justificada),
+  motivo_justificacion: record?.motivo_justificacion ?? null,
+  sesion_id: id(record?.sesion_id), sesion_estado: record?.sesion_estado ?? null,
   sesion_version: record?.sesion_version ?? null, asistencia_id: id(record?.asistencia_id),
   asistencia_version: record?.asistencia_version ?? null };
 }

@@ -19,13 +19,13 @@ test('asistencia: guardado parcial y resumen; no-op no incrementa versiones ni e
   await f.save('PRESENTE'); assert.equal(f.state.session.version, 2); assert.equal(f.state.history.length, 1);
   assert.equal((await f.service.find('1', {}, f.actor('1'), true)).resumen.pendientes, 4);
 });
-test('asistencia: cerrar con pendientes y corregir sin reabrir exige motivo', async () => {
+test('asistencia: cierre compatible con pendientes y corrección sin motivo ni reapertura', async () => {
   const f = attendanceFixture(); await f.open();
   const closed = await f.service.close('1', { version: 1 }, f.actor('1'));
   assert.equal(closed.advertencias[0].cantidad, 5);
-  await assert.rejects(f.save('FALTA'), { status: 400 });
-  await f.save('FALTA', 2, 0, 'Corrección de demostración');
-  assert.equal(f.state.session.estado, 'CERRADA'); assert.equal(f.state.history[0].motivo, 'Corrección de demostración');
+  await f.save('FALTA', 2, 0);
+  assert.equal(f.state.session.estado, 'CERRADA'); assert.equal(f.state.history[0].motivo, null);
+  assert.equal(f.state.history[0].posterior_cierre, true);
   await f.service.close('1', { version: 3 }, f.actor('1')); assert.equal(f.state.audits.length, 2);
 });
 test('asistencia: anular y reactivar conserva ID y no inventa eventos para nunca marcado', async () => {

@@ -9,7 +9,7 @@ export function createAttendanceSearchRepository(poolProvider = getPool) {
       const [records] = await connection.execute(`SELECT j.matricula AS matricula_id, sa.id AS sesion_id,
         sa.version AS sesion_version, sa.estado AS sesion_estado, a.id AS asistencia_id,
         a.version AS asistencia_version, a.estado, a.matricula_seccion_id, a.seccion_id,
-        a.sesion_id AS asistencia_sesion_id
+        a.sesion_id AS asistencia_sesion_id, a.justificada, a.motivo_justificacion
         FROM JSON_TABLE(?, '$[*]' COLUMNS(matricula BIGINT UNSIGNED PATH '$.matricula_id',
           anio BIGINT UNSIGNED PATH '$.anio_escolar_id', seccion BIGINT UNSIGNED PATH '$.seccion_id')) j
         LEFT JOIN asistencias a ON a.matricula_id = j.matricula AND a.fecha = ?

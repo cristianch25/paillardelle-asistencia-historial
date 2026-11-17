@@ -22,14 +22,15 @@ export function attendanceFixture() {
   const writer = {
     async open(_connection, context, roster) {
       state.session = { id: '1', fecha: context.fecha, estado: 'ABIERTA', version: 1 };
-      state.rows = roster.map(row => ({ ...row, id: row.id, estado: 'PENDIENTE', version: 0, justificada: false }));
+      state.rows = roster.map(row => ({ ...row, id: row.id, estado: 'PENDIENTE', version: 0, justificada: false, motivo_justificacion: null }));
       return structuredClone(state.session);
     },
     async mark(_connection, change, actor) {
       const row = state.rows.find(item => item.id === change.before.id);
-      row.estado = change.estado; row.version++;
-      if (state.fail === 'history') throw new Error('Historial falló');
-      state.history.push({ id: row.id, actor, tipo: change.tipo, motivo: change.motivo });
+      Object.assign(row, { estado: change.estado, justificada: change.justificada, motivo_justificacion: change.motivo_justificacion }); row.version++;
+      if (state.fail === 'history' || state.fail === `history:${row.id}`) throw new Error('Historial falló');
+      state.history.push({ id: row.id, actor, tipo: change.tipo, motivo: change.motivo,
+        before: structuredClone(change.before), after: structuredClone(row), posterior_cierre: change.posterior_cierre });
     },
     async advance(_connection, _session, _actor, close) {
       state.session.version++; if (close) state.session.estado = 'CERRADA';

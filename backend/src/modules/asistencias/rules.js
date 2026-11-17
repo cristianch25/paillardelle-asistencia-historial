@@ -1,6 +1,7 @@
 import { HttpError } from '../../shared/http-error.js';
 import { requireActor } from '../matriculas/access.js';
 import { states } from './validation.js';
+import { justificationFor } from './justification.js';
 
 export async function scopeFor(actor, date, today, users, connection) {
   requireActor(actor, false, true);
@@ -33,13 +34,15 @@ export function planChanges(session, rows, data) {
     const before = byId.get(change.asistencia_id);
     if (!before) throw new HttpError(409, 'El registro no pertenece al padrón de la sesión.');
     assertVersion(before.version, change.version);
-    if (before.estado === change.estado) continue;
-    if (before.justificada) throw new HttpError(409, 'La justificación existente requiere un procedimiento específico.');
+    const justification = justificationFor(before, change);
+    const stateChanged = before.estado !== change.estado;
+    if (!stateChanged && Boolean(before.justificada) === justification.justificada
+      && (before.motivo_justificacion ?? null) === justification.motivo_justificacion) continue;
     const closed = session.estado === 'CERRADA';
-    if (closed && !change.motivo?.trim()) throw new HttpError(400, 'Una corrección posterior al cierre requiere motivo.');
-    const tipo = before.version === 0 ? 'PRIMERA_MARCA' : change.estado === 'PENDIENTE' ? 'ANULACION'
+    const motivo = change.motivo?.trim() ?? (!stateChanged ? justification.motivo_justificacion : null);
+    const tipo = !stateChanged ? 'JUSTIFICACION' : before.version === 0 ? 'PRIMERA_MARCA' : change.estado === 'PENDIENTE' ? 'ANULACION'
       : before.estado === 'PENDIENTE' ? 'REACTIVACION' : 'CAMBIO';
-    plan.push({ before, estado: change.estado, tipo, motivo: change.motivo?.trim() ?? null, posterior_cierre: closed });
+    plan.push({ before, estado: change.estado, ...justification, tipo, motivo, posterior_cierre: closed });
   }
   return plan;
 }

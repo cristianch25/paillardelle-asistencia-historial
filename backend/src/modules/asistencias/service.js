@@ -48,6 +48,7 @@ export function createAttendanceService(options = {}) {
     const latest = await reader.lastChanges(context.connection, context.session.id);
     return { sesion: context.session, padron: rows.map(row => ({ asistencia_id: row.id, matricula_id: row.matricula_id,
       matricula_seccion_id: row.matricula_seccion_id, estado: row.estado, version: row.version,
+      justificada: row.justificada, motivo_justificacion: row.motivo_justificacion ?? null,
       estudiante: { id: row.estudiante_id, codigo_estudiante: row.codigo_estudiante, apellido_paterno: row.apellido_paterno,
         apellido_materno: row.apellido_materno, nombres: row.nombres }, ultimo_cambio: latest.get(row.id) ?? null })), resumen: summary(rows) };
   }
