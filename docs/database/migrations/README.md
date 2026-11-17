@@ -1,3 +1,90 @@
+## Migración 006 — 7B.3, aplicada y verificada en MySQL local
+
+`006_correccion_sin_motivo.sql` requiere esquema v1 + 002 + 003 + 004 + 005.
+Retira únicamente chk_hist_motivo de historial_asistencias: el CHECK de 004 exige
+motivo no vacío si posterior_cierre = 1, e impide las correcciones sin motivo
+aprobadas en 7B.3. No se reescribe 004/005 ni se falsea posterior_cierre.
+Conserva motivo nullable, datos, sesiones y cierres, versiones, ENUM, índices,
+claves y todos los demás CHECK, incluidos los motivos de justificación de 005.
+No modifica registros históricos ni crea nuevas tablas o columnas.
+
+Aplicación local autorizada y verificada el 16/11/2026 en
+DESKTOP-8KUPAM1:3306/asistencia_paillardelle, MySQL 8.4.13: un ALTER sin
+advertencias. Única diferencia de esquema: eliminación de chk_hist_motivo.
+Las 20 tablas conservaron sus datos: 28 asistencias, 42 eventos y 6 sesiones,
+con 30 claves foráneas sin referencias inválidas e historial/versiones consistentes.
+Respaldo nuevo en `backend/tmp/asistencia-006-local/backup-before-006-local.sql`,
+77.563 bytes; SHA-256 `be2abf49b11005790689d0f0391a31cdd9fd95620367c8a15b8235018a023da6`.
+Coincide con el respaldo restaurado y verificado en dos copias aisladas del ensayo.
+No reejecutar 006 en esa base. El script histórico permanece intacto.
+No acredita aplicación en producción ni una nueva inspección durante este commit.
+
+Para otra instalación: obtener autorización específica, coordinar ausencia de
+escritores, verificar identidad/esquema y SHOW CREATE TABLE, respaldar y ensayar
+restauración/aplicación en una copia autorizada. Si el CHECK falta o difiere del
+de 004, detenerse. El ALTER no es idempotente y tiene commit implícito: no
+reintentar automáticamente. No se ejecuta al arrancar ni desde la suite.
+
+Después de aplicar: comprobar que solo desaparezca chk_hist_motivo, comparar
+filas y columnas originales con el respaldo (también motivos históricos),
+sesiones/cierres/IDs/versiones, claves, índices y restricciones restantes.
+Ensayar correcciones cerradas con motivo NULL, guardado parcial, anulación y
+reactivación, historial/actor/fecha/versiones, permisos, no-op, concurrencia y
+rollback. Confirmar que la justificación de FALTA/TARDANZA siga exigiendo motivo
+y que PRESENTE/PENDIENTE no sean justificables. El ensayo aislado previo completó
+42 peticiones HTTP, cuatro pruebas negativas SQL y 745 pruebas automatizadas;
+verificó auditoría, permisos, concurrencia y rollback real. La aplicación principal
+solo realizó lecturas de integridad posteriores, sin pruebas funcionales con escrituras.
+
+La nueva decisión sustituye en este módulo el motivo obligatorio tras cierre
+de v5 D09/RN-07/RN-10/RF-07 y sus aclaraciones v6. La auditoría permanece obligatoria.
+
+## Migración 005 — 7B.2, aplicada y verificada en MySQL local
+
+`005_justificacion_sencilla.sql` requiere v1 + 002 + 003 + 004. Amplía los tres
+CHECK de justificación a FALTA/TARDANZA, añade motivo VARCHAR(500) en asistencia
+y motivos anterior/nuevo en historial. Amplía tipo con JUSTIFICACION y adapta
+chk_hist_tipo/chk_hist_cambio para registrar cambios exclusivos de justificación.
+Conserva claves, índices, versiones, eventos anteriores y los demás CHECK de 004.
+No añade tablas, canales, adjuntos ni operaciones de edición/retiro.
+
+Aplicación local autorizada y comprobada el 16/11/2026: dos ALTER sin advertencias,
+20 tablas conservadas y comparación exacta de los datos originales. Respaldo
+separado en `backend/tmp/asistencia-005-local/backup-before-005-local.sql`,
+69.083 bytes; SHA-256 `1b760382b9fc5ae1bd75d81213b4f04b0c185633fb16d3e23aa83e8751085e0f`.
+No reejecutar 005 en esa base. Se conserva el script histórico sin cambios.
+Las consultas de lectura iniciales de 7B.3 confirmaron nuevamente sus columnas
+y CHECK presentes. La aplicación posterior de 006 se registra arriba; ninguno
+de estos antecedentes acredita producción.
+Para otra instalación: no desplegar el backend ampliado
+contra 004; las consultas/escrituras nuevas requieren 005. Detener escritores
+durante la aplicación manual y verificar ambos ALTER antes de habilitar el código.
+El DDL tiene commits implícitos y la secuencia no es atómica ni idempotente.
+
+Antes de solicitar ejecución: comprobar SHOW CREATE TABLE de ambas tablas,
+ENUM, CHECK, claves e índices frente a 004; seleccionar explícitamente la base,
+realizar respaldo y ensayar restauración/migración en copia aislada autorizada.
+Comprobar que no existan asistencias con justificada = 1 ni eventos con
+justificada_anterior = 1 o justificada_nueva = 1: al añadir columnas quedan NULL
+y los CHECK nuevos impedirían migrar estos datos sin sus motivos originales.
+Si existen, detenerse y resolver la transición con el usuario; no inventar motivos,
+borrar eventos ni sobrescribir históricos. No exige tablas vacías si todas las
+filas previas tienen indicadores de justificación a cero.
+
+En el ensayo autorizado, comparar filas/IDs y estructuras antes/después y probar
+FALTA/TARDANZA justificadas, rechazo PRESENTE/PENDIENTE, motivo nulo/vacío,
+booleanos inválidos, eventos solo de justificación y primera marca conjunta.
+Comprobar las restricciones antiguas de versiones/tipo/cierre y las FKs/UNIQUE.
+El ensayo de 005 verificó estas restricciones con MySQL real: 39 peticiones HTTP
+y seis pruebas negativas SQL; su aplicación local añadió 33 comprobaciones HTTP
+con datos identificados como PRUEBA005_LOCAL. La suite automatizada usa conexiones
+simuladas y no ejecuta migraciones. Ante fallo parcial, inspeccionar el estado y preparar
+continuación o recuperación autorizada; no reintentar el script completo.
+
+Decisión posterior aprobada para 7B.2: sin canal y sin edición/retiro de una
+justificación guardada ni cambio de su estado. Difiere de v5 D10/RN-08/RF-08,
+pendiente formalización funcional. Los cuatro documentos V7 permanecen intactos.
+
 # Migración 002 — 6C-A (ejecución local registrada)
 
 ## Estado conocido y alcance de esta documentación
