@@ -48,6 +48,37 @@ test('7A.1: consulta protegida, filtros, errores y móvil',
         assert.equal(await evaluate('supervisionTest.calls.some(c => c.url.includes("/secciones"))'), false);
         assert.deepEqual(await evaluate(`Array.from(${field(2)}.options).map(o => o.value)`), ['', 'INICIAL', 'PRIMARIA', 'SECUNDARIA']);
       });
+      await t.test('fechas inválidas o fuera del año ocultan resultados y no consultan listado ni opciones', async () => {
+        const allCalls = 'supervisionTest.calls.filter(c => c.url === "/asistencias/sesiones").length';
+        assert.equal(await evaluate(`${field(1)}.min`), '2026-01-01');
+        assert.equal(await evaluate(`${field(1)}.max`), '2026-12-31');
+        for (const date of ['', '2026-02-30', '2025-12-31', '2027-01-01']) {
+          const before = await evaluate(allCalls);
+          await change(1, date);
+          await wait(`${field(1)}.getAttribute('aria-invalid') === 'true'`);
+          await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+          assert.match(await evaluate(`${filters}.textContent`), ['2025-12-31', '2027-01-01'].includes(date)
+            ? /entre el 01\/01\/2026 y el 31\/12\/2026/ : /fecha válida/);
+          assert.equal(await evaluate(allCalls), before);
+          assert.equal(await evaluate(`Boolean(${results})`), false);
+          assert.equal(await evaluate(`${field(3)}.disabled`), true);
+        }
+        for (const date of ['2026-01-01', '2026-12-31', '2026-11-15']) {
+          await change(1, date); await settled();
+          assert.equal(await evaluate(`${last}.fecha`), date);
+          assert.equal(await evaluate(`${field(1)}.getAttribute('aria-invalid')`), 'false');
+        }
+      });
+      await t.test('invalidar fecha descarta una respuesta anterior en vuelo', async () => {
+        await evaluate('supervisionTest.hold = true'); await change(1, '2026-11-09');
+        await wait('supervisionTest.pending.length === 1');
+        await change(1, '2027-01-01');
+        await wait(`${field(1)}.getAttribute('aria-invalid') === 'true'`);
+        await evaluate('supervisionTest.hold = false; supervisionTest.pending.shift()()');
+        await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+        assert.equal(await evaluate(`Boolean(${results})`), false);
+        await change(1, '2026-11-15'); await settled();
+      });
       await t.test('opciones completas independientes del listado; sección, fecha, nivel y año reinician página', async () => {
         await click('Siguiente'); await settled(); await wait(`${last}.page === 2`);
         assert.match(await evaluate(`${results}.textContent`), /GENIALES/);

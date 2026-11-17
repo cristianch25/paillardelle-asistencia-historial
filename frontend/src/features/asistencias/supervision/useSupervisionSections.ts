@@ -6,10 +6,10 @@ import { getSupervisionSections } from './supervision.api';
 import { supervisionError } from './useSupervisionQuery';
 import type { SupervisionFilters } from './supervision.types';
 
-export function useSupervisionSections({ anio_escolar_id, fecha, nivel }: SupervisionFilters) {
+export function useSupervisionSections({ anio_escolar_id, fecha, nivel }: SupervisionFilters, enabled = true) {
   const [revision, setRevision] = useState(0);
   const [result, setResult] = useState({ key: '', sections: [] as Section[], error: '' });
-  const ready = Boolean(anio_escolar_id && validCivilDate(fecha));
+  const ready = enabled && Boolean(anio_escolar_id && validCivilDate(fecha));
   const key = JSON.stringify([anio_escolar_id, fecha, nivel, revision]);
   useEffect(() => {
     if (!ready) return;

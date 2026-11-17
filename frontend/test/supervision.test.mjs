@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import { supervisionResult, year } from './support/supervisionFixture.mjs';
 
-let vite, http, api, access, query, Page, Auth, navigation, Workspace;
+let vite, http, api, access, query, Page, Auth, navigation, Workspace, dates, validation;
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   http = await vite.ssrLoadModule('/src/shared/api/httpClient.ts');
@@ -19,8 +19,29 @@ before(async () => {
   Workspace = (await vite.ssrLoadModule(`${root}SupervisionWorkspace.tsx`)).default;
   Auth = (await vite.ssrLoadModule('/src/features/auth/AuthContext.ts')).AuthContext;
   navigation = await vite.ssrLoadModule('/src/app/layout/navigation.ts');
+  dates = await vite.ssrLoadModule('/src/shared/dates/civilDate.ts');
+  validation = await vite.ssrLoadModule(`${root}supervisionDate.ts`);
 });
 after(async () => { await vite?.close(); });
+
+test('fecha de supervisión: calendario civil, límites inclusivos y consultas de cualquier estado de año', () => {
+  for (const fecha of ['', '2026-02-29', '2026-02-30', '2026-13-01', '2026-04-31', '15/11/2026']) {
+    assert.match(validation.supervisionDateError(fecha, year), /fecha válida/);
+  }
+  for (const estado of ['PLANIFICADO', 'ABIERTO', 'CERRADO']) {
+    for (const fecha of ['2026-01-01', '2026-11-15', '2026-12-31']) {
+      assert.equal(validation.supervisionDateError(fecha, { ...year, estado }), '');
+    }
+  }
+  for (const fecha of ['2025-12-31', '2027-01-01']) {
+    assert.match(validation.supervisionDateError(fecha, year), /entre el 01\/01\/2026 y el 31\/12\/2026/);
+  }
+  assert.equal(validation.supervisionDateError('2024-02-29', { ...year, fecha_inicio: '2024-02-01', fecha_fin: '2024-03-01' }), '');
+  assert.match(validation.supervisionDateError('2100-02-29'), /fecha válida/);
+  assert.equal(validation.supervisionDateError('2000-02-29'), '');
+  assert.equal(dates.peruToday(new Date('2026-11-17T04:59:59Z')), '2026-11-16');
+  assert.equal(dates.peruToday(new Date('2026-11-17T05:00:00Z')), '2026-11-17');
+});
 
 test('GET conserva parámetros, IDs BIGINT, null y resumen del contrato sin mutaciones', async () => {
   const requests = [];

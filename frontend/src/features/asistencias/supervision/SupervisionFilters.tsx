@@ -5,6 +5,7 @@ import { educationLevelLabels, formatSectionName } from '../../organizacion-esco
 import type { SupervisionFilters as Filters } from './supervision.types';
 import type { useSupervisionSections } from './useSupervisionSections';
 import Button from '../../../shared/components/Button';
+import { supervisionDateError } from './supervisionDate';
 
 type Props = { years: SchoolYear[]; levels: readonly EducationLevel[]; options: ReturnType<typeof useSupervisionSections>; sectionRequired?: boolean;
   value: Filters; onChange: (value: Filters) => void };
@@ -16,6 +17,8 @@ function changeSupervisionFilter<K extends keyof Omit<Filters, 'page'>>(filters:
 
 export default function SupervisionFilters({ years, levels, options, value, onChange, sectionRequired = false }: Props) {
   const id = useId();
+  const year = years.find(item => item.id === value.anio_escolar_id);
+  const dateError = supervisionDateError(value.fecha, year);
   const update = <K extends keyof Omit<Filters, 'page'>>(key: K, next: Filters[K]) => onChange(changeSupervisionFilter(value, key, next));
   return <div className="grid min-w-0 gap-5 sm:grid-cols-2 xl:grid-cols-4">
     <label className="min-w-0 text-sm font-semibold" htmlFor={`${id}-year`}>Año escolar
@@ -25,7 +28,12 @@ export default function SupervisionFilters({ years, levels, options, value, onCh
       </select>
     </label>
     <label className="min-w-0 text-sm font-semibold" htmlFor={`${id}-date`}>Fecha
-      <input id={`${id}-date`} type="date" className={control} value={value.fecha} onChange={e => update('fecha', e.target.value)} />
+      <input id={`${id}-date`} type="date" className={control} value={value.fecha}
+        min={year?.fecha_inicio} max={year?.fecha_fin} aria-invalid={Boolean(dateError)} aria-describedby={`${id}-date-hint`}
+        onChange={e => update('fecha', e.target.value)} />
+      <span id={`${id}-date-hint`} role={dateError ? 'alert' : undefined} className="mt-2 block text-xs font-normal text-slate-600">
+        {dateError || 'Puedes consultar fechas pasadas o futuras dentro del año escolar.'}
+      </span>
     </label>
     <label className="min-w-0 text-sm font-semibold" htmlFor={`${id}-level`}>Nivel educativo
       <select id={`${id}-level`} className={control} value={value.nivel} disabled={!value.anio_escolar_id}

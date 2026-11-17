@@ -15,11 +15,11 @@ export function supervisionError(error: unknown) {
   return apiErrorMessage(error);
 }
 
-export function useSupervisionQuery(filters: SupervisionFilters) {
+export function useSupervisionQuery(filters: SupervisionFilters, enabled = true) {
   const [revision, setRevision] = useState(0);
   const [result, setResult] = useState<Result>({ key: '', data: null, error: '' });
   const { anio_escolar_id, fecha, nivel, seccion_id, page } = filters;
-  const ready = Boolean(anio_escolar_id && validCivilDate(fecha));
+  const ready = enabled && Boolean(anio_escolar_id && validCivilDate(fecha));
   const scope = JSON.stringify([anio_escolar_id, fecha, nivel, revision]);
   const key = JSON.stringify([scope, seccion_id, page]);
   useEffect(() => {

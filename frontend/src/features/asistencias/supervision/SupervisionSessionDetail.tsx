@@ -12,10 +12,30 @@ import { useSupervisionCorrection } from './useSupervisionCorrection';
 import { supervisionLevels } from './supervisionAccess';
 
 export default function SupervisionSessionDetail({ detail, retry, editable = true }: { detail: SupervisionDetail; retry: () => void; editable?: boolean }) {
+  return editable ? <EditableSessionDetail detail={detail} retry={retry} /> : <ReadOnlySessionDetail detail={detail} retry={retry} />;
+}
+
+function ReadOnlySessionDetail({ detail, retry }: { detail: SupervisionDetail; retry: () => void }) {
+  const { attendance: data, section } = detail;
+  return <>
+    <section aria-label="Sesión consultada" className="min-w-0 space-y-4 break-words rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+      <h2 className="text-lg font-semibold text-institutional-950">{educationLevelLabels[section.nivel]} · {formatSectionName(section)}</h2>
+      <div className="flex flex-wrap justify-between gap-2 text-sm text-slate-600">
+        <p>Fecha: {formatCivilDate(data.sesion.fecha)}</p>
+        <p className="font-semibold">{data.sesion.estado === 'ABIERTA' ? 'Sesión abierta' : 'Sesión cerrada'}</p>
+      </div>
+      <SupervisionSummary resumen={data.resumen} />
+      <Button variant="secondary" onClick={retry}>Actualizar detalle</Button>
+    </section>
+    <SupervisionStudents padron={data.padron} />
+  </>;
+}
+
+function EditableSessionDetail({ detail, retry }: { detail: SupervisionDetail; retry: () => void }) {
   const { session } = useAuth();
   const correction = useSupervisionCorrection(detail.attendance);
   const { data, phase, busy } = correction;
-  const canCorrect = editable && session && supervisionLevels(session.user).includes(detail.section.nivel);
+  const canCorrect = session && supervisionLevels(session.user).includes(detail.section.nivel);
   return <>
     {correction.error && <ErrorState message={correction.error} />}
     {correction.message && <p role="status" className="rounded-lg bg-sky-soft p-3 text-sm">{correction.message}</p>}
@@ -30,11 +50,9 @@ export default function SupervisionSessionDetail({ detail, retry, editable = tru
             <p>Fecha: {formatCivilDate(data.sesion.fecha)}</p>
             <p className="font-semibold">{data.sesion.estado === 'ABIERTA' ? 'Sesión abierta' : 'Sesión cerrada'}</p>
           </div>
-          {!editable && <SupervisionSummary resumen={data.resumen} />}
           <Button variant="secondary" disabled={busy} onClick={retry}>Actualizar detalle</Button>
         </section>
         {canCorrect && <SupervisionCorrectionAction data={data} busy={busy} onSave={async (...args) => { await correction.save(...args); }} />}
-        {!editable && <SupervisionStudents padron={data.padron} />}
       </>}
   </>;
 }

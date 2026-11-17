@@ -11,13 +11,17 @@ import SupervisionSectionCard from './SupervisionSectionCard';
 import { useSupervisionQuery } from './useSupervisionQuery';
 import { useSupervisionSections } from './useSupervisionSections';
 import { useSupervisionWorkspace } from './useSupervisionWorkspace';
+import { supervisionDateError } from './supervisionDate';
 
 export default function SupervisionPage() {
   const { session } = useAuth();
   const years = useSchoolYears();
   const { filters, setFilters } = useSupervisionWorkspace();
-  const query = useSupervisionQuery(filters);
-  const sections = useSupervisionSections(filters);
+  const year = years.years.find(item => item.id === filters.anio_escolar_id);
+  const dateError = supervisionDateError(filters.fecha, year);
+  const enabled = Boolean(year) && !years.loading && !years.error && !dateError;
+  const query = useSupervisionQuery(filters, enabled);
+  const sections = useSupervisionSections(filters, enabled);
   return <div className="min-w-0 space-y-6">
     <header className="space-y-2">
       <p className="text-sm font-semibold text-institutional-700">Asistencias · Solo consulta</p>
@@ -31,7 +35,7 @@ export default function SupervisionPage() {
         <SupervisionFilters years={years.years} levels={supervisionLevels(session!.user)} options={sections} value={filters} onChange={setFilters} />
       </section>
       {!filters.anio_escolar_id ? <EmptyState message="Selecciona un año escolar para consultar la supervisión." />
-        : !filters.fecha ? <EmptyState message="Selecciona una fecha para consultar la supervisión." /> : null}
+        : null}
       {query.loading && <LoadingState message="Consultando supervisión de asistencias…" />}
       {query.error && <><ErrorState message={query.error} /><Button variant="secondary" onClick={query.retry}>Reintentar consulta</Button></>}
       {query.data && <section aria-label="Resultados de supervisión" className="min-w-0 space-y-5">

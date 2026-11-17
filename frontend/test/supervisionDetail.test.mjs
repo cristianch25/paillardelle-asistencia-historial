@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { sessionId, sectionId, supervisionDetail } from './support/supervisionDetailFixture.mjs';
 import { supervisionResult } from './support/supervisionFixture.mjs';
 
-let vite, http, api, dates, Students;
+let vite, http, api, dates, Students, Session;
 const response = (config, data) => ({ config, data, status: 200, statusText: 'OK', headers: {} });
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
@@ -15,8 +15,23 @@ before(async () => {
   api = await vite.ssrLoadModule('/src/features/asistencias/supervision/supervisionDetail.api.ts');
   dates = await vite.ssrLoadModule('/src/shared/dates/civilDate.ts');
   Students = (await vite.ssrLoadModule('/src/features/asistencias/supervision/SupervisionStudents.tsx')).default;
+  Session = (await vite.ssrLoadModule('/src/features/asistencias/supervision/SupervisionSessionDetail.tsx')).default;
 });
 after(async () => { await vite?.close(); });
+
+test('detalle de lectura no requiere contexto de edición ni autenticación y omite auditoría técnica', () => {
+  for (const state of ['ABIERTA', 'CERRADA']) {
+    const attendance = supervisionDetail(sessionId, state);
+    attendance.padron[0].ultimo_cambio = { usuario_id: 'ACTOR_TECNICO_OCULTO', fecha: 'INSTANTE_TECNICO_OCULTO' };
+    const html = renderToStaticMarkup(h(Session, { editable: false,
+      detail: { attendance, section: { nivel: 'INICIAL', grado: 4, letra: 'CREATIVOS' } }, retry() {} }));
+    assert.match(html, /Detalle por estudiante/);
+    assert.match(html, /Totales de asistencia/);
+    assert.match(html, state === 'ABIERTA' ? /Sesión abierta/ : /Sesión cerrada/);
+    assert.doesNotMatch(html, /Corrección de asistencia|Guardar cambios|Cerrar asistencia|ACTOR_TECNICO_OCULTO|INSTANTE_TECNICO_OCULTO/);
+    assert.doesNotMatch(html, /aria-label="Asistencia de/);
+  }
+});
 
 test('fecha civil se presenta DD/MM/AAAA sin conversión horaria ni modificación del valor original', () => {
   for (const [raw, formatted] of [['2026-11-15', '15/11/2026'], ['2026-01-02', '02/01/2026'], ['2024-02-29', '29/02/2024']]) {
