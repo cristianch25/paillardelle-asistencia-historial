@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-institutional-950: #102c46;
+  --color-institutional-800: #035fa8;
+  --color-institutional-700: #176fb3;
+  --color-sidebar: #035fa8;
+  --color-sidebar-active: #176fb3;
+  --color-sidebar-muted: #d4e7f4;
+  --color-sky-soft: #edf7fc;
+  --color-accent-yellow: #f5d547;
+  --color-accent-red: #bb2939;
+  --color-surface: #edf2f8;
+}
+
+@layer base {
+  body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background-color: var(--color-surface);
+    color: var(--color-institutional-950);
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
+}
