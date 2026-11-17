@@ -18,6 +18,7 @@ export const router = createBrowserRouter(createRoutesFromElements(
     <Route path="/login" element={<LoginPage />} />
     <Route element={<ProtectedRoute />}>
       <Route element={<AppLayout />}>
+        <Route path="/usuarios" lazy={async () => ({ Component: (await import('../features/usuarios/UsersPage')).default })} />
         <Route path="/asistencias/supervision" element={<SupervisionWorkspace />}>
           <Route index element={<SupervisionPage />} />
           <Route path=":sesionId" element={<SupervisionDetailPage />} />
