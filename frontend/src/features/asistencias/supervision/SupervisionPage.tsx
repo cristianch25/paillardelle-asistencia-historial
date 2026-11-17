@@ -13,8 +13,14 @@ import { useSupervisionSections } from './useSupervisionSections';
 import { useSupervisionWorkspace } from './useSupervisionWorkspace';
 import { supervisionDateError } from './supervisionDate';
 import { useInitialSchoolYear } from '../../organizacion-escolar/anios-escolares/useInitialSchoolYear';
+import AdminAttendancePage from '../integrada/AdminAttendancePage';
 
 export default function SupervisionPage() {
+  const { session } = useAuth();
+  return session?.user.rol === 'ADMIN' ? <AdminAttendancePage /> : <ReadOnlySupervisionPage />;
+}
+
+function ReadOnlySupervisionPage() {
   const { session } = useAuth();
   const years = useSchoolYears();
   const { filters, setFilters, yearInitialization } = useSupervisionWorkspace();

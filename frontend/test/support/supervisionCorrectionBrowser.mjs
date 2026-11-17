@@ -29,7 +29,7 @@ export async function supervisionCorrectionBrowser() {
     await ui.setRoute('/inicio'); await wait('location.pathname === "/inicio"');
     await open();
   }
-  async function signIn(role = 'ADMIN', level = null) {
+  async function signIn(role = 'SUBDIRECCION', level = 'PRIMARIA') {
     if (await evaluate('Boolean(document.querySelector("#main-content"))')) {
       await click('Cerrar sesión'); await wait('location.pathname === "/login"');
     }

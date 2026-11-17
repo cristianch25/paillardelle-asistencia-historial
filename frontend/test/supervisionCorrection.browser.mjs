@@ -67,8 +67,7 @@ test('7B.1: corrección confirmada, motivos, resúmenes, permisos y cancelación
         await writeFile('node_modules/.tmp/supervision-correction-320.png', Buffer.from(screenshot.data, 'base64'));
         await click('Cancelar'); await ui.command('Emulation.clearDeviceMetricsOverride');
       });
-      for (const [role, principal, level] of [['ADMIN', null, 'PRIMARIA'], ['ADMIN', null, 'SECUNDARIA'],
-        ['SUBDIRECCION', 'PRIMARIA', 'INICIAL'], ['SUBDIRECCION', 'PRIMARIA', 'PRIMARIA'],
+      for (const [role, principal, level] of [['SUBDIRECCION', 'PRIMARIA', 'INICIAL'], ['SUBDIRECCION', 'PRIMARIA', 'PRIMARIA'],
         ['SUBDIRECCION', 'SECUNDARIA', 'SECUNDARIA']]) await t.test(`${role}/${principal}/${level}: corrección autorizada`, async () => {
           await ui.signIn(role, principal); await evaluate(`supervisionCorrectionTest.level = '${level}'`);
           await ui.load(); await ui.edit('TARDANZA'); await ui.confirm(); await ui.saved();

@@ -8,7 +8,7 @@ test('selección inicial compartida: pantallas, opciones válidas, selección ma
     const ui = await authBrowser('schoolYearSelectionHarness.jsx');
     const { evaluate, wait, click } = ui;
     const home = `document.querySelector('[aria-label="Filtros del resumen diario"] select')`;
-    const supervision = `document.querySelector('[aria-label="Filtros de supervisión"] select')`;
+    const supervision = `document.querySelector('[aria-label="Filtros de supervisión"] select, [aria-label="Filtros de asistencias"] select')`;
     const sections = `document.querySelector('[aria-label="Búsqueda de secciones"] select')`;
     const assignments = `document.querySelector('form[aria-label="Nueva asignación"] select')`;
     const homeResult = `Boolean(document.querySelector('[aria-label="Resumen diario institucional"]'))`;
@@ -35,10 +35,10 @@ test('selección inicial compartida: pantallas, opciones válidas, selección ma
       });
       await t.test('Supervisión conserva año manual, incluso vacío, al actualizar', async () => {
         await ui.setRoute('/asistencias/supervision'); await wait(`${supervision}?.value === '26'`);
-        await change(supervision, '25'); await change(`document.querySelector('[aria-label="Filtros de supervisión"] input')`, '2025-11-17');
+        await change(supervision, '25'); await change(`document.querySelector('[aria-label="Filtros de supervisión"] input, [aria-label="Filtros de asistencias"] input')`, '2025-11-17');
         await wait(supervisionResult);
         await click('Actualizar consulta'); assert.equal(await evaluate(`${supervision}.value`), '25');
-        await change(supervision, ''); await change(`document.querySelector('[aria-label="Filtros de supervisión"] input')`, '2026-11-17');
+        await change(supervision, ''); await change(`document.querySelector('[aria-label="Filtros de supervisión"] input, [aria-label="Filtros de asistencias"] input')`, '2026-11-17');
         assert.equal(await evaluate(`${supervision}.value`), '');
       });
       await t.test('Secciones: valor inicial, URL explícita e ID inexistente sin peticiones inválidas', async () => {

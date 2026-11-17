@@ -23,7 +23,7 @@ test('7A.1: consulta protegida, filtros, errores y móvil',
     async function open() {
       await ui.setRoute('/asistencias/supervision'); await wait(`Boolean(${filters})`);
     }
-    async function signIn(role = 'ADMIN', level = null, account = '9007199254740993') {
+    async function signIn(role = 'SUBDIRECCION', level = 'PRIMARIA', account = '9007199254740993') {
       if (await evaluate('Boolean(document.querySelector("#main-content"))')) {
         await click('Cerrar sesión'); await wait('location.pathname === "/login"');
       }
@@ -38,7 +38,7 @@ test('7A.1: consulta protegida, filtros, errores y móvil',
         await ui.setRoute('/asistencias/supervision'); await wait('location.pathname === "/login"');
         assert.equal(await evaluate(`${calls}.length`), 0);
       });
-      await t.test('ADMIN accede sin selección previa ni consulta general de secciones', async () => {
+      await t.test('SUBDIRECCION conserva consulta sin selección previa ni catálogo general', async () => {
         await signIn();
         assert.equal(await evaluate(`${field(0)}.value`), '9007199254740993', 'selecciona el año calendario actual');
         await change(0, '9007199254740993'); await settled();
@@ -46,7 +46,7 @@ test('7A.1: consulta protegida, filtros, errores y móvil',
         assert.equal(await evaluate(`${last}.page`), 1);
         assert.match(await evaluate(`${results}.textContent`), /CREATIVOS/);
         assert.equal(await evaluate('supervisionTest.calls.some(c => c.url.includes("/secciones"))'), false);
-        assert.deepEqual(await evaluate(`Array.from(${field(2)}.options).map(o => o.value)`), ['', 'INICIAL', 'PRIMARIA', 'SECUNDARIA']);
+        assert.deepEqual(await evaluate(`Array.from(${field(2)}.options).map(o => o.value)`), ['', 'INICIAL', 'PRIMARIA']);
       });
       await t.test('fechas inválidas o fuera del año ocultan resultados y no consultan listado ni opciones', async () => {
         const allCalls = 'supervisionTest.calls.filter(c => c.url === "/asistencias/sesiones").length';

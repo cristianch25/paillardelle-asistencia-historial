@@ -1,5 +1,9 @@
 # Gestión de asistencias
 
+ADMIN utiliza ahora [Asistencias](../integrada/README.md); esta ruta redirige a
+la composición única. El flujo separado documentado aquí permanece para
+SUBDIRECCION, con sus permisos y recuperación de errores existentes.
+
 ## Decisiones vigentes 7B.2/7B.3
 
 Las correcciones ordinarias del diálogo compartido no solicitan ni envían motivo,

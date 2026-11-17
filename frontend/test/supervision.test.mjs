@@ -100,6 +100,6 @@ test('matriz específica y navegación solo ADMIN/SUBDIRECCION; pantalla sin pro
     assert.equal(navigation.navigationFor(rol).some(item => item.path === '/asistencias/supervision'), rol !== 'REGISTRADOR');
     const html = renderToStaticMarkup(h(MemoryRouter, null, h(Auth.Provider, { value: { session: { user } } },
       h(Routes, null, h(Route, { element: h(Workspace) }, h(Route, { path: '/', element: h(Page) }))))));
-    assert.equal(html.includes('Supervisión de asistencias'), rol !== 'REGISTRADOR');
+    assert.equal(html.includes(rol === 'ADMIN' ? '>Asistencias<' : 'Supervisión de asistencias'), rol !== 'REGISTRADOR');
   }
 });

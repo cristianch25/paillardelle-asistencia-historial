@@ -8,7 +8,7 @@ const authAdapter = httpClient.defaults.adapter;
 const controls = { calls: [], pending: [], hold: false, status: null, empty: false, cards: false,
   optionsPending: [], optionsHoldPage: 0, optionsStatus: null, optionsCount: 2,
   detailStatus: null, detailHold: false, detailPending: [], detailState: 'ABIERTA', detailEmptyState: null, sectionStatus: null,
-  role: 'ADMIN', level: null, account: '9007199254740993' };
+  role: 'SUBDIRECCION', level: 'PRIMARIA', account: '9007199254740993' };
 window.supervisionTest = controls;
 httpClient.defaults.adapter = async config => {
   if (config.url.startsWith('/auth/')) {

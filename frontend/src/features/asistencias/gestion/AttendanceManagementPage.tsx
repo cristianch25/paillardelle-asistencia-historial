@@ -12,8 +12,15 @@ import { searchRowKey, type StudentSearchRow } from './studentSearch.types';
 import { canUpdateSearchRow } from './studentSearch.api';
 import StudentSearchResults from './StudentSearchResults';
 import SearchCorrectionEditor from './SearchCorrectionEditor';
+import { useAuth } from '../../auth/AuthContext';
+import { Navigate } from 'react-router';
 
 export default function AttendanceManagementPage() {
+  const { session } = useAuth();
+  return session?.user.rol === 'ADMIN' ? <Navigate to="/asistencias/supervision" replace /> : <ManagementPage />;
+}
+
+function ManagementPage() {
   const [date, setDate] = useState(peruToday), [query, setQuery] = useState(''), [page, setPage] = useState(1);
   const [selection, setSelection] = useState({ key: '', id: '' }), [editing, setEditing] = useState<StudentSearchRow | null>(null);
   const [message, setMessage] = useState('');

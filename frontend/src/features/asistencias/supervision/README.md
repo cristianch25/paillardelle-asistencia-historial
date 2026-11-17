@@ -1,5 +1,9 @@
 # Supervisión diaria de asistencia
 
+ADMIN utiliza ahora la composición única [Asistencias](../integrada/README.md),
+en esta misma ruta y con detalle editable autorizado. La consulta separada
+descrita a continuación permanece para SUBDIRECCION.
+
 ## Autoridad funcional y alcance
 
 V8 es la referencia funcional vigente, adoptada el 16/11/2026 según
