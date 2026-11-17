@@ -1,0 +1,178 @@
+PAILLARDELLE ASISTENCIA — I.E. ENRIQUE PAILLARDELLE
+REQUERIMIENTOS FUNCIONALES Y NO FUNCIONALES v7 — CONSOLIDACIÓN COMPLETA
+Fecha: 15/11/2026. Creación de cuatro documentos autorizada; pendiente de revisión final del usuario.
+Conserva V6 del 14/11/2026 y decisiones posteriores identificadas. Especificación aprobada no equivale a implementación.
+
+REQUERIMIENTOS FUNCIONALES
+RF-01. Autenticar cuentas individuales y autorizar en backend según rol, ámbito específico de cada módulo y asignaciones vigentes. Niveles efectivos generales no amplían la matriz de asistencia RF-19. PORTERIA es futuro y no hereda funciones académicas.
+RF-02. Administrar cuentas, roles fijos, niveles adicionales y asignaciones con auditoría y protecciones. El catálogo aprobado incluye PORTERIA; SQL/backend todavía admiten tres roles y requieren adaptación futura.
+RF-03. Administrar años, secciones y calendarios independientes por nivel, con períodos inclusivos sin solapamientos dentro del año, regla semanal y excepciones prioritarias con motivo. Recuperaciones fuera de períodos y bloqueos atómicos de hasta 366 fechas; 409 ante recuperación incompatible. Permitir fechas pasadas en año no cerrado sin invalidar asistencias. ADMIN todos los niveles, SUBDIRECCION los autorizados y REGISTRADOR consulta por asignaciones vigentes. Validar en backend y auditar. Proteger también fechas con sesiones existentes sin marcas: no convertirlas en no lectivas sin resolver el conflicto; no confundir retroactividad del calendario con condiciones de registro de RF-18.
+RF-04. Importar padrones XLSX de estudiantes/matrículas/APODERADO, inicialmente SIAGIE, con reconocimiento de formato, extracción mínima, validación, vista previa temporal y confirmación explícita. Aplicar F01–F10: fecha efectiva confirmada, permisos, identidad fiable, revisión de contradicciones/contactos, selección parcial atómica e idempotencia sin borrar ni reemplazar silenciosamente. No crear secciones ni inferir retiros por ausencia. Lectura/conciliación interna presentes; vista previa completa gestionada y confirmación persistente pendientes.
+RF-05. Consultar/actualizar estudiantes, matrículas, traslados y contactos dentro de permisos, sin borrar históricos; auditar teléfonos y cambios de matrícula. Alta independiente solo ADMIN; SUBDIRECCION alta conjunta o identidad ya visible/destino autorizado. Edición y movimientos posteriores, regularización y gestión operativa de contactos/teléfonos siguen pendientes. Excepción telefónica compartida F08 no concede facultades sobre identidad ni todos los ámbitos académicos.
+RF-06. Registrar manualmente asistencia individual/lista en secciones autorizadas con cuatro estados PENDIENTE/PRESENTE/TARDANZA/FALTA. No asignar marcas por defecto; inicializar padrón estable con filas físicas PENDIENTE versión 0 sin evento individual. Mostrar «Sin marcar» solo como etiqueta frontend REGISTRADOR. Guardar parcialmente y cerrar con advertencia sin transformar pendientes en faltas; supervisión oportuna. Backend implementado; frontend no acreditado aquí. QR futuro RF-14/RF-16.
+RF-07. Corregir estados de asistencia, incluida FALTA a TARDANZA por llegada posterior, durante/después del cierre; las posteriores se permiten directamente sin reabrir y exigen motivo. La anulación a PENDIENTE se rige por RF-17. No equiparar sesión diaria cerrada con año CERRADO ni autorizar excepciones del año no definidas.
+RF-08. Registrar y retirar justificación de FALTA o TARDANZA con motivo, canal, responsable y fecha, sin FUT, adjunto ni aprobación interna obligatorios. Conservar estado base y trazabilidad. Permisos funcionales aprobados: ADMIN global, SUBDIRECCION/REGISTRADOR dentro de ámbito. Flujo no implementado; modificación/retiro, correcciones relacionadas, aplicación de matriz posterior, versiones y estructura SQL pendientes P10. No retirar el requisito funcional por faltar su diseño.
+RF-09. Cada cambio real individual, con historial individual inalterable, incluida primera marca, modificación, corrección, anulación, reactivación o futura justificación, conserva estudiante, matrícula, fecha, referencia a asistencia, antes/después, actor autenticado validado, timestamp real y motivo cuando corresponda, obligatorio tras el cierre. PENDIENTE puede ser origen/destino. Exactamente un evento por modificación efectiva; ninguno por no-op. Una operación que cambie estado y justificación de la misma asistencia tendrá un único evento con ambos cambios. Cambio e historial son atómicos; si falla el evento no confirmar. Implementado para marcas en historial_asistencias con UNIQUE(asistencia_id, version_nueva) y transacción del servicio; requisitos de justificación combinada permanecen aprobados pero pendientes P10. Historial individual en historial_asistencias y auditoría administrativa en auditoria_administrativa tienen responsabilidades separadas. No duplicar el mismo cambio individual en ambas. Apertura/cierre de sesiones mantienen eventos administrativos propios; las futuras regularizaciones también deberán hacerlo. Una operación con hechos individuales y administrativos distintos puede generar ambos, atómicamente cuando corresponda. Consulta técnica futura: ADMIN global/SUBDIRECCION según ámbito, REGISTRADOR sin eventos técnicos ni detalles internos de anulación. No incluir eventos/motivos históricos en pantallas ordinarias o respuestas públicas; preservar consulta académica autorizada D14. Destinos de marcas/sesiones implementados; correlación de futuras operaciones combinadas y justificaciones por diseñar.
+RF-10. Consultar asistencia, pendientes, completitud, historial académico por estudiante y resumen mensual individual según rol y sección. La consulta académica de continuidad no equivale a acceso a auditoría técnica ni concede permisos históricos de modificación (RF-19/RF-21). Conservar acceso histórico autorizado aunque la sección esté inactiva; no imponer año ABIERTO o día lectivo indiscriminadamente a consultas.
+RF-11. Calcular seguimiento mensual de 3 incidencias combinadas, incluidas justificadas; recalcular diariamente y tras cambios; presentar desglose y reportes por período, nivel, grado y sección.
+RF-12. Exportar fichas mensuales por sección en cualquier momento, incluso parciales, con permisos por ámbito, leyenda . F T J U y formato configurable a definir.
+RF-13. Generar/revocar credenciales QR por matrícula anual y exportarlas según alcance cuando el módulo futuro sea habilitado. PORTERIA no tiene esas facultades; los actores autorizados para emisión/revocación/exportación requieren definición específica.
+RF-14. Con QR autorizado y habilitado, registrar automáticamente PRESENTE/TARDANZA según horario del turno, sin confirmación individual, en la misma asistencia diaria del docente/auxiliar. Exigir en backend año ABIERTO y fecha lectiva del nivel, incluidas recuperaciones habilitadas fuera de períodos o en fines de semana. En otro estado/día rechazar sin alterar datos existentes. Evitar asistencias duplicadas; no implementar salidas ni múltiples ingresos. Correcciones de REGISTRADOR sujetas a permisos/auditoría; conflictos manual/QR pendientes.
+RF-15. Crear y consultar bitácora de seguimiento individual por estudiante, solo anexar, conservando historial tras cambios de sección y visibilidad autorizada.
+RF-16. Permitir a PORTERIA iniciar sesión, escanear QR y ver solo el resultado de sus propios escaneos con datos mínimos, en el acceso principal de los tres niveles. Sin asistencia manual, justificaciones, administración de horarios, emisión/revocación de credenciales, listados generales ni reportes. Implementar después de asistencia principal, con migración independiente de 003; relación con puede_escanear_qr pendiente.
+RF-17. «Sin marcar» permite solicitar PENDIENTE al corregir dentro de permisos. Sobre marca vigente es anulación lógica, conserva fila, ID e historial; sesión ABIERTA sin motivo adicional obligatorio, CERRADA sin reabrir y con motivo obligatorio. Reactivación reutiliza el mismo registro físico y conserva datos originales de primera marca. Cada cambio efectivo incrementa versión individual y genera un evento. Nunca marcado o solicitud repetida sin cambios: sin evento redundante. Implementación principal mediante 004; extensiones de justificación pendientes P10. «Sin marcar» es etiqueta exclusiva del frontend REGISTRADOR y opción de corrección a PENDIENTE. Prohibido crear SIN_MARCAR, SIN MARCAR, NO_MARCADO u otro estado equivalente en SQL/backend/API. Contrato técnico actual: PATCH de registros con estado PENDIENTE y versiones; representación física de 004 según RN-04/36. Esto no declara implementado el frontend.
+RF-18. Validar apertura de sesión y registro ordinario con año ABIERTO, sección activa para nuevas sesiones, estudiantes matriculados/vinculados efectivos a la fecha y día lectivo del nivel, incluidas recuperaciones explícitas habilitadas. Permitir cualquier fecha lectiva pasada con año ABIERTO sin límite arbitrario; prohibir futuras. Conservar fecha de asistencia y timestamp real por separado. Frontend informa días no lectivos y deshabilita apertura; backend revalida. No crear sesiones vacías.
+RF-19. ADMIN registra, corrige y justifica asistencia globalmente; SUBDIRECCION dentro de su ámbito autorizado; REGISTRADOR en sus secciones, con asignación vigente hoy y en fecha de asistencia para modificar históricos. En los seis endpoints existentes: ADMIN tres niveles; SUBDIRECCION principal PRIMARIA: INICIAL/PRIMARIA; principal SECUNDARIA: SECUNDARIA; principal INICIAL: INICIAL por compatibilidad. Cargo/adicionales no amplían asistencia. No trasladar esta matriz a otros módulos; su aplicación a justificaciones futuras permanece en P10, conservando facultades V6. Autorizar en servidor, sin ampliar P07.
+RF-20. Conservar padrón histórico y detectar conflictos de altas/cambios retroactivos de matrícula o vínculos con sesiones/asistencias. Regularizar explícita, transaccional y auditadamente: ADMIN global; SUBDIRECCION solo si todos los niveles y secciones afectados están autorizados; REGISTRADOR sin permiso. No modificar, trasladar ni eliminar silenciosamente asistencias históricas. Auditar inclusiones/exclusiones explícitas del padrón de sesión con antes/después, actor y timestamp, junto al cambio. No aprobar por ello procedimientos excepcionales o fechas efectivas de padrones todavía no definidos.
+RF-21. Habilitar en su etapa futura consulta técnica de auditoría para ADMIN global y SUBDIRECCION según ámbito. REGISTRADOR no accede a eventos de auditoría técnica ni detalles internos de anulación. No incorporar historial técnico a pantallas ordinarias ni respuestas públicas. Mantener separada la consulta académica autorizada de RF-10.
+RF-22. Consultar secciones/sesiones por año escolar y fecha, filtros opcionales nivel/sección y paginación. Mostrar ABIERTA/CERRADA/SIN_REGISTRO y resumen por sesión; sin sesión devolver referencias/resumen null, sin generar marcas ni sesiones. Aplicar matriz RF-19 y doble vigencia REGISTRADOR; admitir secciones inactivas, años de cualquier estado y fechas futuras dentro del año según permisos. Autorizar antes de paginar; no exponer estudiantes/contactos/historial técnico en listado. Consulta diaria implementada sin indicadores ni reportes futuros.
+
+REQUERIMIENTOS NO FUNCIONALES
+RNF-01. Interfaz responsive y sencilla en computadora/celular, con vistas de REGISTRADOR sin funciones administrativas innecesarias.
+RNF-02. Autorizar en servidor por rol, ámbito de cada módulo, sección, matrícula y fechas; ocultar detalles ajenos. Aplicar RF-19 exclusivamente a asistencia existente; no extender automáticamente su matriz a calendario, matrículas, usuarios u otros módulos.
+RNF-03. Contraseñas con hash seguro (bcrypt), JWT/sesiones protegidas y HTTPS en despliegue.
+RNF-04. Minimización y protección de datos personales de menores, contactos y bitácoras; acceso restringido.
+RNF-05. Integridad relacional, validaciones, restricciones, transacciones, concurrencia y consistencia histórica de traslados y justificaciones. Revalidar actor activo y permisos bajo bloqueo en escrituras sensibles, con orden de bloqueos compatible y control mediante versiones. Confirmar juntos los cambios e historial/auditoría que correspondan, sin transacciones independientes para partes de una misma operación atómica.
+RNF-06. Respuesta ágil para volumen escolar esperado; índices por estudiante, fecha, matrícula, sección y filtros de seguimiento.
+RNF-07. Respaldos seguros y procedimiento de restauración comprobable antes de operación real; automatización y calendario de pruebas por definir.
+RNF-08. Código modular y mantenible; pruebas automatizadas de permisos, importación, asistencia, calendarios, indicadores y QR/PORTERIA cuando se implementen. Incluir duplicados concurrentes, año no abierto, día no lectivo y recuperaciones; probar conflictos manual/QR después de definir su política. Para asistencia incluir registro manual sin defaults, fechas pasadas/futuras, cierre con pendientes, corrección sin reapertura, anulación/reactivación, ausencia de eventos sin cambios, primera marca auditada, doble asignación histórica, regularización por todos los ámbitos, sesiones vacías/inactivas, protección de sesiones sin marcas, rollback por fallo de auditoría y COMMIT incierto. Esta actualización documental no ejecuta esas pruebas ni declara que existan.
+RNF-09. Importaciones con vista previa y mensajes comprensibles, sin sobrescrituras silenciosas, duplicados ni persistencia parcial inconsistente. Respetar F01–F10 y límites/protección T01–T05; confirmar requiere plan protegido, revalidación y garantías durables de idempotencia/COMMIT incierto, todavía pendientes. No atribuir a las bibliotecas garantías no demostradas.
+RNF-10. El flujo principal funciona sin SIAGIE conectado y con QR deshabilitado. QR será funcional al implementarse, pero opcional y deshabilitado por defecto hasta autorización; bitácora no depende de QR.
+RNF-11. Reutilizar asistencias/ para negocio/historial individual y auditoria/ para anexado administrativo y futura consulta técnica autorizada. HTTP, negocio y SQL separados; una conexión para efectos atómicos. Evitar módulos paralelos, ciclos, capas vacías y reglas/SQL duplicados. Distribución actual implementada no obliga a crear todos los archivos sugeridos en V6; nuevas extensiones/refactorizaciones o dependencias requieren autorización.
+RNF-12. Reutilizar shared/transaction.js; fallo de COMMIT puede ser incierto: descartar conexión, preservar error principal, sin reintento automático; ROLLBACK posterior no demuestra reversión. Conservar historial/auditorías y excluir contraseñas, hashes y tokens secretos. Todo nuevo DDL/transición requiere revisión y autorización separada sin inventar información; 004 ya resolvió PENDIENTE para asistencia principal.
+
+ESTADO POR REQUERIMIENTO (backend; no acreditación del frontend)
+RF-01/RF-02: tres roles y operaciones actuales implementados; PORTERIA y edición/finalización de asignaciones pendientes.
+RF-03: calendario, años/secciones y apertura implementados; edición general/cierre/reapertura del año pendientes.
+RF-04: preparación/lectura/conciliación interna; sin confirmación persistente ni flujo público completo.
+RF-05: identidad/alta inicial/consultas; edición, contactos y movimientos posteriores pendientes.
+RF-06/RF-07: backend manual/parcial/cierre/corrección implementado.
+RF-08: pendiente P10, sin flujo operativo.
+RF-09: marcas/historial y anexado administrativo implementados para operaciones actuales; justificaciones/regularizaciones futuras pendientes.
+RF-10: detalle/resumen de sesión disponible; historial académico de continuidad y resumen mensual individual completo no acreditados.
+RF-11/RF-12/RF-13/RF-14/RF-15/RF-16: pendientes, aprobados funcionalmente con decisiones abiertas indicadas.
+RF-17/RF-18: backend implementado; presentación frontend no acreditada.
+RF-19: matriz implementada en seis endpoints; aplicación a justificaciones P10.
+RF-20: prevención de alta retroactiva incompatible implementada; regularización/movimientos/inclusión-exclusión explícita pendientes.
+RF-21: consulta técnica pendiente.
+RF-22: supervisión diaria implementada.
+RNF-01–RNF-12 son requisitos, no certificación de cumplimiento integral de interfaz, HTTPS, seguridad de despliegue, rendimiento, respaldos o funcionalidades futuras a partir de código/pruebas parciales.
+
+MATRIZ ESPECIAL DE ASISTENCIA (decisión aprobada del 15/11/2026)
+Alcance exacto: listado de sesiones, detalle, resumen, apertura/recuperación, guardado y cierre existentes. ADMIN: INICIAL, PRIMARIA y SECUNDARIA. SUBDIRECCION con principal PRIMARIA: INICIAL y PRIMARIA sin adicional requerido; principal SECUNDARIA: solo SECUNDARIA; principal INICIAL: solo INICIAL, por compatibilidad del contrato. REGISTRADOR: sección asignada tanto hoy en America/Lima como en la fecha solicitada, con extremos inclusivos; pueden ser dos asignaciones distintas. Cargo y niveles adicionales no amplían este ámbito.
+No trasladar esta matriz a usuarios, secciones, calendario, matrículas, importador, reportes futuros o consulta técnica. Esos módulos mantienen sus contratos específicos; matrículas conserva además su restricción documentada de SECUNDARIA. La aplicación al futuro flujo de justificaciones queda en P10 sin retirar los permisos funcionales de V6.
+
+CONTRATO TÉCNICO IMPLEMENTADO DE ASISTENCIA
+- POST /api/asistencias/sesiones: { seccion_id, fecha }; 201 al crear y 200 al recuperar, sin reabrir ni reinicializar. Una sesión por sección/fecha.
+- GET /api/asistencias/sesiones/:id: sesión, padrón estable, marcas, versiones, resumen y último cambio operativo; sin eventos técnicos ni motivos históricos.
+- PATCH /api/asistencias/sesiones/:id/registros: { version, cambios: [{ asistencia_id, version, estado, motivo? }] }; solo filas enviadas; lote atómico, hasta 2.000 cambios y 512 KB.
+- POST /api/asistencias/sesiones/:id/cierre: { version }; cierre y advertencia PENDIENTES_AL_CERRAR con cantidad cuando corresponda.
+- GET /api/asistencias/sesiones/:id/resumen: { sesion_id, version, resumen }.
+- GET /api/asistencias/sesiones: anio_escolar_id y fecha obligatorios; nivel, seccion_id, page y limit opcionales. Página 1/límite 20 por defecto, máximo 100; orden ID ascendente y has_more.
+Todas las rutas requieren JWT y actor activo, con Cache-Control: no-store. IDs BIGINT UNSIGNED como texto; versiones como enteros JSON; fechas civiles reales YYYY-MM-DD. Se rechazan campos desconocidos, duplicados o inválidos.
+Apertura inicial: filas PENDIENTE con justificada=0 y version=0, registrado_por/primera_marca_en NULL. Esa inclusión no es primera marca ni genera evento individual; apertura administrativa auditada con pertenencia del padrón, sin copiar nombres/documentos/teléfonos. Primera marca: versión 0 a 1 y conservación de registrado_por/primera_marca_en en cambios posteriores. Anulación/reactivación conserva la fila, ID e historial; cada cambio efectivo aumenta una versión individual.
+La versión de sesión aumenta una vez por solicitud efectiva o cierre. No-op con versiones vigentes no genera eventos ni incremento; reiterar cierre vigente tampoco. Conflicto de versión: 409. Después del cierre, motivo no vacío por fila efectivamente cambiada, hasta 500 caracteres; no reabre sesión.
+Crear, marcar y cerrar exige año ABIERTO, fecha no futura dentro del año y lectividad efectiva; nueva sesión exige sección activa y padrón no vacío/sin vínculos ambiguos. Consulta y recuperación sin cambios conservan acceso histórico autorizado. La pertenencia del padrón no se recalcula silenciosamente. Alta retroactiva incompatible: 409, sin regularización automática.
+Cada cambio individual y su único evento en historial_asistencias comparten transacción. Apertura/cierre usan auditoria_administrativa; no duplicar allí el mismo cambio individual. UNIQUE(asistencia_id, version_nueva) impide duplicados; el servicio garantiza existencia del evento, no una FK por sí sola.
+Resumen: total, presentes, tardanzas, faltas y pendientes. Listado por sección: seccion, es_lectivo, situacion ABIERTA/CERRADA/SIN_REGISTRO, sesion_id y resumen. Sin sesión, ambos últimos son null: no se crean marcas ni pendientes virtuales. SIN_REGISTRO no indica incumplimiento, particularmente en días futuros/no lectivos.
+Listado admite secciones actualmente inactivas y años PLANIFICADO/ABIERTO/CERRADO y fechas futuras dentro de límites. Autorizar antes de paginar; filtrar no amplía ámbito. Sin secciones autorizadas, lista vacía; sección filtrada ajena/inexistente/incompatible: 404; nivel fuera de matriz SUBDIRECCION: 403; fecha fuera del año: 400; año inexistente: 404.
+Listado obtiene una instantánea READ ONLY/REPEATABLE READ, sin FOR UPDATE/FOR SHARE, sin efectos secundarios ni N+1 por sección. Esto no describe los bloqueos de los GET de detalle/resumen, que reutilizan el contexto transaccional del módulo. Datos de último cambio son operativos; no equivalen a API de auditoría técnica.
+Timestamps nuevos DATETIME(6) expresados en UTC, distintos de fecha civil America/Lima. Errores de forma/motivo 400, autenticación 401, recurso no visible 404, conflictos 409, tamaño 413 e interno seguro 500. La API actual no admite cambios de justificación y rechaza correcciones efectivas sobre una marca ya justificada hasta contar con procedimiento específico; es una limitación de etapa, no una nueva prohibición institucional.
+
+ESTADO CONTRASTADO Y LÍMITE DE EVIDENCIA
+Repositorio master ff3ca53fd3d88f8e6fd2f41f0ed9df1be28ab3d7, referencia de esta consolidación del 15/11/2026. Implementados: health, autenticación bcrypt/JWT, usuarios y supervisión adicional explícita, asignaciones iniciales, consulta/creación/apertura de años, secciones, calendario efectivo, identidades, matrícula inicial/padrón por fecha, asistencia manual y supervisión diaria mediante seis endpoints. Escritura de auditoría administrativa e historial individual implementadas para sus operaciones existentes.
+Importaciones: dependencias, recepción/lectura XLSX, inspección ZIP/XML y conciliación interna presentes; sin rutas del importador registradas en app.js y sin confirmación persistente. Preparar una propuesta no confirma importaciones ni actualiza contactos.
+Pendientes: justificaciones operativas; edición/movimientos académicos posteriores y regularizaciones; gestión operativa de contactos/teléfonos; indicador mensual y fichas/exportaciones; bitácora; consulta técnica de auditoría; gestión global de configuración; horarios y QR/PORTERIA; cierre/reapertura del año. No declarar completo un RF por estar implementada solo una parte. Frontend separado no inspeccionado ni modificado en esta etapa.
+Diagnóstico de lectura anterior de esta conversación, 15/11/2026: MySQL 8.4.13, asistencia_paillardelle local, 20 tablas, 162 columnas, 20 PK, 25 UNIQUE, 30 FK y 23 CHECK habilitados; sin diferencias estructurales sustanciales detectadas frente a v1 + 002 + 003 + 004. Se comprobaron 30 FK sin huérfanos y no se detectaron las inconsistencias de versiones, vigencias o solapamientos examinadas. No acredita ausencia de todo defecto ni el estado de otras instalaciones. Esta generación documental no conecta a MySQL ni repite esos controles.
+El README de asistencia registra 690 pruebas y comprobaciones aisladas para la etapa inicial, y posteriormente 705 pruebas y 64 comprobaciones HTTP de supervisión. Son resultados históricos atribuidos a esas entregas, no ejecutados nuevamente aquí. No extrapolar 303 pruebas o 19 tablas de etapas anteriores al presente.
+
+IMPORTACIONES: REQUISITOS COMPLEMENTARIOS
+RF-04 conserva F01 (formato/alcance), F02 (fecha/preparación), F03 (trasladados/roles), F04 (identidad), F05 (APODERADO/datos mínimos), F06 (compartidos), F07 (normalización/selección celular), F08 (excepción telefónica), F09 (selección/repetición), F10 (vista previa/revalidación). RF-05 mantiene autorizaciones/efectos sin declarar gestión operativa terminada. RNF-09 incorpora T01 (todos los límites), T02 (dependencias aprobadas), T03 (organización), T04 (idempotencia condicionada), T05 (privacidad/inspección/aislamiento). Contenido completo en decisiones e impacto V7; no hace falta recurrir a históricos para definir obligaciones.
+
+PENDIENTES DE JUSTIFICACIONES P10
+PENDIENTE DE DISEÑO de justificaciones, sin retirar RF-08 ni los permisos funcionales aprobados: procedimiento de modificación y retiro/anulación; efecto de corregir estado ya justificado, incluida transición a PRESENTE/PENDIENTE; conservación de motivos/medios anteriores; cambios solo de metadatos; mecánica de versiones, concurrencia y evento único al cambiar estado y justificación juntos; contrato API, modelo SQL, restricciones y transición de información existente; aplicación de la matriz posterior al nuevo flujo. No decidir automáticamente conservar, retirar o trasladar una justificación al corregir. Registrar y retirar justificaciones ya está aprobado funcionalmente; no están pendientes ni el estado base independiente ni contar justificadas para el indicador mensual.
+
+TRAZABILIDAD V6 → V7
+RF-01 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+RF-02 -> mismo identificador V7: conservado sin cambio de contenido.
+RF-03 -> mismo identificador V7: conservado sin cambio de contenido.
+RF-04 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+RF-05 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+RF-06 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+RF-07 -> mismo identificador V7: conservado sin cambio de contenido.
+RF-08 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+RF-09 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+RF-10 -> mismo identificador V7: conservado sin cambio de contenido.
+RF-11 -> mismo identificador V7: conservado sin cambio de contenido.
+RF-12 -> mismo identificador V7: conservado sin cambio de contenido.
+RF-13 -> mismo identificador V7: conservado sin cambio de contenido.
+RF-14 -> mismo identificador V7: conservado sin cambio de contenido.
+RF-15 -> mismo identificador V7: conservado sin cambio de contenido.
+RF-16 -> mismo identificador V7: conservado sin cambio de contenido.
+RF-17 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+RF-18 -> mismo identificador V7: conservado sin cambio de contenido.
+RF-19 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+RF-20 -> mismo identificador V7: conservado sin cambio de contenido.
+RF-21 -> mismo identificador V7: conservado sin cambio de contenido.
+RNF-01 -> mismo identificador V7: conservado sin cambio de contenido.
+RNF-02 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+RNF-03 -> mismo identificador V7: conservado sin cambio de contenido.
+RNF-04 -> mismo identificador V7: conservado sin cambio de contenido.
+RNF-05 -> mismo identificador V7: conservado sin cambio de contenido.
+RNF-06 -> mismo identificador V7: conservado sin cambio de contenido.
+RNF-07 -> mismo identificador V7: conservado sin cambio de contenido.
+RNF-08 -> mismo identificador V7: conservado sin cambio de contenido.
+RNF-09 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+RNF-10 -> mismo identificador V7: conservado sin cambio de contenido.
+RNF-11 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+RNF-12 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+Adición RF-22, sin renumerar/eliminar requisitos.
+
+CORRESPONDENCIAS FUNCIONALES V7
+- D01–D05 -> RN-01/RN-06/RN-15/RN-29/RN-30; RF-01/RF-02/RF-03; RNF-01/RNF-02.
+- D06/D25–D28 -> RN-15/RN-26–RN-28; RF-03; impacto 3/6–12.
+- D07/D36/D39 -> RN-04/RN-05/RN-35/RN-36; RF-06/RF-17; impacto 29/30/32/38.
+- D08 -> RN-06/RN-39; RF-19; impacto 33; justificaciones P10.
+- D09/D37/D38 -> RN-03/RN-07/RN-37/RN-38; RF-07/RF-18; impacto 22/31/32.
+- D10 -> RN-08/RN-09; RF-08; P10 e impacto 21.
+- D11/D12/D15/D16 -> RN-19/RN-21–RN-23; RF-10/RF-11/RF-12; impacto 25.
+- D13/D14/D17 -> RN-02/RN-17/RN-18/RN-24; RF-05/RF-10/RF-15; impacto 23/24.
+- D18–D20 y F01–F10 -> RN-11/RN-12/RN-13/RN-20; RF-04/RF-05; RNF-09; impacto 24 y T01–T05.
+- D21 -> RN-25; RNF-07; P03 e impacto 40.
+- D22–D24 -> testimonios/decisiones: no atribuir norma oficial al indicador ni a la leyenda.
+- D29–D35 -> RN-16/RN-29–RN-34; RF-13/RF-14/RF-16; P05/P06/P08/P09; impacto 13–20.
+- D40/D43/D44 -> RN-10/RN-41/RN-42/RN-43; RF-09/RF-21; RNF-05/RNF-12; impacto 35/36/38.
+- D41/D42 -> RN-40/RN-44; RF-20; impacto 34.
+- D45/D46 -> RN-45/RN-46; RNF-11/RNF-12; impacto 26–28/37/40.
+- D47 -> RN-47/RF-22, con ámbito RN-06/RF-19; contrato/supervisión en impacto.
+- P01–P10 se definen en decisiones; no son requisitos retirados ni autorización implícita.
+
+SUSTITUCIONES EXPRESAS Y LÍMITES
+Históricos V2/V4/V5: FUT obligatorio, exclusividad de justificación SUBDIRECCION, solo FALTA justificable, QR sin alterar asistencia, bitácora solo por nivel y ausencia física de fila como PENDIENTE no rigen frente a decisiones posteriores. No reutilizar numeración de V2 sin versión.
+V6: condición pendiente de representación PENDIENTE, contrato principal, persistencia sesiones/cierre/padrón e historial/versiones de marcas sustituida por diseño/004 aprobado. No se resuelve P10 ni se aprueba DDL futuro.
+Matriz posterior sustituye dependencia de adicionales solo en seis endpoints de asistencia, sin alterar otros módulos. Tabla separada sesion_asistencia_matriculas, columna anulada, JSON de eventos y nombres de capas sugeridos no fueron adoptados por 004; no son obligaciones ni tareas implícitas.
+Módulos vacíos, 303 pruebas o 19 tablas son fotografías históricas, no reglas. Ninguna obligación vigente desaparece por estar pendiente.
+
+CONJUNTO Y REFERENCIAS CRUZADAS
+- docs/requisitos/PAILLARDELLE_DECISIONES_v7.txt
+- docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v7.txt
+- docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v7.txt
+- docs/requisitos/PAILLARDELLE_IMPACTO_v7.txt
+Citar identificador y versión. F01–F10 se definen en decisiones y T01–T05 en impacto; referencias en los demás documentos no son definiciones duplicadas.
+
+FUENTES Y PRECEDENCIA DOCUMENTAL
+Rutas relativas a la raíz del proyecto:
+- docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v6.txt
+- docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v6.txt
+- docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v6.txt
+- docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v6.txt
+- docs/requisitos/IMPORTACION_ESTUDIANTES_DECISIONES_v1.md (14/11/2026), F01–F10 y T01–T05.
+- docs/requisitos/adenda_6c_a_inicial_supervision.md, decisiones compatibles de supervisión general.
+- docs/database/ASISTENCIA_DIARIA_DISENO_v1.md, diseño aprobado de 004; separar sus párrafos originales de propuesta del estado posterior aprobado.
+- docs/database/asistencia_paillardelle_mysql_v1.sql y docs/database/migrations/002_inicial_supervision_multinivel.sql, 003_periodos_lectivos.sql, 004_asistencia_diaria.sql; docs/database/migrations/README.md para ejecución local y ensayo de 004.
+- backend/src/modules/asistencias/README.md: contrato inicial y decisión posterior aprobada del 15/11/2026.
+- backend/src/modules/usuarios/README.md, organizacion-escolar/README.md, organizacion-escolar/calendario-lectivo/README.md y matriculas/README.md.
+- AGENTS.md, README.md y backend/README.md: contienen referencias/estados antiguos, identificados sin modificarlos.
+- Código en ff3ca53 para contrastar implementación y diagnóstico previo de lectura del 15/11/2026 para esquema observado.
+V7 consolida reglas completas de V6 y decisiones posteriores aprobadas solo en su alcance. Un comportamiento del código no crea una decisión institucional. Los README de etapas conservan sus resultados históricos; ante divergencia distinguir fecha, alcance y evidencia. V2/adenda/V4/V5/V6, SQL v1 y migraciones permanecen intactos. La aprobación de V7 autoriza exclusivamente estos cuatro archivos; no cambia código, permisos reales ni esquema, no activa módulos, no autoriza DDL, commit o push.
+Categorías documentales: REGLA APROBADA; DECISIÓN TÉCNICA APROBADA E IMPLEMENTADA; FUNCIONALIDAD APROBADA PENDIENTE; PROPUESTA NO APROBADA/PENDIENTE DE DISEÑO; REGLA SUSTITUIDA. Son etiquetas documentales, no estados SQL ni roles.
