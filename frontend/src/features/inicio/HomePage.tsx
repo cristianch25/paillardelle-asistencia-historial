@@ -1,9 +1,16 @@
 import { useAuth } from '../auth/AuthContext';
 import { primaryLevelLabel, userIdentityLabel } from '../auth/userPresentation';
+import { lazy, Suspense } from 'react';
+import LoadingState from '../../shared/components/LoadingState';
+
+const AdminHomePage = lazy(() => import('./AdminHomePage'));
 
 export default function HomePage() {
   const { session } = useAuth();
   if (!session) return null;
+  if (session.user.rol === 'ADMIN') return <Suspense fallback={<LoadingState message="Cargando inicio…" />}>
+    <AdminHomePage key={`${session.user.id}:${session.expiresAt}`} />
+  </Suspense>;
   return (
     <div>
       <p className="text-sm font-medium text-institutional-800">I.E. Enrique Paillardelle · Tacna</p>
