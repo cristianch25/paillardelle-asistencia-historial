@@ -10,12 +10,11 @@ test('7B.0B: catálogo administrativo, búsqueda completa, acciones directas y a
     const { evaluate, command, wait, click, rows, results, calls, search } = ui;
     try {
       await command('Emulation.setDeviceMetricsOverride', { width: 320, height: 812, deviceScaleFactor: 1, mobile: true });
-      await ui.navigate('/login'); await ui.signIn();
-      await t.test('ADMIN espera año explícito y publica 230 secciones solo tras tres páginas', async () => {
-        assert.equal(await evaluate(`${calls}.length`), 0);
+      await ui.navigate('/login'); await ui.signIn('ADMIN', undefined, 2);
+      await t.test('ADMIN selecciona año actual y publica 230 secciones solo tras tres páginas', async () => {
         assert.equal(await evaluate('document.querySelectorAll("select").length'), 1);
-        await evaluate('sectionSearchTest.holdPage = 2'); await ui.chooseYear('1');
         await wait('sectionSearchTest.pending.length === 1');
+        assert.equal(await evaluate('document.querySelector("select").value'), '1');
         assert.equal(await evaluate(`Boolean(${results})`), false); assert.equal(await evaluate(`${rows}.length`), 0);
         await ui.release(); await ui.ready();
         assert.match(await evaluate(`${results}.textContent`), /230 secciones encontradas/);

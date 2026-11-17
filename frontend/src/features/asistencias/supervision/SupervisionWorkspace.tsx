@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Navigate, Outlet } from 'react-router';
 import { useAuth } from '../../auth/AuthContext';
 import { peruToday } from '../../../shared/dates/civilDate';
@@ -13,6 +13,7 @@ export default function SupervisionWorkspace() {
 }
 
 function AccountWorkspace() {
+  const yearInitialization = useRef(false);
   const [filters, setFilters] = useState<SupervisionFilters>({ anio_escolar_id: '', fecha: peruToday(), nivel: '', seccion_id: '', page: 1 });
-  return <Outlet context={{ filters, setFilters }} />;
+  return <Outlet context={{ filters, setFilters, yearInitialization }} />;
 }

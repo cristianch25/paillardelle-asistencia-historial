@@ -12,11 +12,14 @@ import { useSupervisionQuery } from './useSupervisionQuery';
 import { useSupervisionSections } from './useSupervisionSections';
 import { useSupervisionWorkspace } from './useSupervisionWorkspace';
 import { supervisionDateError } from './supervisionDate';
+import { useInitialSchoolYear } from '../../organizacion-escolar/anios-escolares/useInitialSchoolYear';
 
 export default function SupervisionPage() {
   const { session } = useAuth();
   const years = useSchoolYears();
-  const { filters, setFilters } = useSupervisionWorkspace();
+  const { filters, setFilters, yearInitialization } = useSupervisionWorkspace();
+  useInitialSchoolYear(years.years, !years.loading && !years.error, filters.anio_escolar_id,
+    id => setFilters(current => ({ ...current, anio_escolar_id: id, seccion_id: '', page: 1 })), yearInitialization);
   const year = years.years.find(item => item.id === filters.anio_escolar_id);
   const dateError = supervisionDateError(filters.fecha, year);
   const enabled = Boolean(year) && !years.loading && !years.error && !dateError;

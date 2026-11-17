@@ -56,11 +56,11 @@ test('7A.2: tarjetas, filtros rápidos, móvil y solo lectura',
         await evaluate('supervisionTest.cards = true; supervisionTest.hold = true'); await change(1, '2026-11-13');
         await wait('supervisionTest.pending.length === 1');
         await click('Cerrar sesión'); await wait('location.pathname === "/login"');
-        await evaluate('supervisionTest.account = "7"; supervisionTest.role = "SUBDIRECCION"; supervisionTest.level = "SECUNDARIA"; supervisionTest.hold = false');
+        await evaluate('supervisionTest.account = "7"; supervisionTest.role = "SUBDIRECCION"; supervisionTest.level = "SECUNDARIA"; supervisionTest.hold = false; supervisionTest.cards = false');
         await ui.login(); await ui.setRoute('/asistencias/supervision');
         await wait(`Boolean(document.querySelector('[aria-label="Filtros de supervisión"]'))`);
         await evaluate('supervisionTest.pending.shift()()');
-        assert.equal(await evaluate(`${rows}.length`), 0);
+        await wait(`${rows}.length === 1`);
         assert.doesNotMatch(await evaluate('document.body.textContent'), /Total de estudiantes|Sesión abierta|Sesión cerrada/);
       });
       assert.equal(await evaluate('supervisionTest.calls.every(c => c.method === "get")'), true);

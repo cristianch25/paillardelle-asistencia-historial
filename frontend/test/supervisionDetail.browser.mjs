@@ -99,7 +99,7 @@ test('7A.3: detalle protegido, lectura local, navegación y aislamiento',
         await ui.login(); await ui.open(); await evaluate('supervisionTest.detailPending.shift()()'); await wait(`${rows}.length === 5`);
         await evaluate(`document.querySelector('a[href="/asistencias/supervision"]').click()`);
         await wait(`Boolean(document.querySelector('[aria-label="Filtros de supervisión"]'))`);
-        assert.equal(await evaluate('document.querySelector("select").value'), '');
+        await wait('document.querySelector("select").value === "9007199254740993"');
         await ui.open(); await evaluate('supervisionTest.detailStatus = 401'); await click('Actualizar detalle'); await wait('location.pathname === "/login"');
         await evaluate('supervisionTest.role = "REGISTRADOR"; supervisionTest.detailStatus = null'); await ui.login();
         const count = await evaluate(`${calls}.length`); await ui.setRoute(`/asistencias/supervision/${sessionId}`); await wait('location.pathname === "/inicio"');

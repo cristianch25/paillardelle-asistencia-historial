@@ -8,9 +8,9 @@ test('7B.0B: cargas incompletas, cambios de ámbito y errores',
     const ui = await sectionSearchBrowser();
     const { evaluate, wait, click, results, rows, calls } = ui;
     try {
-      await ui.navigate('/login'); await ui.signIn();
+      await ui.navigate('/login'); await ui.signIn('ADMIN', undefined, 2);
       await t.test('cambiar año descarta páginas tardías y no continúa el recorrido anterior', async () => {
-        await evaluate('sectionSearchTest.holdPage = 2'); await ui.chooseYear('1'); await wait('sectionSearchTest.pending.length === 1');
+        await wait('sectionSearchTest.pending.length === 1');
         await ui.chooseYear('2'); await wait('sectionSearchTest.pending.length === 2');
         assert.equal(await evaluate(`Boolean(${results})`), false);
         await ui.release(); await ui.release(); await ui.ready();

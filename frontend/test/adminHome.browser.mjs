@@ -20,10 +20,11 @@ test('Inicio ADMIN: resumen completo, consultas civiles, errores y aislamiento d
     try {
       await ui.navigate('/login'); await ui.login();
       await wait(`Boolean(${filter}) && ${filter}.querySelector('select').options.length === 2`);
-      await t.test('fecha inicial de Lima y año explícito, enlace de supervisión sin escrituras', async () => {
+      await t.test('fecha inicial de Lima y año automático, enlace de supervisión sin escrituras', async () => {
         const value = await evaluate(`${filter}.querySelector('input').value`);
         const today = await evaluate(`new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())`);
-        assert.equal(value, today); assert.equal(await evaluate(`${calls}.length`), 0);
+        assert.equal(value, today); await ready();
+        assert.equal(await evaluate(`${filter}.querySelector('select').value`), dailyYear.id);
         assert.equal(await evaluate(`document.querySelector('#main-content a[href="/asistencias/supervision"]').textContent`), 'Ir a supervisión de asistencia');
         await date('2026-11-17'); await change(`${filter}.querySelector('select')`, dailyYear.id); await ready();
       });

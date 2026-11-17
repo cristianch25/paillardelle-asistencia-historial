@@ -11,11 +11,13 @@ import { useSchoolYears } from '../organizacion-escolar/anios-escolares/useSchoo
 import { supervisionDateError } from '../asistencias/supervision/supervisionDate';
 import { useDailySummary } from './useDailySummary';
 import DailySummaryView from './DailySummaryView';
+import { useInitialSchoolYear } from '../organizacion-escolar/anios-escolares/useInitialSchoolYear';
 
 export default function AdminHomePage() {
   const { session } = useAuth();
   const [fecha, setFecha] = useState(peruToday), [yearId, setYear] = useState('');
   const years = useSchoolYears(), id = useId();
+  useInitialSchoolYear(years.years, !years.loading && !years.error, yearId, setYear);
   const year = years.years.find(row => row.id === yearId), dateError = supervisionDateError(fecha, year);
   const query = useDailySummary(yearId, fecha, Boolean(year && !years.loading && !years.error && !dateError));
   return <div className="min-w-0 space-y-6">

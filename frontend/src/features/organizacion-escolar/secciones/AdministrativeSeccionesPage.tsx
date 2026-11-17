@@ -14,11 +14,13 @@ import LoadingState from '../../../shared/components/LoadingState';
 import EmptyState from '../../../shared/components/EmptyState';
 import ErrorState from '../../../shared/components/ErrorState';
 import Pagination from '../../../shared/components/Pagination';
+import { useInitialSchoolYear } from '../anios-escolares/useInitialSchoolYear';
 
 export default function AdministrativeSeccionesPage() {
   const years = useSchoolYears(), selection = useSectionSelection();
   const location = useLocation(), navigate = useNavigate();
   const { yearId, query, page, changeYear, changeQuery, setPage } = useAdministrativeSectionLocation();
+  useInitialSchoolYear(years.years, !years.loading && !years.error, yearId, changeYear);
   const year = !years.loading && !years.error ? years.years.find(item => item.id === yearId) : undefined;
   const catalog = useSectionSearch(year?.id ?? '');
   const [attemptedYear, setAttemptedYear] = useState('');

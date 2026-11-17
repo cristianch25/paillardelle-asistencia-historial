@@ -78,12 +78,13 @@ test('7A.1B: opciones completas, independientes y vigentes',
         await click('Cerrar sesión'); await wait('location.pathname === "/login"');
         await evaluate('supervisionTest.account = "7"; supervisionTest.role = "SUBDIRECCION"; supervisionTest.level = "SECUNDARIA"');
         await ui.login(); await ui.setRoute('/asistencias/supervision'); await wait(`Boolean(document.querySelector('[aria-label="Filtros de supervisión"]'))`);
+        await wait('supervisionTest.optionsPending.length === 2');
         const count = await evaluate(`${optionsCalls}.length`);
         await release();
         assert.equal(await evaluate(`${select}.options.length`), 1);
-        assert.equal(await evaluate(`${fields}[0].value`), '');
+        assert.equal(await evaluate(`${fields}[0].value`), '9007199254740993');
         assert.equal(await evaluate(`${optionsCalls}.length`), count);
-        await evaluate('supervisionTest.optionsHoldPage = 0'); await change(0, '9007199254740993'); await ready();
+        await evaluate('supervisionTest.optionsHoldPage = 0'); await release(); await ready();
       });
       assert.equal(await evaluate('supervisionTest.calls.every(c => c.method === "get")'), true);
     } finally { await ui.close(); }

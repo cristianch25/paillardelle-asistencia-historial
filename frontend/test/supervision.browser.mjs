@@ -29,7 +29,7 @@ test('7A.1: consulta protegida, filtros, errores y móvil',
       }
       await evaluate(`Object.assign(supervisionTest, { role: ${JSON.stringify(role)}, level: ${JSON.stringify(level)},
         account: ${JSON.stringify(account)}, status: null, empty: false, hold: false })`);
-      await ui.login(); await open();
+      await ui.login(); await open(); await settled();
     }
     try {
       await command('Emulation.setDeviceMetricsOverride', { width: 320, height: 740, deviceScaleFactor: 1, mobile: true });
@@ -40,7 +40,7 @@ test('7A.1: consulta protegida, filtros, errores y móvil',
       });
       await t.test('ADMIN accede sin selección previa ni consulta general de secciones', async () => {
         await signIn();
-        assert.equal(await evaluate(`${calls}.length`), 0, 'espera año explícito');
+        assert.equal(await evaluate(`${field(0)}.value`), '9007199254740993', 'selecciona el año calendario actual');
         await change(0, '9007199254740993'); await settled();
         assert.equal(await evaluate(`${last}.anio_escolar_id`), '9007199254740993');
         assert.equal(await evaluate(`${last}.page`), 1);
@@ -149,8 +149,8 @@ test('7A.1: consulta protegida, filtros, errores y móvil',
         await evaluate('supervisionTest.hold = true'); await change(1, '2026-11-10');
         await wait('supervisionTest.pending.length === 1');
         await signIn('SUBDIRECCION', 'PRIMARIA', '7');
-        assert.equal(await evaluate(`${field(0)}.value`), '');
-        assert.equal(await evaluate(`Boolean(${results})`), false);
+        assert.equal(await evaluate(`${field(0)}.value`), '9007199254740993');
+        assert.equal(await evaluate(`Boolean(${results})`), true);
         assert.deepEqual(await evaluate(`Array.from(${field(2)}.options).map(o => o.value)`), ['', 'INICIAL', 'PRIMARIA']);
         await evaluate('supervisionTest.pending.shift()()');
         await change(0, '9007199254740993'); await settled();

@@ -12,13 +12,13 @@ export async function sectionSearchBrowser(harness = 'sectionSearchHarness.jsx')
       ? HTMLSelectElement.prototype : HTMLInputElement.prototype, 'value').set.call(e, ${JSON.stringify(value)});
       e.dispatchEvent(new Event(e.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); })()`);
   }
-  async function signIn(role = 'ADMIN', allowed = ['PRIMARIA', 'INICIAL', 'SECUNDARIA']) {
+  async function signIn(role = 'ADMIN', allowed = ['PRIMARIA', 'INICIAL', 'SECUNDARIA'], holdPage = 0) {
     if (await evaluate('Boolean(document.querySelector("#main-content"))')) {
       await click('Cerrar sesión'); await wait('location.pathname === "/login"');
     }
     await evaluate(`Object.assign(sectionSearchTest, { role: ${JSON.stringify(role)}, allowedLevels: ${JSON.stringify(allowed)},
       level: ${role === 'ADMIN' ? 'null' : '"PRIMARIA"'}, account: String(BigInt(sectionSearchTest.account) + 1n),
-      failPage: 0, holdPage: 0, disappear: false, total: 230, invalidPage: 0 })`);
+      failPage: 0, holdPage: ${holdPage}, disappear: false, total: 230, invalidPage: 0 })`);
     await ui.login(); await ui.setRoute('/secciones');
     await wait(role === 'REGISTRADOR' ? `${rows}.length === 1` : `Boolean(${search})`);
   }

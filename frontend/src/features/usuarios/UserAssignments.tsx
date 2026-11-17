@@ -6,6 +6,7 @@ import { formatCivilDate, validCivilDate } from '../../shared/dates/civilDate';
 import { useUnsavedChanges } from '../../shared/navigation/useUnsavedChanges';
 import { educationLevelLabels, formatSectionName } from '../organizacion-escolar/secciones/sectionPresentation';
 import { assignmentSectionLabel, type AssignmentInput, type ManagedUser, type UsersCatalog } from './usuarios.types';
+import { useInitialSchoolYear } from '../organizacion-escolar/anios-escolares/useInitialSchoolYear';
 
 type Props = { user: ManagedUser; catalog: UsersCatalog; busy: boolean; onSave: (input: AssignmentInput) => Promise<boolean>; onClose: () => void };
 const control = 'mt-2 block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base';
@@ -13,11 +14,13 @@ export default function UserAssignments({ user, catalog, busy, onSave, onClose }
   const id = useId(), [yearId, setYear] = useState(''), [sectionId, setSection] = useState('');
   const [start, setStart] = useState(''), [end, setEnd] = useState(''), [error, setError] = useState('');
   const canAssign = user.rol === 'REGISTRADOR' && user.activo;
-  const year = catalog.years.find(row => row.id === yearId);
+  const eligibleYears = catalog.years.filter(row => ['PLANIFICADO', 'ABIERTO'].includes(row.estado));
+  useInitialSchoolYear(eligibleYears, canAssign, yearId, setYear);
+  const year = eligibleYears.find(row => row.id === yearId);
   const sections = catalog.sections.filter(row => row.anio_escolar_id === yearId && row.activo
     && (user.nivel_asignado === null || row.nivel === user.nivel_asignado));
   const assignments = catalog.assignments.filter(row => row.usuario_id === user.id);
-  useUnsavedChanges(`user-assignment:${user.id}`, Boolean(yearId || sectionId || start || end), busy);
+  useUnsavedChanges(`user-assignment:${user.id}`, Boolean(sectionId || start || end), busy);
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canAssign || !year || !['PLANIFICADO', 'ABIERTO'].includes(year.estado) || !sections.some(row => row.id === sectionId)
@@ -39,7 +42,7 @@ export default function UserAssignments({ user, catalog, busy, onSave, onClose }
       <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
         <label className="text-sm font-semibold" htmlFor={`${id}-year`}>Año escolar
           <select id={`${id}-year`} className={control} required value={yearId} onChange={e => { setYear(e.target.value); setSection(''); }}>
-            <option value="">Selecciona un año</option>{catalog.years.filter(row => ['PLANIFICADO', 'ABIERTO'].includes(row.estado))
+            <option value="">Selecciona un año</option>{eligibleYears
               .map(row => <option key={row.id} value={row.id}>{row.anio} · {row.estado}</option>)}
           </select>
         </label>

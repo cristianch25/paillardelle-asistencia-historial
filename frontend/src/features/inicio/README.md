@@ -1,8 +1,10 @@
 # Inicio de ADMIN — resumen diario
 
 Panel de consulta exclusivo de ADMIN dentro de Inicio; los demás roles conservan
-la página anterior. Se selecciona explícitamente un año y se propone la fecha
-actual de America/Lima. No se infiere un año por su estado ni por el número anual.
+la página anterior. Se propone el año calendario actual de America/Lima; si no
+existe, el ABIERTO más reciente (menor ID en empate). Sin candidatos queda vacío.
+La selección manual y las recargas conservan el año elegido. La fecha inicial
+es la actual de America/Lima.
 Se admiten fechas históricas/futuras dentro del intervalo inclusivo del año.
 Referencias funcionales: D47/RN-47/RF-22 y ámbito D08/RN-06/RF-19 V8.
 

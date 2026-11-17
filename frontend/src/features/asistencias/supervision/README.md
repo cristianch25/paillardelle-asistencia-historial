@@ -19,7 +19,10 @@ tres niveles; SUBDIRECCION principal PRIMARIA abarca INICIAL/PRIMARIA, SECUNDARI
 solo SECUNDARIA e INICIAL solo INICIAL. Cargo y adicionales no amplían asistencia.
 Esta matriz no se extiende al calendario ni a otros módulos.
 
-El año se selecciona explícitamente. La fecha inicial es civil de America/Lima;
+El año inicial coincide con el año calendario de America/Lima; si no existe,
+se usa el ABIERTO más reciente, con menor ID en empate. Sin candidatos queda vacío.
+La selección manual se conserva al actualizar y entre listado/detalle.
+La fecha inicial es civil de America/Lima;
 se compara como YYYY-MM-DD, sin convertirla a instantes ni limitarla a hoy.
 Se informa una fecha vacía/inválida o fuera del intervalo inclusivo del año.
 El campo muestra los límites del año y el error asociado de forma accesible.

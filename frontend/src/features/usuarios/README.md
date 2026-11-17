@@ -28,8 +28,11 @@ limita silenciosamente a la página visible. Son lecturas independientes, sin
 instantánea común. Los errores no se convierten en listas vacías ni resultados
 parciales. Cambiar cuenta/rol/expiración retira datos y respuestas pendientes.
 
-Solo REGISTRADOR activo puede recibir asignaciones nuevas. Se elige una sección
-activa de año PLANIFICADO/ABIERTO compatible con su nivel, con fechas explícitas
+Solo REGISTRADOR activo puede recibir asignaciones nuevas.
+El selector de año propone el año actual de America/Lima entre PLANIFICADO/ABIERTO;
+si falta, el ABIERTO más reciente, con menor ID en empate. Sin candidatos queda vacío.
+No cambia la selección manual ni marca el formulario modificado por autoseleccionar.
+Se elige una sección activa de año PLANIFICADO/ABIERTO compatible con su nivel, con fechas explícitas
 inclusivas dentro del año; el servidor revalida contexto, permisos y solapamientos.
 Desactivar una cuenta no modifica asignaciones ni asistencias. Cambio y
 finalización de asignaciones existentes quedan pendientes, sin controles ficticios.
