@@ -1,0 +1,333 @@
+PAILLARDELLE ASISTENCIA — I.E. ENRIQUE PAILLARDELLE
+DECISIONES v8 — CONSOLIDACIÓN COMPLETA — BORRADOR NO APROBADO
+Fecha de preparación: 16/11/2026. Solo borrador autorizado; pendiente de revisión y aprobación integral del usuario.
+Deriva del contenido completo de V7 (15/11/2026), conservando V7 íntegra y reglas compatibles. Incorpora decisiones posteriores aprobadas en sus etapas; no declara vigente V8 ni acredita implementación completa.
+
+1. ALCANCE Y ORGANIZACIÓN
+D01. Sistema web responsive React/TypeScript/Vite, Node/Express y MySQL; independiente de SIAGIE, sin sincronización ni avisos automáticos a familias, incluidos SMS y WhatsApp.
+D02. Cuatro roles funcionales aprobados: ADMIN, SUBDIRECCION, REGISTRADOR y PORTERIA. Directora usa ADMIN con autoridad institucional general; SUBDIRECCION por niveles autorizados; REGISTRADOR por asignaciones vigentes. PORTERIA es independiente y limitado al escaneo QR y sus propios resultados. Secretaría con SUBDIRECCION solo con autorización institucional y cuenta individual. PORTERIA todavía no está implementado.
+D03. INICIAL (4 CREATIVOS, 5 GENIALES), PRIMARIA y SECUNDARIA. Calendarios independientes. Supervisión general adicional explícita según adenda 6C-A, no concedida automáticamente. La excepción especial de asistencia de D08 no cambia esa configuración general.
+D04. No implementar permisos configurables por rol, SECRETARIA ni SUPERADMIN. PORTERIA es el único cuarto rol aprobado y se desarrollará en su etapa futura. Soporte técnico autorizado y auditado, sin acceso académico implícito.
+
+2. CALENDARIO Y ASISTENCIA
+D05. ADMIN administra calendario de todos los niveles; SUBDIRECCION los autorizados. REGISTRADOR solo consulta calendarios derivados de sus asignaciones vigentes hoy en America/Lima, no por nivel_asignado aislado. Sin interfaz administrativa sobrecargada para REGISTRADOR; validación de lectividad obligatoria en backend.
+D06. Se permite modificar fechas pasadas del calendario mientras el año no esté CERRADO y no se invaliden asistencias existentes. No convertir en no lectiva una fecha con asistencias; proteger tanto excepciones como recortes/desplazamientos de períodos y auditar. La protección se extiende a sesiones existentes, incluso sin marcas: resolver el conflicto antes de convertir su fecha en no lectiva. Cierre/reapertura excepcional del año sigue pendiente; no confundir esta retroactividad del calendario con el registro de asistencia de D37.
+D07. Registro manual por sección con cuatro estados PENDIENTE/PRESENTE/TARDANZA/FALTA; PENDIENTE no equivale a FALTA. Sin asignar estados por defecto al abrir. Guardado parcial y completar pendientes posteriormente, sin cierre obligatorio. Se conserva el cierre compatible con advertencia, sin convertir pendientes en faltas; sesiones e historial permanecen. D36/D39 precisan etiqueta y transiciones. El frontend envía únicamente modificaciones efectivas; el backend confirma atómicamente las filas enviadas y conserva el tratamiento de no-op con versiones vigentes, sin eventos ni incremento de versiones.
+D08. ADMIN registra, corrige y justifica globalmente; SUBDIRECCION principal PRIMARIA abarca INICIAL/PRIMARIA, principal SECUNDARIA solo SECUNDARIA y principal INICIAL solo INICIAL por compatibilidad. REGISTRADOR solo en secciones asignadas tanto hoy en America/Lima como en la fecha de asistencia, con extremos inclusivos; pueden ser asignaciones distintas. Cargo y adicionales no amplían asistencia. La aprobación posterior de 7B.2 aplica esta matriz al guardado de justificación sencillo mediante el mismo PATCH. No extenderla a calendario, matrículas, importador, reportes futuros ni consulta técnica. Autorizar en servidor y revalidar actor activo bajo bloqueo en escrituras sensibles. P07 y las ampliaciones futuras de P10 conservan sus límites.
+D09. Permitir correcciones autorizadas antes y después del cierre, incluida FALTA a TARDANZA. 7B.3 suprime el motivo obligatorio de corrección en ABIERTA y CERRADA para los tres roles dentro de su ámbito. No reabrir ni alterar los datos de cierre al corregir. Conservar auditoría automática permanente, versiones, permisos, año ABIERTO, lectividad y fecha no futura. El cierre manual no es requisito para guardar o completar el día; no equivale a cierre anual ni logout. Una asistencia justificada persistida permanece protegida según D10/RF-08.
+D10. Justificación sencilla de 7B.2, independiente del estado base: solo FALTA/TARDANZA; PRESENTE/PENDIENTE no justificables. justificada es booleano; al enviar true exige motivo_justificacion Unicode válido no vacío tras recortar extremos, máximo 500 caracteres de entrada. Sin medio/canal, observaciones adicionales, adjuntos ni aprobación interna. Guardar junto con la marca, incluida primera marca, mediante una única operación PATCH transaccional. Se permite en ABIERTA/CERRADA, con año ABIERTO, fecha lectiva no futura y permisos existentes. Actor y fecha/hora automáticos en historial. La aceptación del motivo corresponde al criterio del personal autorizado; el sistema no verifica su veracidad ni sustituye procedimientos institucionales. Una justificación persistida no permite editar motivo, retirarla ni cambiar su estado; conflicto 409 sin guardado parcial. No habilitar endpoints independientes ni una pantalla de gestión. Esta protección es límite de etapa; el diseño de futuras modificaciones/retiros permanece en P10 y no está cancelado definitivamente.
+
+3. SEGUIMIENTO, BITÁCORA Y REPORTES
+D11. Un indicador mensual de seguimiento se activa con 3 incidencias combinadas (FALTA y/o TARDANZA), consecutivas o intercaladas, incluidas justificadas. Recalcular al menos diariamente y al registrar/corregir para reflejar cambios sin esperar fin de mes. No implica sanción.
+D12. Mostrar conteos separados de faltas, tardanzas, justificadas e injustificadas. ADMIN y SUBDIRECCION ven indicadores institucionales; REGISTRADOR solo resumen mensual sencillo por estudiante de sección autorizada.
+D13. Bitácora individual por estudiante, vinculada a identidad permanente, de solo anexar: no editar ni borrar por operaciones ordinarias. REGISTRADOR escribe/consulta en secciones autorizadas; ADMIN/SUBDIRECCION consultan según alcance. Actor y timestamp automáticos. Independiente de auditoría técnica.
+D14. Si estudiante cambia de sección, conserva asistencias y bitácora; nuevo REGISTRADOR puede consultar historial necesario para continuidad del seguimiento de estudiante actualmente asignado, sin acceso general a secciones ajenas.
+D15. Ficha mensual por sección exportable en cualquier momento, parcial o completa, sin cierre mensual obligatorio. REGISTRADOR exporta secciones asignadas; SUBDIRECCION niveles autorizados; ADMIN todos. Días futuros y sin registro no equivalen a faltas.
+D16. Leyenda de ficha: '.' presente, F falta, T tardanza, J falta justificada, U tardanza justificada. Referencia operativa, NO catálogo oficial exhaustivo SIAGIE. Formato final PDF/XLSX/CSV y plantilla quedan PENDIENTES hasta recibir modelo.
+
+4. ESTUDIANTES E IMPORTACIÓN
+D17. Sin eliminación física de estudiante/historial. Identidad permanente y estado de matrícula activa/retirada; desactivaciones auditadas. ADMIN/SUBDIRECCION consultan historiales dentro de alcance.
+D18. Importación inicial desde padrones SIAGIE con selección mínima útil. Conservar también identidades de trasladados (los 15 del padrón Primaria son contexto de fuente, no cantidad fija del sistema), sin activarlos para asistencia ni inventar historial/matrícula activa. ADMIN puede dar alta independiente; SUBDIRECCION clasifica identidades nuevas sin matrícula como REQUIERE_ADMIN; REGISTRADOR no importa. F01–F10 precisan el alcance; TRASLADADO no es nuevo estado SQL.
+D19. Importaciones iniciales y posteriores con comparación, validación, vista previa y confirmación de ADMIN/SUBDIRECCION autorizados. Selección parcial válida con confirmación atómica futura; reconocer existentes sin duplicar, borrar ni sobrescribir silenciosamente, y no retirar por ausencia en archivo parcial. Matrículas existentes, reingresos, cambios de sección, traslados y contactos se revisan; movimientos complejos pendientes. Preparación interna implementada no equivale a confirmación persistente.
+D20. Datos mínimos de estudiante, identificación, nombres y contexto académico y bloque APODERADO exclusivamente. No exigir teléfono ni inventar contactos; no importar separadamente padre/madre. Identidad fiable, fecha efectiva confirmada, normalización y efectos compartidos según F02/F04–F08. No ampliar la excepción telefónica a identidad ni regularización académica.
+D21. Respaldos/restauración MySQL como operación técnica separada; mantener respaldo antes de migraciones. Automatización y política de restauración para fase posterior, sin posponer protección básica de datos.
+
+5. TESTIMONIOS VS DISEÑO
+D22. Subdirector Secundaria informó necesidad de atender estudiantes con 3 faltas o tardanzas incluso intercaladas. Sumar ambos tipos, contar justificadas y usar mes calendario son decisiones de diseño, no norma oficial confirmada.
+D23. Auxiliares informaron que llamada, mensaje o fotografía del apoderado pueden bastar según su criterio; el sistema no valida veracidad ni sustituye procedimientos institucionales.
+D24. No atribuir testimonios de Secretaría de Primaria a Subdirección de Primaria; su titular no había sido entrevistada en la documentación aportada.
+
+6. ABIERTOS / FUERA DE ALCANCE ACTUAL
+P01. Formato exacto y medio de exportación; plantilla institucional.
+P02. Resuelto el registro diario sin cierre obligatorio: sesiones internas conservadas, cierre compatible y correcciones/anulaciones sin reapertura ni motivo obligatorio. Permanecen pendientes la autoridad de cierre/reapertura del año y procedimientos excepcionales. No confundir cierre diario, año ni logout; el fin de clases no cierra el año ni autoriza excepciones.
+P03. Política de conservación y recuperación de backups; soporte técnico separado.
+P04. Fuente de fechas de movimientos complejos, retiros/reingresos/traslados; contactos múltiples y sustitución/conciliación no resuelta de apoderados sin identidad fiable. Resolución parcial F02–F08: fecha general confirmada y excepciones individuales para alta aplicable, APODERADO único y excepción telefónica compartida. No inventar otras fechas ni ampliar vínculo activo único.
+P05. Activación de bitácora y relación con flag global/permiso individual existentes. QR está aprobado como módulo futuro funcional, opcional y deshabilitado por defecto hasta autorización; no es un simple registro independiente de asistencia.
+P06. Horarios de ingreso por turno, límites exactos PRESENTE/TARDANZA, autoridad para configurarlos, equipos y conectividad. No inventar horarios ni atribuir su administración a PORTERIA.
+P07. Alcance institucional formal de cuentas de Secretaría y otras operaciones académicas de ADMIN no confirmadas. No incluye como pendientes las facultades aprobadas de asistencia (D08), regularización (D41) ni consulta técnica de auditoría (D43). Secretaría no constituye un rol nuevo ni recibe autoridad implícita.
+
+7. CALENDARIO 6D — DECISIONES APROBADAS POSTERIORES A V4
+D25. Una tabla periodos_lectivos por año escolar y nivel representa intervalos inclusivos de clases, editables, dentro del intervalo del año y sin solapamientos para el mismo año/nivel. Lunes a viernes lectivos dentro de períodos; sábados y domingos no lectivos por defecto. El año sigue siendo global para los tres niveles.
+D26. calendario_lectivo representa excepciones diarias con motivo. Una excepción explícita prevalece sobre la regla automática y permite recuperación incluso fuera de períodos, sin período artificial, siempre dentro del año. Sin excepción y fuera de períodos, la fecha no es lectiva. Sin integración automática con UGEL ni generación innecesaria de 365 filas por nivel.
+D27. Bloqueos por rango atómicos, máximo 366 fechas por operación. Una recuperación explícita habilitada incompatible produce HTTP 409 sin cambios parciales. No sobrescribirla silenciosamente.
+D28. Esquema y contratos API de 6D-0 aprobados por etapa e implementados en 6D-2. Solapamientos, límites del año, permisos, protección de asistencia/sesiones y concurrencia se validan en backend; no confundirlos con garantías de CHECK/UNIQUE ni protección de escritores externos que omitan el protocolo.
+
+8. QR Y PORTERIA — DECISIONES APROBADAS, FUNCIONALIDAD FUTURA
+D29. PORTERIA podrá iniciar sesión, escanear QR de estudiantes y visualizar únicamente el resultado de sus propios escaneos. Operará en INICIAL, PRIMARIA y SECUNDARIA mediante el acceso principal compartido; la vista mostrará solo la información necesaria para identificar al estudiante y verificar el resultado.
+D30. PORTERIA no modifica manualmente asistencias, no gestiona justificaciones ni horarios, no emite/revoca credenciales, no consulta listados generales y no genera reportes. No hereda facultades de REGISTRADOR por operar sobre los mismos estudiantes.
+D31. QR será completamente funcional al implementarse, pero seguirá opcional y deshabilitado por defecto hasta autorización. Cada credencial corresponde a una matrícula anual. No se implementan salidas ni múltiples ingresos diarios.
+D32. Un escaneo válido registra automáticamente PRESENTE o TARDANZA según el horario de ingreso configurado para el turno correspondiente. Se refleja en la misma asistencia diaria que consulta docente/auxiliar, sin confirmación individual. REGISTRADOR puede corregir conforme a sus permisos habituales, con auditoría.
+D33. El escaneo que registra asistencia solo se permite con año escolar ABIERTO y fecha lectiva según el calendario efectivo del nivel del estudiante. Incluye recuperaciones explícitas habilitadas en fines de semana o fuera de períodos. Año PLANIFICADO/CERRADO o fecha no lectiva: rechazo en backend sin alterar datos existentes; no basta una validación del frontend.
+D34. Los escaneos duplicados no generan asistencias duplicadas. La política de conflictos con registros manuales sigue pendiente; no deducir de esta regla una autorización para sobrescribir estados, justificaciones o correcciones manuales.
+D35. QR y PORTERIA se desarrollarán después del módulo principal de asistencia, mediante una migración futura independiente de 003. No están implementados por aprobar esta documentación.
+
+9. PENDIENTES ESPECÍFICOS QR/PORTERIA
+P08. Política de conflictos entre registros manuales y QR, incluidos orden de llegada, registros ya corregidos o justificados y concurrencia. No asignar prioridad automática a un origen.
+P09. Relación entre PORTERIA y puede_escanear_qr: permiso obligatorio, implícito o combinación todavía no definidos. No conceder acceso por rol o flag sin resolverlo.
+P10. PARCIALMENTE RESUELTO por 7B.2/005 y 7B.3/006. Resueltos para el flujo sencillo: registro, permisos actuales, motivo sin canal, guardado conjunto con primera marca, contrato PATCH, lectura de motivos, SQL, versiones, concurrencia, no-op y evento único. La respuesta de esta etapa a corregir/editar/retirar una marca ya justificada es rechazo, sin traslado ni borrado automático de la justificación. Pendientes para una etapa futura autorizada: edición/retiro, correcciones de marcas justificadas, política de conservación de sus motivos sucesivos y transición de datos si se habilitan esas operaciones. El retiro contemplado en RF-08 V7 se aplaza; no está disponible ni cancelado como capacidad futura. No reabrir decisiones ya aprobadas de estado base independiente o cómputo de justificadas en el indicador mensual.
+
+10. ESTADO DE IMPLEMENTACIÓN Y CAMBIO DE VERSIÓN
+ESTADO CONTRASTADO Y LÍMITE DE EVIDENCIA
+EVIDENCIA HISTÓRICA V7 (15/11/2026, NO ESTADO ACTUAL): Repositorio master ff3ca53fd3d88f8e6fd2f41f0ed9df1be28ab3d7, referencia de esta consolidación del 15/11/2026. Implementados: health, autenticación bcrypt/JWT, usuarios y supervisión adicional explícita, asignaciones iniciales, consulta/creación/apertura de años, secciones, calendario efectivo, identidades, matrícula inicial/padrón por fecha, asistencia manual y supervisión diaria mediante seis endpoints. Escritura de auditoría administrativa e historial individual implementadas para sus operaciones existentes. Estado posterior de 7B.2/7B.3 y búsqueda global en anexo V8.
+Importaciones: dependencias, recepción/lectura XLSX, inspección ZIP/XML y conciliación interna presentes; sin rutas del importador registradas en app.js y sin confirmación persistente. Preparar una propuesta no confirma importaciones ni actualiza contactos.
+Pendientes actuales: edición/retiro de justificaciones; edición/movimientos académicos posteriores y regularizaciones; gestión operativa de contactos/teléfonos; indicador mensual y fichas/exportaciones; bitácora; consulta técnica de auditoría; gestión global de configuración; horarios y QR/PORTERIA; cierre/reapertura del año. No declarar completo un RF por estar implementada solo una parte. Frontend observado parcialmente en auditoría documental; no acredita integración ni aprobación de todos sus detalles.
+Diagnóstico de lectura anterior de esta conversación, 15/11/2026: MySQL 8.4.13, asistencia_paillardelle local, 20 tablas, 162 columnas, 20 PK, 25 UNIQUE, 30 FK y 23 CHECK habilitados; sin diferencias estructurales sustanciales detectadas frente a v1 + 002 + 003 + 004. Se comprobaron 30 FK sin huérfanos y no se detectaron las inconsistencias de versiones, vigencias o solapamientos examinadas. No acredita ausencia de todo defecto ni el estado de otras instalaciones. Esta generación documental no conecta a MySQL ni repite esos controles.
+El README de asistencia registra 690 pruebas y comprobaciones aisladas para la etapa inicial, y posteriormente 705 pruebas y 64 comprobaciones HTTP de supervisión. Son resultados históricos atribuidos a esas entregas, no ejecutados nuevamente aquí. No extrapolar 303 pruebas o 19 tablas de etapas anteriores al presente.
+
+11. ASISTENCIA PRINCIPAL — CONFIRMACIONES POSTERIORES Y PENDIENTE
+D36. PENDIENTE significa ausencia de marca vigente por no haber marcado o por anulación lógica. Al REGISTRADOR se presenta como «Sin marcar», etiqueta exclusiva del frontend, no nuevo estado SQL/API. No crear SIN_MARCAR, SIN MARCAR, NO_MARCADO ni equivalentes. Representación técnica aprobada e implementada en 004: fila física por matrícula del padrón con estado PENDIENTE; el contrato PATCH solicita ese estado. Nunca marcado: versión 0, sin actor/instante de primera marca ni evento individual; su inclusión corresponde a apertura administrativa. No confundir con SIN_REGISTRO, ausencia de sesión según D47.
+D37. Registrar asistencia ordinaria solo con año ABIERTO y fecha lectiva efectiva del nivel, incluidas recuperaciones explícitas habilitadas fuera de períodos o en fin de semana. Se permite cualquier fecha lectiva pasada mientras el año esté ABIERTO, sin límite arbitrario de días; se prohíben fechas futuras. Conservar separadamente fecha de asistencia y fecha/hora real del registro o modificación. Usar fecha civil de referencia en America/Lima. No exigir año ABIERTO ni lectividad indiscriminadamente a consultas históricas o preparación académica.
+D38. No crear sesiones sin estudiantes matriculados y vinculados efectivamente a la sección para la fecha. No crear nuevas sesiones en secciones inactivas; conservar consultas históricas. Abrir únicamente en fechas lectivas del nivel. El frontend informa los días no lectivos y deshabilita su apertura; el backend revalida año, sección, padrón, fecha y permisos.
+D39. PENDIENTE («Sin marcar» solo en presentación REGISTRADOR) anula lógicamente una marca no justificada, conservando fila, ID e historial. En ABIERTA/CERRADA no exige motivo de corrección ni reapertura, según 7B.3. Reactivar reutiliza registro y datos originales de primera marca. Cada cambio efectivo incrementa versión y genera un evento; nunca marcado o repetición sin cambios no genera eventos redundantes. No crear estados SIN_MARCAR u otros equivalentes. La protección de marcas justificadas de 7B.2 prevalece: no permite anularlas ni cambiar su estado. Implementado sobre 004/005/006; operaciones futuras de justificación según P10.
+D40. Cada cambio efectivo —primera marca, modificación, anulación, reactivación o justificación— conserva asistencia y contexto académico por referencias, estados y justificación antes/después, motivos de justificación anterior/nuevo, actor autenticado revalidado, timestamp real y versiones anterior/nueva. Exactamente un evento individual por modificación; ninguno por no-op con versiones vigentes. Un guardado que cambia estado y justificación registra ambos en el mismo evento; cambio e historial son atómicos y el fallo del evento impide confirmar el lote. En CERRADA se conserva posterior_cierre=1 aunque motivo sea NULL; el motivo de corrección es opcional, el de justificación continúa obligatorio. historial_asistencias es el destino individual, sin duplicar el evento en auditoria_administrativa. Apertura/cierre y cambios administrativos conservan sus eventos propios. Consulta técnica sigue futura: ADMIN/SUBDIRECCION dentro de ámbito, REGISTRADOR sin eventos técnicos; consulta académica autorizada no equivale a auditoría técnica. No exponer eventos técnicos ni motivos históricos en pantallas ordinarias o respuestas públicas.
+D41. La regularización de matrículas será explícita, transaccional y auditada. ADMIN puede regularizar globalmente; SUBDIRECCION solo si todos los niveles y secciones afectados pertenecen a su ámbito autorizado; REGISTRADOR no puede regularizar matrículas. Detectar los efectos retroactivos sobre padrón, sesiones y asistencias; nunca modificar, trasladar o eliminar silenciosamente asistencias históricas. La autoridad está aprobada; no equivale a implementar movimientos ni a resolver fechas efectivas o procedimientos excepcionales todavía pendientes.
+D42. Conservar el padrón histórico y la relación de matrícula/vínculo efectiva para la fecha de asistencia. Altas retroactivas y movimientos deben detectar conflictos con sesiones existentes antes de persistir efectos incompatibles. Las inclusiones/exclusiones del padrón de una sesión deben ser explícitas y auditarse con antes/después, actor y timestamp en la misma transacción. No recalcular ni sustituir silenciosamente el pasado desde el padrón actual.
+D43. Cada cambio efectivo —primera marca, modificación, anulación, reactivación o justificación— conserva asistencia y contexto académico por referencias, estados y justificación antes/después, motivos de justificación anterior/nuevo, actor autenticado revalidado, timestamp real y versiones anterior/nueva. Exactamente un evento individual por modificación; ninguno por no-op con versiones vigentes. Un guardado que cambia estado y justificación registra ambos en el mismo evento; cambio e historial son atómicos y el fallo del evento impide confirmar el lote. En CERRADA se conserva posterior_cierre=1 aunque motivo sea NULL; el motivo de corrección es opcional, el de justificación continúa obligatorio. historial_asistencias es el destino individual, sin duplicar el evento en auditoria_administrativa. Apertura/cierre y cambios administrativos conservan sus eventos propios. Consulta técnica sigue futura: ADMIN/SUBDIRECCION dentro de ámbito, REGISTRADOR sin eventos técnicos; consulta académica autorizada no equivale a auditoría técnica. No exponer eventos técnicos ni motivos históricos en pantallas ordinarias o respuestas públicas.
+D44. Cambios de asistencia e historial individual, y cambios administrativos con su auditoría, deben ser atómicos. Aplicar control de concurrencia mediante versiones y bloqueos compatibles; revalidar actor activo y permisos bajo bloqueo. Reutilizar shared/transaction.js. Ante fallo de COMMIT, el resultado puede ser incierto: descartar siempre la conexión, preservar el error principal y no reintentar automáticamente; un ROLLBACK posterior no prueba reversión. No borrar historial ni auditorías ni incluir contraseñas, hashes o tokens secretos.
+D45. Reutilizar asistencias/ para sesiones, marcas, correcciones, anulaciones, justificaciones sencillas e historial individual, y auditoria/ para anexado administrativo y futura consulta técnica. HTTP en rutas/controladores, negocio en servicios, SQL en repositorios. Misma conexión para efectos atómicos; sin ciclos, módulos paralelos, capas vacías o duplicación de reglas/SQL. Nuevas operaciones de edición/retiro/regularización requieren etapas autorizadas; no crear todas las capas sugeridas históricamente por V6.
+D46. La documentación no modifica esquema ni autoriza implementar, migrar o hacer commits. V8 es BORRADOR NO APROBADO; su preparación fue autorizada, su adopción no. Conservar V7 byte a byte en el commit histórico 9f7b9715f35f829b2bcbb9ba4402b4c358bc58d5, sin declararla vigente, y V6/anteriores, SQL v1 y migraciones 002–006 sin sobrescribir. 004/005/006 tuvieron autorizaciones de ejecución separadas; los comentarios originales de preparación no describen el estado actual de cada instalación. QR/PORTERIA permanecen futuros. AGENTS.md todavía remite a v5 y no se modifica en esta preparación; la adopción y actualización de referencias requieren autorización posterior.
+
+D47. Consulta y supervisión diaria aprobadas el 15/11/2026: listar secciones autorizadas por año y fecha, filtros nivel/sección, paginación y resumen, sin crear sesiones, marcas ni auditorías. Situaciones ABIERTA/CERRADA/SIN_REGISTRO; esta última solo ausencia de sesión, no estado individual, omisión ni falta. Sin sesión: sesion_id/resumen null. Incluir secciones actualmente inactivas y permitir fechas futuras dentro del año y años PLANIFICADO/ABIERTO/CERRADO, según ámbito D08. REGISTRADOR requiere asignación hoy y en fecha solicitada también para estas consultas. Se aprueba presentar el resumen diario en las tarjetas de «Mis secciones» según las condiciones de presentación del contrato técnico. Esta decisión no acredita implementación; la consulta diaria no implementa indicadores mensuales, fichas ni historial académico de continuidad completo.
+
+12. TRAZABILIDAD DE CONSERVACIÓN V6 → V7 — ANTECEDENTE HISTÓRICO, no clasificación V7 → V8; ver matriz nueva
+D01 -> mismo identificador V7: precisión de canales de mensajería automática excluidos, sin cambio de alcance.
+D02 -> mismo identificador V7: conservado sin cambio de contenido.
+D03 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+D04 -> mismo identificador V7: conservado sin cambio de contenido.
+D05 -> mismo identificador V7: conservado sin cambio de contenido.
+D06 -> mismo identificador V7: conservado sin cambio de contenido.
+D07 -> mismo identificador V7: conservado sin cambio de contenido.
+D08 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+D09 -> mismo identificador V7: conservado sin cambio de contenido.
+D10 -> mismo identificador V7: conservado sin cambio de contenido.
+D11 -> mismo identificador V7: conservado sin cambio de contenido.
+D12 -> mismo identificador V7: conservado sin cambio de contenido.
+D13 -> mismo identificador V7: conservado sin cambio de contenido.
+D14 -> mismo identificador V7: conservado sin cambio de contenido.
+D15 -> mismo identificador V7: conservado sin cambio de contenido.
+D16 -> mismo identificador V7: conservado sin cambio de contenido.
+D17 -> mismo identificador V7: conservado sin cambio de contenido.
+D18 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+D19 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+D20 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+D21 -> mismo identificador V7: conservado sin cambio de contenido.
+D22 -> mismo identificador V7: conservado sin cambio de contenido.
+D23 -> mismo identificador V7: conservado sin cambio de contenido.
+D24 -> mismo identificador V7: conservado sin cambio de contenido.
+P01 -> mismo identificador V7: conservado sin cambio de contenido.
+P02 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+P03 -> mismo identificador V7: conservado sin cambio de contenido.
+P04 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+P05 -> mismo identificador V7: conservado sin cambio de contenido.
+P06 -> mismo identificador V7: conservado sin cambio de contenido.
+P07 -> mismo identificador V7: conservado sin cambio de contenido.
+D25 -> mismo identificador V7: conservado sin cambio de contenido.
+D26 -> mismo identificador V7: conservado sin cambio de contenido.
+D27 -> mismo identificador V7: conservado sin cambio de contenido.
+D28 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+D29 -> mismo identificador V7: conservado sin cambio de contenido.
+D30 -> mismo identificador V7: conservado sin cambio de contenido.
+D31 -> mismo identificador V7: conservado sin cambio de contenido.
+D32 -> mismo identificador V7: conservado sin cambio de contenido.
+D33 -> mismo identificador V7: conservado sin cambio de contenido.
+D34 -> mismo identificador V7: conservado sin cambio de contenido.
+D35 -> mismo identificador V7: conservado sin cambio de contenido.
+P08 -> mismo identificador V7: conservado sin cambio de contenido.
+P09 -> mismo identificador V7: conservado sin cambio de contenido.
+D36 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+D37 -> mismo identificador V7: conservado sin cambio de contenido.
+D38 -> mismo identificador V7: conservado sin cambio de contenido.
+D39 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+D40 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+D41 -> mismo identificador V7: conservado sin cambio de contenido.
+D42 -> mismo identificador V7: conservado sin cambio de contenido.
+D43 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+D44 -> mismo identificador V7: conservado sin cambio de contenido.
+D45 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+D46 -> mismo identificador V7: precisado/sustitución expresa del aspecto descrito; obligación compatible conservada.
+Adiciones D47/P10.
+
+CORRESPONDENCIAS FUNCIONALES V8 (mismos identificadores; ver matriz para sustituciones)
+- D01–D05 -> RN-01/RN-06/RN-15/RN-29/RN-30; RF-01/RF-02/RF-03; RNF-01/RNF-02.
+- D06/D25–D28 -> RN-15/RN-26–RN-28; RF-03; impacto 3/6–12.
+- D07/D36/D39 -> RN-04/RN-05/RN-35/RN-36; RF-06/RF-17; impacto 29/30/32/38.
+- D08 -> RN-06/RN-39; RF-19; impacto 33; justificación sencilla resuelta, ampliaciones P10.
+- D09/D37/D38 -> RN-03/RN-07/RN-37/RN-38; RF-07/RF-18; impacto 22/31/32.
+- D10 -> RN-08/RN-09; RF-08; P10 e impacto 21.
+- D11/D12/D15/D16 -> RN-19/RN-21–RN-23; RF-10/RF-11/RF-12; impacto 25.
+- D13/D14/D17 -> RN-02/RN-17/RN-18/RN-24; RF-05/RF-10/RF-15; impacto 23/24.
+- D18–D20 y F01–F10 -> RN-11/RN-12/RN-13/RN-20; RF-04/RF-05; RNF-09; impacto 24 y T01–T05.
+- D21 -> RN-25; RNF-07; P03 e impacto 40.
+- D22–D24 -> testimonios/decisiones: no atribuir norma oficial al indicador ni a la leyenda.
+- D29–D35 -> RN-16/RN-29–RN-34; RF-13/RF-14/RF-16; P05/P06/P08/P09; impacto 13–20.
+- D40/D43/D44 -> RN-10/RN-41/RN-42/RN-43; RF-09/RF-21; RNF-05/RNF-12; impacto 35/36/38.
+- D41/D42 -> RN-40/RN-44; RF-20; impacto 34.
+- D45/D46 -> RN-45/RN-46; RNF-11/RNF-12; impacto 26–28/37/40.
+- D47 -> RN-47/RF-22, con ámbito RN-06/RF-19; contrato/supervisión en impacto.
+- P01–P10 se definen en decisiones; no son requisitos retirados ni autorización implícita.
+
+SUSTITUCIONES EXPRESAS Y LÍMITES
+Históricos V2/V4/V5: FUT obligatorio, exclusividad de justificación SUBDIRECCION, solo FALTA justificable, QR sin alterar asistencia, bitácora solo por nivel y ausencia física de fila como PENDIENTE no rigen frente a decisiones posteriores. No reutilizar numeración de V2 sin versión.
+V6: condición pendiente de representación PENDIENTE, contrato principal, persistencia sesiones/cierre/padrón e historial/versiones de marcas sustituida por diseño/004 aprobado. La evolución posterior 7B.2/005 y 7B.3/006 resuelve parcialmente P10; esta redacción no autoriza DDL futuro.
+Matriz posterior sustituye dependencia de adicionales en operaciones de asistencia y justificación sencilla, con límite específico de búsqueda global, sin alterar otros módulos. Tabla separada sesion_asistencia_matriculas, columna anulada, JSON de eventos y nombres de capas sugeridos no fueron adoptados por 004; no son obligaciones ni tareas implícitas.
+Módulos vacíos, 303 pruebas o 19 tablas son fotografías históricas, no reglas. Ninguna obligación vigente desaparece por estar pendiente.
+
+13. IMPORTACIONES — F01–F10 CONSOLIDADAS
+Decisiones aprobadas del complemento v1, reproducidas completas; no acreditan confirmación persistente. T01–T05 en impacto.
+
+F01. Naturaleza y alcance inicial
+
+Importación general de estudiantes mediante XLSX, inicialmente compatible con padrones exportados desde SIAGIE. No hay conexión, integración directa, sincronización ni modificación de SIAGIE.
+
+La primera versión se centra en altas iniciales y contactos. Debe reconocer el formato, extraer lo necesario, validar y presentar una vista previa antes de cualquier escritura. Las variantes de Inicial, Primaria y Secundaria no se consideran compatibles hasta validar sus estructuras; la primera referencia es Inicial.
+
+F02. Preparación académica y fechas
+
+El año escolar y las secciones deben existir previamente. El importador no crea secciones automáticamente. Deben respetarse las autorizaciones por nivel y las validaciones académicas existentes.
+
+El usuario confirma una fecha efectiva general de ingreso por importación y puede indicar excepciones individuales. Nunca asignar fechas efectivas automáticamente a partir de la fecha actual, la carga del archivo, el inicio del año u otra suposición. La confirmación de una fecha no autoriza inventar fechas de retiro, traslado o reingreso.
+
+El alta inicial existente admite años `PLANIFICADO` o `ABIERTO`, exige sección activa del mismo año y fecha de ingreso dentro de sus límites; rechaza `CERRADO`. No requiere día lectivo para preparar matrícula. La exigencia de año `ABIERTO` y día lectivo de asistencia no debe extenderse indiscriminadamente a esta preparación académica.
+
+F03. Estudiantes trasladados y permisos
+
+Los estudiantes identificados como TRASLADADOS en el archivo conservan su identidad, sin activarse para asistencia hasta regularizar su situación académica. No crear matrícula activa ni historial académico ficticio para representarlos.
+
+- `ADMIN` puede conservar una identidad nueva sin matrícula activa, utilizando su facultad vigente de alta independiente.
+- `SUBDIRECCION` debe clasificar esas identidades nuevas como `REQUIERE_ADMIN`; no obtiene permiso para crearlas de manera independiente.
+- Una identidad ya existente se reconoce sin duplicarla. El archivo no autoriza alterar ni cancelar sus matrículas o vínculos existentes.
+- `REGISTRADOR` no accede al importador.
+
+`TRASLADADO` es información del archivo, no un nuevo estado SQL. `REQUIERE_ADMIN` y `OBSERVADO` son clasificaciones de revisión de la importación, no roles ni estados de matrícula o asistencia. Las matrículas actuales usan `ACTIVA`, `RETIRADA` y `FINALIZADA`.
+
+`ADMIN` opera globalmente; `SUBDIRECCION` solo en su ámbito autorizado. No ampliar permisos por inferencia a partir del objetivo de importar un padrón completo.
+
+F04. Identificación fiable y contradicciones
+
+Exigir al menos código de estudiante —código SIAGIE cuando sea la fuente— o documento válido. Si faltan ambos, clasificar `OBSERVADO`. No identificar ni fusionar estudiantes únicamente por nombres.
+
+Si código y documento corresponden a identidades distintas, bloquear el registro por conflicto. Conservar los identificadores como texto, incluidos ceros iniciales. El documento, cuando se aporte, requiere tipo y número coherentes. No sobrescribir silenciosamente datos contradictorios ni revelar recursos fuera del ámbito autorizado para explicar un conflicto.
+
+F05. Datos mínimos y apoderado designado
+
+Datos previstos, sujetos al mapeo validado del formato:
+
+| Entidad | Datos necesarios |
+| --- | --- |
+| Estudiante | Código de estudiante, apellido paterno, apellido materno, nombres, tipo y número de documento cuando existan |
+| Matrícula | Año escolar, nivel, grado, sección, estado de origen revisado y fecha efectiva confirmada para el alta aplicable |
+| Apoderado designado | Apellidos y nombres, documento cuando exista, parentesco y celular cuando exista |
+
+Importar exclusivamente el bloque `APODERADO`, aunque la persona sea padre o madre. No importar por separado los bloques de padre y madre. No incorporar campos adicionales sin justificar su necesidad antes de incluirlos.
+
+El código interno de estudiante es `codigo_estudiante`; el nombre del apoderado se almacena actualmente como `contactos.nombres_apellidos`, el celular como `contactos.telefono` y el parentesco en `estudiante_contactos`. Los campos incompletos de contacto no impiden por sí solos importar al estudiante. No inventar un apoderado, documento ni teléfono para completar vacíos.
+
+F06. Contactos compartidos
+
+Reutilizar contactos solo con identidad fiable. No fusionarlos por nombre o teléfono. Un contacto puede estar vinculado a varios estudiantes; el esquema actual permite un único vínculo activo por estudiante, no múltiples apoderados activos.
+
+Las diferencias detectadas por la importación requieren revisión y confirmación. No sustituir silenciosamente al apoderado, cambiar sus datos o alterar vínculos. El procedimiento concreto de sustitución y conciliación de contactos sin documento sigue pendiente; no deducir una identidad fiable por similitud.
+
+F07. Teléfonos
+
+Aceptar celulares peruanos de nueve dígitos que comiencen por `9`, con prefijos opcionales `+51` o `51`; normalizar a nueve dígitos. Admitir `null`.
+
+Si una celda contiene varios números, solicitar selección manual de un principal válido en la vista previa. No elegir automáticamente, concatenar ni truncar números. Las entradas inválidas deben señalarse para revisión, sin transformarlas silenciosamente en un celular válido.
+
+F08. Excepción aprobada para teléfono compartido
+
+`ADMIN` y `SUBDIRECCION` pueden actualizar el teléfono de un apoderado compartido cuando tengan autorización sobre al menos un estudiante vinculado. Se modifica el único registro de contacto y el cambio se refleja en todos sus estudiantes vinculados, incluso entre niveles.
+
+Exigir identidad fiable, vista previa del efecto compartido, confirmación expresa, auditoría y revalidación de concurrencia. La presentación del efecto debe proteger datos personales y no conceder consulta general de estudiantes ajenos.
+
+Esta excepción permite exclusivamente cambiar el teléfono. No autoriza modificar nombres, documentos, matrículas, secciones ni otros recursos fuera del ámbito permitido. Tampoco sustituye la regla de regularización académica: `SUBDIRECCION` necesita autorización sobre todos los ámbitos académicos afectados por esa operación.
+
+En una etapa posterior, `REGISTRADOR` tendrá el mismo comportamiento para editar manualmente teléfonos de contactos vinculados a sus estudiantes asignados, con las mismas garantías. No accede al importador ni recibe esta funcionalidad en la etapa 1B.
+
+F09. Importación parcial y repetición
+
+Permitir seleccionar registros válidos y excluir los observados. Los registros seleccionados se confirman de manera atómica: no persistir partes inconsistentes del conjunto confirmado.
+
+Una importación posterior del mismo archivo corregido reconoce estudiantes y matrículas existentes sin duplicarlos ni sobrescribirlos silenciosamente. La ausencia de un estudiante en un archivo parcial nunca significa retiro o desactivación.
+
+Las matrículas existentes en el mismo año se revisan; no crear otra matrícula ni aplicar movimientos automáticamente. Retiros, reingresos, traslados y cambios de sección complejos quedan para etapas posteriores. No borrar registros históricos ni crear fechas o historiales para forzar la conciliación.
+
+F10. Vista previa y confirmación
+
+Vista previa temporal de 30 minutos, sin persistencia permanente de archivos pendientes. Toda escritura futura requiere confirmación explícita y nueva validación de los datos, actor activo, permisos y estado concurrente.
+
+La selección del cliente y las excepciones admitidas no autorizan alterar arbitrariamente el plan validado. El contrato, los identificadores de filas y el mecanismo de protección del plan deben quedar verificables antes de habilitar confirmaciones.
+
+
+14. CONTRATO TÉCNICO Y FUENTES
+MATRIZ ESPECIAL DE ASISTENCIA (decisión aprobada del 15/11/2026)
+Alcance: listado de sesiones, detalle, resumen, apertura/recuperación, guardado y cierre compatibles; incluye justificación sencilla en el PATCH. ADMIN tres niveles; SUBDIRECCION principal PRIMARIA INICIAL/PRIMARIA, SECUNDARIA solo SECUNDARIA, INICIAL solo INICIAL. REGISTRADOR exige asignación hoy y en fecha solicitada, inclusive, potencialmente filas distintas. Cargo/adicionales no amplían ámbito. Búsqueda global de estudiantes para asistencia: solo ADMIN/SUBDIRECCION dentro de ámbito, no REGISTRADOR; búsqueda local por nombres, apellidos y código, sin distinguir mayúsculas/minúsculas ni tildes, limitada al padrón cargado y sin perder modificaciones pendientes, no amplía permisos.
+No trasladar la matriz especial a otros módulos. Matrículas conserva sus condiciones propias: SUBDIRECCION de Secundaria opera únicamente en SECUNDARIA, según el contrato documentado de ese módulo; esta precisión no modifica ni amplía permisos. 7B.2 resolvió la aplicación al flujo sencillo de justificaciones; las ampliaciones futuras permanecen en P10.
+
+CONTRATO TÉCNICO IMPLEMENTADO DE ASISTENCIA
+- POST /api/asistencias/sesiones: { seccion_id, fecha }; 201 al crear y 200 al recuperar, sin reabrir ni reinicializar. Una sesión por sección/fecha.
+- GET /api/asistencias/sesiones/:id: sesión, padrón estable, marcas, versiones, resumen y último cambio operativo; sin eventos técnicos ni motivos históricos. Cada fila añade justificada booleano y motivo_justificacion texto/null; no es historial técnico.
+- PATCH /api/asistencias/sesiones/:id/registros: { version, cambios: [{ asistencia_id, version, estado, motivo?, justificada?, motivo_justificacion? }] }; solo se procesan las filas enviadas; lote atómico de hasta 2.000 cambios y 512 KB, incluida primera marca con justificación. El frontend envía únicamente modificaciones efectivas; el backend conserva la aceptación de no-op con versiones vigentes, sin eventos ni incremento de versiones. motivo de corrección opcional en ABIERTA/CERRADA; motivo_justificacion obligatorio al enviar justificada=true. Omitir los campos nuevos preserva valores existentes; false solo admite motivo_justificacion omitido/null. No se admite motivo_justificacion sin justificada; motivo de corrección es opcional e independiente de esos campos. Justificación persistida protegida y conflictos 409. No cambia contrato por rol.
+- POST /api/asistencias/sesiones/:id/cierre: { version }; cierre y advertencia PENDIENTES_AL_CERRAR con cantidad cuando corresponda.
+- GET /api/asistencias/sesiones/:id/resumen: { sesion_id, version, resumen }.
+- GET /api/asistencias/sesiones: anio_escolar_id y fecha obligatorios; nivel, seccion_id, page y limit opcionales. Página 1/límite 20 por defecto, máximo 100; orden ID ascendente y has_more.
+Todas las rutas requieren JWT y actor activo, con Cache-Control: no-store. IDs BIGINT UNSIGNED como texto; versiones como enteros JSON; fechas civiles reales YYYY-MM-DD. Se rechazan campos desconocidos, duplicados o inválidos.
+Apertura inicial: filas PENDIENTE con justificada=0 y version=0, registrado_por/primera_marca_en NULL. Esa inclusión no es primera marca ni genera evento individual; apertura administrativa auditada con pertenencia del padrón, sin copiar nombres/documentos/teléfonos. Primera marca: versión 0 a 1 y conservación de registrado_por/primera_marca_en en cambios posteriores. Anulación/reactivación conserva la fila, ID e historial; cada cambio efectivo aumenta una versión individual.
+La versión de sesión aumenta una vez por guardado efectivo o cierre compatible. No-op con versiones vigentes no genera eventos ni incremento; reiterar cierre vigente tampoco. Versiones obsoletas producen 409. En CERRADA no se exige motivo de corrección ni se reabre; se conserva posterior_cierre. Si se envía motivo opcional debe ser no vacío y hasta 500 caracteres; el motivo de justificación sigue obligatorio.
+Crear, marcar y cerrar exige año ABIERTO, fecha no futura dentro del año y lectividad efectiva; nueva sesión exige sección activa y padrón no vacío/sin vínculos ambiguos. Consulta y recuperación sin cambios conservan acceso histórico autorizado. La pertenencia del padrón no se recalcula silenciosamente. Alta retroactiva incompatible: 409, sin regularización automática.
+Cada cambio individual y su único evento en historial_asistencias comparten transacción. Apertura/cierre usan auditoria_administrativa; no duplicar allí el mismo cambio individual. UNIQUE(asistencia_id, version_nueva) impide duplicados; el servicio garantiza existencia del evento, no una FK por sí sola.
+Resumen: total, presentes, tardanzas, faltas y pendientes. Listado por sección: seccion, es_lectivo, situacion ABIERTA/CERRADA/SIN_REGISTRO, sesion_id y resumen. Sin sesión, ambos últimos son null: no se crean marcas ni pendientes virtuales. SIN_REGISTRO no indica incumplimiento, particularmente en días futuros/no lectivos. Decisión de presentación aprobada: mostrar indicadores de asistencia diaria en las tarjetas de «Mis secciones», usando datos confirmados del backend y fecha civil de referencia en America/Lima. Distinguir sesiones con registro (ABIERTA/CERRADA), ausencia de registro (SIN_REGISTRO), fechas no lectivas, fechas fuera del año y errores de consulta; estas condiciones no se equiparan entre sí. Mostrar conteos solo cuando exista un resumen confirmado del backend; no sustituir datos ausentes, no aplicables o fallidos por ceros ficticios. Esta presentación diaria no equivale al indicador mensual de seguimiento ni acredita implementación o integración frontend/backend.
+Listado admite secciones actualmente inactivas y años PLANIFICADO/ABIERTO/CERRADO y fechas futuras dentro de límites. Autorizar antes de paginar; filtrar no amplía ámbito. Sin secciones autorizadas, lista vacía; sección filtrada ajena/inexistente/incompatible: 404; nivel fuera de matriz SUBDIRECCION: 403; fecha fuera del año: 400; año inexistente: 404.
+Listado obtiene una instantánea READ ONLY/REPEATABLE READ, sin FOR UPDATE/FOR SHARE, sin efectos secundarios ni N+1 por sección. Esto no describe los bloqueos de los GET de detalle/resumen, que reutilizan el contexto transaccional del módulo. Datos de último cambio son operativos; no equivalen a API de auditoría técnica.
+Timestamps nuevos del historial/sesión en UTC, separados de DATE civil America/Lima. Errores de contrato/justificación 400, autenticación 401, recurso ajeno 404, conflictos/versiones 409, tamaño 413 e interno seguro 500. La API admite la justificación sencilla y rechaza cambios de estado/edición/retiro de marcas justificadas persistidas hasta una etapa futura. Quitar motivo de corrección no suprime auditoría.
+
+CONJUNTO Y REFERENCIAS CRUZADAS
+- docs/requisitos/PAILLARDELLE_DECISIONES_v8.txt
+- docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v8.txt
+- docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v8.txt
+- docs/requisitos/PAILLARDELLE_IMPACTO_v8.txt
+Citar identificador y versión. F01–F10 se definen en decisiones y T01–T05 en impacto; referencias en los demás documentos no son definiciones duplicadas.
+
+FUENTES Y PRECEDENCIA DOCUMENTAL
+Rutas relativas a la raíz del proyecto:
+- docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v6.txt
+- docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v6.txt
+- docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v6.txt
+- docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v6.txt
+- docs/requisitos/IMPORTACION_ESTUDIANTES_DECISIONES_v1.md (14/11/2026), F01–F10 y T01–T05.
+- docs/requisitos/adenda_6c_a_inicial_supervision.md, decisiones compatibles de supervisión general.
+- docs/database/ASISTENCIA_DIARIA_DISENO_v1.md, diseño aprobado de 004; separar sus párrafos originales de propuesta del estado posterior aprobado.
+- docs/database/asistencia_paillardelle_mysql_v1.sql y docs/database/migrations/002_inicial_supervision_multinivel.sql, 003_periodos_lectivos.sql, 004_asistencia_diaria.sql; docs/database/migrations/README.md para ejecución local y ensayo de 004.
+- backend/src/modules/asistencias/README.md: contrato inicial y decisión posterior aprobada del 15/11/2026.
+- backend/src/modules/usuarios/README.md, organizacion-escolar/README.md, organizacion-escolar/calendario-lectivo/README.md y matriculas/README.md.
+- AGENTS.md, README.md y backend/README.md: contienen referencias/estados antiguos, identificados sin modificarlos.
+- Código en ff3ca53 para contrastar implementación y diagnóstico previo de lectura del 15/11/2026 para esquema observado.
+La documentación no modifica esquema ni autoriza implementar, migrar o hacer commits. V8 es BORRADOR NO APROBADO; su preparación fue autorizada, su adopción no. Conservar V7 byte a byte en el commit histórico 9f7b9715f35f829b2bcbb9ba4402b4c358bc58d5, sin declararla vigente, y V6/anteriores, SQL v1 y migraciones 002–006 sin sobrescribir. 004/005/006 tuvieron autorizaciones de ejecución separadas; los comentarios originales de preparación no describen el estado actual de cada instalación. QR/PORTERIA permanecen futuros. AGENTS.md todavía remite a v5 y no se modifica en esta preparación; la adopción y actualización de referencias requieren autorización posterior.
+Categorías documentales: REGLA APROBADA; DECISIÓN TÉCNICA APROBADA E IMPLEMENTADA; FUNCIONALIDAD APROBADA PENDIENTE; PROPUESTA NO APROBADA/PENDIENTE DE DISEÑO; REGLA SUSTITUIDA. Son etiquetas documentales, no estados SQL ni roles.
+
+ANEXO V8 — ESTADO, FUENTES Y LÍMITES DE APROBACIÓN
+V8 se prepara el 16/11/2026 como BORRADOR NO APROBADO. Las reglas de etapas anteriores identificadas como aprobadas conservan esa condición por sus autorizaciones originales, no por aprobar este borrador. Ninguna frase de V8 autoriza nuevas implementaciones, SQL, commits, merge o push.
+Categorías: REGLA APROBADA; IMPLEMENTACIÓN COMPROBADA EN AUDITORÍAS PREVIAS; FUNCIONALIDAD APROBADA PENDIENTE; DECISIÓN PENDIENTE; EVIDENCIA HISTÓRICA; PROPUESTA DE INTERFAZ PARA RATIFICACIÓN. Conservar identificadores V7 cuando se conserva o sustituye una obligación, siempre citando versión. Matriz completa: PAILLARDELLE_TRAZABILIDAD_v7_v8.md.
+
+BASE DE CONSOLIDACIÓN Y EVIDENCIA
+- V7 original íntegra en commit histórico 9f7b9715f35f829b2bcbb9ba4402b4c358bc58d5, fecha documental 15/11/2026, sin aprobación funcional final de ese conjunto. Las secciones que citan ff3ca53, conteos de tablas/filas y 690/705 pruebas describen su fotografía histórica; no son cifras actuales ni nuevas ejecuciones.
+- Autorización explícita 7B.2 y sus precisiones: motivo hasta 500, sin canal; marca y justificación juntas; tres roles según ámbito; protecciones persistidas; auditoría transaccional y no-op. Código pendiente de consolidación Git observado sobre HEAD funcional 09ed4b2; no atribuirlo al commit histórico V7.
+- Autorización explícita 7B.3: guardado sin cierre, correcciones sin motivo en ABIERTA/CERRADA, auditoría permanente y endpoint de cierre compatible. No modifica cierre anual, QR ni permisos.
+- Evidencias locales 005/006 del 16/11/2026: 005 aplicada con dos ALTER y 006 con uno, sin advertencias; se preservaron datos y relaciones. Al finalizar 006 se conservaron 28 asistencias, 42 eventos y 6 sesiones; números de esa comprobación, no constantes funcionales. No se conecta a MySQL ni se repiten pruebas al redactar V8.
+- Ensayo 006: 42 peticiones HTTP, cuatro negativos SQL y 745 pruebas automatizadas; dos restauraciones exactas. Aplicación principal 006: lecturas de integridad, sin nuevas pruebas funcionales con escrituras. No acredita producción ni integración frontend/backend.
+- Evidencias operativas locales ignoradas por Git: backend/tmp/asistencia-005-local/apply-result.json y backend/tmp/asistencia-006-local/apply-result.json; ensayo backend/tmp/asistencia-006/informe-tecnico.md. No incorporar respaldos, datos, contraseñas, hashes de contraseña o tokens a documentación/commits.
+- Fuentes técnicas: docs/database/migrations/005_justificacion_sencilla.sql y 006_correccion_sin_motivo.sql; README de migraciones para hechos operativos; README de asistencias para contrato. Historial SQL intacto, no ejecución automática.
+
+REGISTRADOR — DECISIONES Y OBSERVACIONES DE INTERFAZ
+U01 [REGLA APROBADA, 7B.2/7B.3]. Un único guardado explícito de marcas y justificaciones. En la vista diaria del REGISTRADOR no se presenta botón «Cerrar asistencia» ni diálogo «Corregir asistencia»; las correcciones ordinarias no requieren motivo. El guardado es parcial y selectivo: el frontend envía únicamente modificaciones efectivas; el backend confirma atómicamente el lote y conserva el no-op con versiones vigentes, sin eventos ni incremento de versiones. Casilla Justificada y motivo_justificacion obligatorio para FALTA/TARDANZA al enviar justificada=true. Las marcas ya justificadas se muestran protegidas. Se conservan sesiones internas, endpoint de cierre y datos históricos de cierre por compatibilidad; corregir una sesión CERRADA no la reabre. El alcance compartido del backend no obliga a duplicar API por rol ni declara completa la interfaz de los tres roles.
+U02 [REGLA CONSERVADA]. «Sin marcar» presenta PENDIENTE; no se asignan marcas al abrir. Fecha civil America/Lima y calendario efectivo; acceso según asignaciones. El cierre histórico no bloquea editar marcas no justificadas, sin suprimir validaciones del servidor.
+U03 [REGLA RATIFICADA; OTROS DETALLES OBSERVADOS]. La búsqueda local por nombres, apellidos y código, sin distinguir mayúsculas/minúsculas ni tildes, se limita al padrón cargado y filtra exclusivamente la presentación; conserva las modificaciones pendientes, no concede búsqueda global ni amplía permisos. El contador de cambios, los datos secundarios de sección plegables y la ubicación visible del guardado conservan su carácter de observaciones; la ratificación no aprueba automáticamente esos otros detalles. No se ejecutaron pruebas de navegador en esta redacción ni se acredita integración.
+U04 [REGLA RATIFICADA; OTROS DETALLES OBSERVADOS]. «Marcar todos como presentes» afecta solo a PENDIENTES elegibles de toda la sección, incluidos los ocultos por búsqueda, conservando marcas distintas y justificaciones persistidas. Es una acción manual explícita, no una marca por defecto. La confirmación previa observada conserva su carácter de detalle observado y no adquiere aprobación automática por esta ratificación. Esta decisión funcional no acredita integración ni autoriza nuevas implementaciones.
+U05 [REGLA RATIFICADA; OTROS DETALLES OBSERVADOS]. Advertir al navegar con modificaciones sin guardar. El borrador observado en memoria por cuenta/sección/fecha/sesión, el descarte confirmado de motivos aún no persistidos, la revisión de diferencias tras concurrencia y la consulta del estado actual tras errores conservan su carácter de observaciones, sin aprobación automática por ratificar la advertencia. No confundir desmarcar un borrador con retirar una justificación guardada. No se promete guardado automático ni persistencia durable del borrador.
+U06 [REGLA RATIFICADA]. El botón principal se denomina «Guardar cambios», con un único guardado parcial y selectivo según U01. La denominación, el alcance del marcado masivo, la búsqueda local que conserva cambios y la advertencia al navegar ya fueron ratificados; no se mantienen como decisiones pendientes. Esto no aprueba automáticamente otros comportamientos observados del frontend ni el conjunto V8.
+
+PENDIENTES QUE NO SE CANCELAN
+Mantener F01–F10 y T01–T05 completos: SIAGIE manual, fechas explícitas, identidad fiable, APODERADO, vínculo activo único, excepción telefónica acotada, vista previa y selección atómica futura. No hay API pública ni confirmación persistente completa de importación. Mantener indicadores/seguimiento mensual y fichas, historial académico de continuidad completo, contactos operativos, movimientos/regularizaciones, bitácora, auditoría técnica, configuración, QR/PORTERIA y autoridad anual como pendientes según su alcance. La simplificación de asistencia no los elimina.
+
+ADOPCIÓN POSTERIOR
+V8 no es referencia vigente automáticamente. AGENTS.md permanece apuntando a v5. Se requiere revisión/aprobación expresa del conjunto V8, autorización para actualizar referencias y autorización separada de commit. Las decisiones expresamente ratificadas de U03–U06 no requieren nueva ratificación; los demás detalles observados no adquieren aprobación automática. Conservar V7/anteriores y sus identificadores/fechas. Versionar posteriormente fuentes y migraciones por sus propios commits aprobados, sin dar por realizados C1/C2/C3/C4 ni la integración.

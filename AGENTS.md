@@ -4,22 +4,32 @@
 
 Antes de implementar o modificar cualquier módulo, leer:
 
-- `docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v5.txt`
-- `docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v5.txt`
-- `docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v5.txt`
-- `docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v5.txt`
+- `docs/requisitos/PAILLARDELLE_DECISIONES_v8.txt`
+- `docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v8.txt`
+- `docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v8.txt`
+- `docs/requisitos/PAILLARDELLE_IMPACTO_v8.txt`
+- `docs/requisitos/PAILLARDELLE_TRAZABILIDAD_v7_v8.md`
 - `docs/database/asistencia_paillardelle_mysql_v1.sql`
 - Las migraciones versionadas aplicables y su `docs/database/migrations/README.md`.
 
-Los cuatro TXT v5 son las referencias funcionales vigentes. Consultar las RN,
+Los cuatro TXT V8 y su matriz V7 → V8 son las referencias funcionales vigentes,
+aprobadas y adoptadas expresamente por el usuario el 16/11/2026. Consultar las RN,
 RF/RNF y decisiones aplicables, citando su versión: los códigos no conservan
 necesariamente el significado de v2. El análisis de impacto describe propuestas
 y limitaciones, no evidencia que una función esté implementada. La decisión
 posterior aprobada de períodos lectivos para 6D se recoge en `README.md`.
 
+Los cinco archivos V8 se conservan con su contenido aprobado. Sus rótulos de
+borrador y menciones a adopción pendiente o a AGENTS.md todavía basado en v5
+describen la preparación anterior; esta aprobación posterior los supera solo
+respecto del estado de aprobación y adopción documental. No acreditan por ello
+implementación, integración ni validación completa de las funcionalidades.
+Las referencias funcionales antiguas de README y documentos de etapas no
+prevalecen sobre V8; conservar su contexto histórico y las decisiones compatibles.
+
 `docs/requisitos/diseno_asistencia_consolidado_v2.txt` y
 `docs/requisitos/adenda_6c_a_inicial_supervision.md` se conservan como antecedentes
-históricos, junto con los cuatro TXT v4; no aplicar sus reglas sustituidas por v5.
+históricos, junto con V4, V5, V6 y V7; no aplicar sus reglas sustituidas por V8.
 Las decisiones compatibles de 6C-A, como supervisión adicional explícita, siguen vigentes. No sobrescribir
 estos antecedentes, SQL v1 ni migraciones 002/003 para adaptar el diseño nuevo.
 
@@ -76,15 +86,16 @@ responsabilidades y particularidades de cada tecnología.
 
 ## Seguridad e integridad que deben preservarse
 
-- Aplicar los permisos de v5 en servidor por rol, niveles efectivos, sección,
-  matrícula y vigencia. Las facultades institucionales generales de ADMIN no
-  resuelven operaciones específicas que v5 deja pendientes. PORTERIA está aprobado
+- Aplicar los permisos de V8 en servidor por rol y ámbito específico de cada
+  módulo, sección, matrícula y vigencia. Las facultades institucionales generales de ADMIN no
+  resuelven operaciones específicas que V8 deja pendientes. La matriz especial
+  de asistencia no se extiende a otros módulos. PORTERIA está aprobado
   como cuarto rol futuro, no implementado; no crear otros roles ni permisos
   configurables. Revalidar al actor bajo bloqueo en escrituras
   sensibles, siguiendo el protocolo existente y un orden compatible de bloqueos.
 - Para asistencia ordinaria validar año ABIERTO, día lectivo y vigencias.
   No extender esa exigencia indiscriminadamente a consultas históricas o a la
-  preparación académica. Las correcciones y justificaciones seguirán v5 y sus
+  preparación académica. Las correcciones y justificaciones seguirán V8 y sus
   decisiones pendientes; no reintroducir FUT ni exclusividad de SUBDIRECCION de v2.
 - Resolver solapamientos con transacciones y bloqueos adecuados. Guardar cambios
   de asistencia e historial juntos, usando `version` para concurrencia;
@@ -97,7 +108,7 @@ responsabilidades y particularidades de cada tecnología.
   estudiante; no ampliarlo a múltiples contactos sin decisión y migración.
 - Importaciones Excel con vista previa, validaciones y control de duplicados;
   no persistir lotes inconsistentes ni integrar SIAGIE automáticamente. Aplicar
-  v5 para conciliación y conservación de históricos, sin sobrescritura silenciosa.
+  V8 para conciliación y conservación de históricos, sin sobrescritura silenciosa.
 - QR futuro será opcional y deshabilitado por defecto hasta autorización. Un
   escaneo válido registrará PRESENTE/TARDANZA por horario del turno en la misma
   asistencia diaria, solo con año ABIERTO y fecha lectiva del nivel, incluidas
@@ -109,7 +120,7 @@ responsabilidades y particularidades de cada tecnología.
   justificaciones, administración de horarios, emisión/revocación de credenciales,
   listados generales ni reportes. No
   resolver implícitamente conflictos manual/QR ni relación con puede_escanear_qr.
-- Bitácora será individual por estudiante y solo de anexado según v5; no
+- Bitácora será individual por estudiante y solo de anexado según V8; no
   implementar edición/borrado ordinarios. Su activación global y permiso
   individual existentes deben resolverse antes de habilitarla. No altera asistencias.
 - Proteger datos personales. No incluir contraseñas, hashes ni tokens secretos
@@ -117,12 +128,16 @@ responsabilidades y particularidades de cada tecnología.
 
 ## Decisiones pendientes y alcance de trabajo
 
-Consultar P01–P09 de decisiones v5 y los pendientes del análisis de impacto.
-No inventar reglas sobre cierre diario frente a cierre del año, reapertura,
-procedimientos retroactivos excepcionales, facultades concretas de ADMIN/Secretaría,
+Consultar P01–P10 de decisiones V8 y los pendientes del análisis de impacto V8,
+respetando sus resoluciones parciales. El guardado diario sin cierre obligatorio,
+las correcciones ordinarias sin motivo y las precisiones ratificadas de interfaz
+ya están resueltos en V8; no tratarlos como pendientes. No inventar reglas sobre
+cierre/reapertura del año, procedimientos retroactivos excepcionales,
+facultades concretas de ADMIN/Secretaría,
 formato de ficha,
 fechas efectivas del padrón, contactos, activación de bitácora, permisos de QR,
-consulta de auditoría, conflictos manual/QR, relación PORTERIA–puede_escanear_qr,
+consulta de auditoría fuera del alcance aprobado, edición/retiro de justificaciones
+y corrección de marcas justificadas, conflictos manual/QR, relación PORTERIA–puede_escanear_qr,
 conservación/recuperación de datos y respaldos. QR exige año ABIERTO y día lectivo;
 no tratar esas condiciones ya aprobadas como decisiones pendientes.
 Los pendientes específicos de 6D se enumeran en `README.md`. Solicitar definición
