@@ -29,7 +29,7 @@ export async function attendanceBrowser() {
       patches: () => evaluate('attendanceTest.calls.filter(call => call.method === "patch")'),
       dirty: () => evaluate(`${rows}.filter(row => row.textContent.includes('Sin guardar')).length`),
       values: () => evaluate(`${rows}.map(row => row.querySelector('button[aria-pressed="true"]')?.textContent.trim())`),
-      settled: () => wait(`Boolean(${button('Guardar avances')}) && !document.querySelector('[aria-label="Guardado de asistencia"]').matches('[aria-busy="true"]')`),
+      settled: () => wait(`Boolean(${button('Guardar cambios')}) && !document.querySelector('[aria-label="Guardado de asistencia"]').matches('[aria-busy="true"]')`),
       close: async () => { await browser.close(); await vite.close(); } };
   } catch (error) { await browser?.close(); await vite.close(); throw error; }
 }

@@ -1,5 +1,32 @@
 # Secciones — consulta administrativa 7B.0B / 7B.0D
 
+## Mejora posterior — resúmenes diarios de Mis secciones
+
+REGISTRADOR conserva sus tarjetas, datos académicos, acciones y paginación.
+Cada tarjeta identifica la fecha actual de America/Lima y presenta los conteos
+confirmados de GET /api/asistencias/sesiones mediante el servicio existente.
+useSectionAttendanceSummaries agrupa las secciones visibles por año, recorre
+páginas de hasta 100 resultados y detiene cada recorrido al resolver las tarjetas
+necesarias. No consulta detalle, padrón ni calendario por tarjeta. La paginación
+de resúmenes es independiente de la paginación de secciones.
+
+SIN_REGISTRO conserva resumen null y muestra ausencia sin ceros artificiales;
+es_lectivo identifica la fecha no lectiva. Hoy fuera del intervalo del año se
+explica sin sustituir la fecha. Error, año desconocido o sección no devuelta son
+resumen no disponible, nunca ausencia de registro. El total recibido corresponde
+al padrón conservado de la sesión. No se recalcula matrícula ni asistencia.
+
+La cuenta, fecha y datos de la página delimitan las respuestas. Un cambio invalida
+recorridos pendientes. Volver a montar, recuperar foco o Actualizar resúmenes
+vuelve a consultar; un control de fecha cada minuto detecta el cambio de día sin
+consultar mientras la fecha sea la misma. No se persisten resúmenes ni permisos.
+Se conservan Bearer, señal de sesión y tratamiento global de 401; no hay cambios
+de backend, SQL, roles o asignaciones ni búsqueda global nueva para SECUNDARIA.
+
+Pruebas: sectionAttendanceSummaries.test.mjs y sectionSummaries.browser.mjs,
+con adaptadores simulados: agrupación, paginación, ausencias, errores, cuenta,
+respuestas tardías y móvil. No certifican ejecución real contra MySQL.
+
 ADMIN/SUBDIRECCION usan AdministrativeSeccionesPage; REGISTRADOR conserva
 MisSeccionesPage, useSecciones, sus acciones y formato predeterminado. Referencias:
 decisiones v5 D02/D03, RF-01/03 y RNF-01/02/04/08; contrato de organización escolar

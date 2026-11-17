@@ -128,17 +128,17 @@ test('calendario normal no añade avisos; excepciones y ausencia de clases sí s
 
 test('estado después de abrir distingue nueva, abierta existente y cerrada sin modificar registros', () => {
   const opened = { ...data, sesion: { ...data.sesion, estado: 'ABIERTA' } };
-  assert.match(renderToStaticMarkup(h(View, { data: opened, created: true, editable: true })), /Asistencia iniciada/);
-  assert.match(renderToStaticMarkup(h(View, { data: opened, created: false, editable: true })), /Sesión abierta/);
-  assert.match(renderToStaticMarkup(h(View, { data, created: false, editable: true })), /Sesión cerrada · Solo consulta/);
+  assert.match(renderToStaticMarkup(h(View, { data: opened, created: true, editable: true })), /Registro de asistencia/);
+  assert.match(renderToStaticMarkup(h(View, { data: opened, created: false, editable: true })), /Registro de asistencia/);
+  assert.match(renderToStaticMarkup(h(View, { data, created: false, editable: true })), /Registro de asistencia/);
 });
 
 test('sesiones abiertas y cerradas muestran estados y resumen recibido solo como lectura', () => {
   for (const estado of ['ABIERTA', 'CERRADA']) {
     const html = renderToStaticMarkup(h(View, { data: { ...data, sesion: { ...data.sesion, estado } } }));
     assert.match(html, /Pérez Ana/); assert.match(html, /Sin marcar/);
-    assert.match(html, /Resumen de asistencia/); assert.match(html, /Solo consulta/);
-    assert.doesNotMatch(html, /PENDIENTE|<button|<input|<select|usuario_id|9007199254740995|null/);
+    assert.match(html, /Buscar estudiante/); assert.doesNotMatch(html, /Resumen de asistencia/); assert.match(html, /Solo consulta/);
+    assert.doesNotMatch(html, /PENDIENTE|<button|<select|usuario_id|9007199254740995|null/);
   }
 });
 

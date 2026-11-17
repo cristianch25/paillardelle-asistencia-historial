@@ -10,6 +10,8 @@ import { useSectionSelection } from './SeccionSelectionContext';
 import type { Section } from './secciones.types';
 import SeccionesList from './SeccionesList';
 import { useSecciones } from './useSecciones';
+import { useSectionAttendanceSummaries } from '../../asistencias/useSectionAttendanceSummaries';
+import SectionAttendanceSummary from '../../asistencias/SectionAttendanceSummary';
 
 export default function MisSeccionesPage() {
   const { page, setPage } = useSectionListLocation();
@@ -18,6 +20,7 @@ export default function MisSeccionesPage() {
   const selection = useSectionSelection();
   const navigate = useNavigate();
   const location = useLocation();
+  const attendance = useSectionAttendanceSummaries(sections.data?.secciones ?? [], years.years, !years.loading && !years.error);
   async function openSection(section: Section, destination: 'asistencia' | 'estudiantes') {
     const year = years.years.find(item => item.id === section.anio_escolar_id);
     if (year && await selection.select({ section, year })) {
@@ -42,9 +45,12 @@ export default function MisSeccionesPage() {
       {sections.data && <div className="space-y-6">
         {sections.data.secciones.length ? <SeccionesList sections={sections.data.secciones} years={years.years}
           checking={selection.checking || years.loading || Boolean(years.error)}
+          renderSummary={section => <SectionAttendanceSummary date={attendance.date}
+            summary={years.error ? { status: 'error' } : attendance.summaries[section.id]} />}
           onOpen={(section, destination) => void openSection(section, destination)} />
           : <EmptyState message="No hay secciones disponibles en esta página para tu cuenta." />}
         <Pagination pagination={sections.data.pagination} onPageChange={setPage} />
+        {sections.data.secciones.length > 0 && <Button variant="secondary" onClick={attendance.retry}>Actualizar resúmenes</Button>}
       </div>}
     </div>
   );

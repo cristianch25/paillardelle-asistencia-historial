@@ -20,14 +20,14 @@ export function useSupervisionCorrection(initial: AttendanceDetail) {
     setPhase('denied'); setError('La asistencia no está disponible, o ya no tienes permiso para modificarla.');
     return true;
   }
-  async function save(id: string, state: string, reason: string) {
+  async function save(id: string, state: string) {
     if (operation.current || phase !== 'idle') return;
     setMessage(''); setError('');
-    try { correctionRequest(data, id, state, reason); }
+    try { correctionRequest(data, id, state); }
     catch (failure) { setError((failure as Error).message); return; }
     const token = {}; operation.current = token; setPhase('saving');
     try {
-      const current = await saveSupervisionCorrection(data, id, state, reason);
+      const current = await saveSupervisionCorrection(data, id, state);
       if (operation.current !== token) return;
       setData(current); setPhase('idle'); setMessage('Corrección guardada correctamente.');
       return current;
@@ -36,7 +36,7 @@ export function useSupervisionCorrection(initial: AttendanceDetail) {
       const status = attendanceFailureStatus(failure);
       if (deny(status)) return;
       if (status === 400 || status === 413) {
-        setPhase('idle'); setError('El servidor rechazó la corrección. Revisa el estado y el motivo antes de volver a confirmar.');
+        setPhase('idle'); setError('El servidor rechazó la corrección. Revisa el estado antes de volver a confirmar.');
       } else {
         setPhase('review'); setError(status === 409
           ? 'La corrección encontró un conflicto de versión o de condiciones de escritura. Consulta el estado actual antes de decidir otro intento.'

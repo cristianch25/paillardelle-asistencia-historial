@@ -43,16 +43,14 @@ test('7B.1: corrección confirmada, motivos, resúmenes, permisos y cancelación
         await ui.open(); await wait(`${rows}.length === 5`);
         assert.match(await evaluate(`${rows}[0].textContent`), /Falta/);
       });
-      await t.test('sesión cerrada exige motivo válido; confirma sin reabrir y permite anular con historial', async () => {
+      await t.test('sesion cerrada sin motivo; confirma sin reabrir y permite anular', async () => {
         await ui.load('CERRADA'); await ui.edit('PENDIENTE');
         const reviewDisabled = `Array.from(document.querySelectorAll('dialog[open] button')).find(b => b.textContent === 'Revisar corrección').disabled`;
-        assert.ok(await evaluate(reviewDisabled));
-        await ui.change('document.querySelector("dialog[open] input")', ' '.repeat(3)); assert.ok(await evaluate(reviewDisabled));
-        await ui.change('document.querySelector("dialog[open] input")', 'a'.repeat(501)); assert.ok(await evaluate(reviewDisabled));
-        await ui.change('document.querySelector("dialog[open] input")', 'Registro duplicado verificado');
+        assert.equal(await evaluate(reviewDisabled), false);
+        assert.equal(await evaluate('Boolean(document.querySelector("dialog[open] input"))'), false);
         await click('Revisar corrección'); await wait('document.querySelector("dialog[open]").textContent.includes("La marca se anulará")');
         await click('Confirmar y guardar'); await ui.saved();
-        assert.equal(await evaluate(`${writes}.at(-1).body.cambios[0].motivo`), 'Registro duplicado verificado');
+        assert.equal(await evaluate(`${writes}.at(-1).body.cambios[0].motivo`), undefined);
         assert.equal(await evaluate('supervisionCorrectionTest.server.sesion.estado'), 'CERRADA');
         assert.match(await evaluate(`${rows}[0].textContent`), /Pendiente/);
         await ui.edit('PRESENTE', 'Anulación revisada'); await ui.confirm(); await ui.saved();

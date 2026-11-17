@@ -16,7 +16,6 @@ import AsistenciaSessionView from './AsistenciaSessionView';
 import { useAttendanceDraft } from './useAttendanceDraft';
 import AttendanceSaveBar from './AttendanceSaveBar';
 import AttendanceReview from './AttendanceReview';
-import AttendanceCloseAction from './AttendanceCloseAction';
 import { useNavigationProtection } from '../../shared/navigation/NavigationProtectionContext';
 
 export default function AsistenciaDiariaPage() {
@@ -32,7 +31,9 @@ export default function AsistenciaDiariaPage() {
   const selection = session && !checking && !error ? selected : null;
   const paused = checking || Boolean(unverified);
   const attendance = useAsistenciaSession(session?.user.id ?? null, selection, fecha, paused);
-  const draft = useAttendanceDraft(session?.user.id ?? null, attendance.data, paused, revalidate);
+  const draft = useAttendanceDraft(session?.user.id ?? null, attendance.data, paused, revalidate, session?.user.rol === 'REGISTRADOR');
+  const [search, setSearch] = useState({ key: draft.key, query: '' });
+  const query = search.key === draft.key ? search.query : '';
   const valid = validCivilDate(fecha);
   const backLabel = session?.user.rol === 'REGISTRADOR' ? 'mis secciones' : 'secciones';
   return (
@@ -70,17 +71,19 @@ export default function AsistenciaDiariaPage() {
           {draft.phase === 'denied' && <ErrorState message={draft.message} />}
           {draft.base && <>
             <AttendanceReview data={draft.base} changes={draft.changes} conflicts={draft.conflicts}
-              onResolve={draft.resolve} disabled={draft.busy} />
+              reasons={draft.reasons} onResolve={draft.resolve} disabled={draft.busy} />
             <AsistenciaSessionView data={draft.base} changes={draft.changes} created={attendance.data?.creada} editable={draft.editable} disabled={draft.disabled} updated={draft.updated}
-              onSelect={draft.select} onMarkPending={draft.markAllPending} />
+              query={query} onSearch={query => setSearch({ key: draft.key, query })} pendingCount={draft.count}
+              onSelect={draft.select} onMarkPending={draft.markAllPending}
+              reasons={draft.reasons} justificationDisabled={draft.justificationDisabled}
+              onJustify={session?.user.rol === 'REGISTRADOR' ? draft.justify : undefined} />
           </>}
         </>
       )}
-      <AttendanceCloseAction key={draft.key} available={Boolean(selection && draft.base?.sesion.estado === 'ABIERTA')}
-        pending={draft.base?.resumen.pendientes ?? 0} dirty={draft.count} disabled={paused || draft.phase !== 'idle'} onClose={draft.close} />
       {selection && draft.base && <AttendanceSaveBar count={draft.count} phase={draft.phase} message={draft.message}
-        success={draft.success} conflicts={draft.conflicts.length} closed={draft.base.sesion.estado === 'CERRADA'}
-        disabled={draft.disabled} onSave={() => void draft.save()} onRefresh={() => void draft.refresh()} />}
+        success={draft.success} conflicts={draft.conflicts.length}
+        disabled={draft.saveDisabled} validation={draft.validation}
+        onSave={() => void draft.save()} onRefresh={() => void draft.refresh()} />}
     </div>
   );
 }

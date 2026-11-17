@@ -114,15 +114,16 @@ se presenta como «Sin marcar» y anula la marca conservando historial. Solo se
 ofrecen filas con version > 0: los pendientes iniciales no son correcciones.
 
 ADMIN y SUBDIRECCION autorizados pueden corregir sesiones abiertas y cerradas.
-Para CERRADA se exige motivo no vacío, Unicode válido y máximo 500 caracteres;
-se confirma sin reabrir. El motivo es de corrección, no una justificación.
+Desde 7B.3 las correcciones ordinarias no solicitan ni envían motivo, también
+en CERRADA; se confirman sin reabrir. Esta decisión posterior sustituye v5
+D09/RN-07/RN-10/RF-07. El motivo de justificación de 7B.2 sigue siendo obligatorio.
 El servidor mantiene año ABIERTO, fecha lectiva no futura, alcance, actor bajo
 bloqueo y concurrencia por versión. Cambio e historial_asistencias son atómicos,
-con actor, fecha, valores anteriores/nuevos y motivo poscierre. No se crean rutas,
+con actor, fecha y valores anteriores/nuevos. No se crean rutas,
 permisos, migraciones ni reglas nuevas; no se cambia el registro diario.
 
 El detalle presenta un selector de asistencia registrada y un diálogo sencillo:
-estado actual, nuevo estado, motivo cuando corresponde, revisión y confirmación.
+estado actual, nuevo estado, revisión y confirmación, sin motivo de corrección.
 Cancelar, editar o revisar no envían peticiones. Mientras guarda se deshabilitan
 edición, doble envío y actualización; la protección de navegación existente
 coordina salidas pendientes. No se actualiza ninguna marca de forma optimista.

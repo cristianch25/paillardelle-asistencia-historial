@@ -36,13 +36,13 @@ test('un cierre sin confirmación HTTP/estado/advertencias se considera incierto
   }
 });
 
-test('closing bloquea edición; descarte explícito mantiene base y versiones; respuesta vieja se ignora', () => {
+test('saving bloquea edición; descarte explícito mantiene base y versiones; respuesta vieja se ignora', () => {
   let state = editor.createAttendanceEditor('5', data);
   const id = data.padron[0].asistencia_id;
   state = editor.attendanceEditorReducer(state, { type: 'select', id, state: 'PRESENTE' });
   state = editor.attendanceEditorReducer(state, { type: 'discard', epoch: state.epoch });
   assert.deepEqual(state.changes, {}); assert.equal(state.base, data);
-  state = editor.attendanceEditorReducer(state, { type: 'phase', epoch: state.epoch, phase: 'closing', message: '' });
+  state = editor.attendanceEditorReducer(state, { type: 'phase', epoch: state.epoch, phase: 'saving', message: '' });
   assert.equal(editor.attendanceEditorReducer(state, { type: 'bulk' }), state);
   const epoch = state.epoch;
   state = editor.attendanceEditorReducer(state, { type: 'reset', accountId: '6', source: data });

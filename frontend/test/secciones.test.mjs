@@ -7,7 +7,7 @@ import { AxiosError } from 'axios';
 import { MemoryRouter } from 'react-router';
 
 // Contratos aislados: adaptadores en memoria, sin cuentas, JWT ni MySQL.
-let vite, client, yearsApi, sectionsApi, Filters, List, presentation, MySections, SelectionProvider;
+let vite, client, yearsApi, sectionsApi, Filters, List, presentation, MySections, SelectionProvider, Auth;
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   client = (await vite.ssrLoadModule('/src/shared/api/httpClient.ts')).httpClient;
@@ -17,6 +17,7 @@ before(async () => {
   List = (await vite.ssrLoadModule('/src/features/organizacion-escolar/secciones/SeccionesList.tsx')).default;
   presentation = await vite.ssrLoadModule('/src/features/organizacion-escolar/secciones/sectionPresentation.ts');
   MySections = (await vite.ssrLoadModule('/src/features/organizacion-escolar/secciones/MisSeccionesPage.tsx')).default;
+  Auth = (await vite.ssrLoadModule('/src/features/auth/AuthContext.ts')).AuthContext;
   SelectionProvider = (await vite.ssrLoadModule('/src/features/organizacion-escolar/secciones/SeccionSelectionProvider.tsx')).default;
 });
 after(async () => { await vite?.close(); });
@@ -25,7 +26,7 @@ function response(config, data) { return { status: 200, statusText: 'OK', header
 
 test('Mis secciones se presenta sin selectores ni selección automática de año', () => {
   const markup = renderToStaticMarkup(createElement(MemoryRouter, null,
-    createElement(SelectionProvider, null, createElement(MySections))));
+    createElement(Auth.Provider, { value: { session: null } }, createElement(SelectionProvider, null, createElement(MySections)))));
   assert.match(markup, />Mis secciones<\/h1>/);
   assert.doesNotMatch(markup, /<select|Filtros de secciones|Selecciona un año/);
   assert.match(markup, /Cargando mis secciones/);

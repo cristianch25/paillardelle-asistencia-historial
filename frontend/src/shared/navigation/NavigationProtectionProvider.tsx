@@ -5,17 +5,17 @@ import { useDeferredAction } from './useDeferredAction';
 import UnsavedChangesDialog from './UnsavedChangesDialog';
 
 export default function NavigationProtectionProvider({ children, enabled = true }: { children: ReactNode; enabled?: boolean }) {
-  const [guard, setGuard] = useState({ id: null as object | null, dirty: false, busy: false, closing: false });
-  const needsWarning = guard.dirty || guard.closing;
+  const [guard, setGuard] = useState({ id: null as object | null, dirty: false, busy: false });
+  const needsWarning = guard.dirty;
   const deferred = useDeferredAction(enabled, needsWarning, guard.busy);
   const blocker = useBlocker(({ currentLocation, nextLocation }) => enabled && (needsWarning || guard.busy)
     && (currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search));
-  const report = useCallback((id: object, dirty: boolean, busy: boolean, closing = false) => {
-    setGuard(current => current.id === id && current.dirty === dirty && current.busy === busy && current.closing === closing
-      ? current : { id, dirty, busy, closing });
+  const report = useCallback((id: object, dirty: boolean, busy: boolean) => {
+    setGuard(current => current.id === id && current.dirty === dirty && current.busy === busy
+      ? current : { id, dirty, busy });
   }, []);
   const remove = useCallback((id: object) => {
-    setGuard(current => current.id === id ? { id: null, dirty: false, busy: false, closing: false } : current);
+    setGuard(current => current.id === id ? { id: null, dirty: false, busy: false } : current);
   }, []);
   const { request, cancel, confirm, pending } = deferred;
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function NavigationProtectionProvider({ children, enabled = true 
     <NavigationProtectionContext.Provider value={value}>
       {children}
       <UnsavedChangesDialog open={enabled && (pending || blocker.state === 'blocked')} busy={guard.busy}
-        dirty={guard.dirty} closing={guard.closing}
+        dirty={guard.dirty}
         onCancel={cancelLeaving} onConfirm={confirmLeaving} />
     </NavigationProtectionContext.Provider>
   );

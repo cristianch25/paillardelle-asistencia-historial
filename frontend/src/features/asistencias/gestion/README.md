@@ -1,5 +1,35 @@
 # Gestión de asistencias
 
+## Decisiones vigentes 7B.2/7B.3
+
+Las correcciones ordinarias del diálogo compartido no solicitan ni envían motivo,
+incluidas sesiones CERRADAS. Se conservan identidad, cierre histórico, permisos,
+versiones, confirmación y recuperación ante conflictos o resultados inciertos.
+Esta decisión posterior sustituye v5 D09/RN-07/RN-10/RF-07.
+
+El contrato público ya incluye justificada y motivo_justificacion. Una marca
+justificada persistida queda protegida también en Gestión: no se puede cambiar
+su estado, motivo ni condición. Gestión conserva su estructura de correcciones;
+no incorpora un formulario nuevo de justificación. Los apartados antiguos sobre
+la ausencia de estos campos describen el contrato anterior a 7B.2.
+
+En la vista diaria de REGISTRADOR, 7B.3 conserva los controles directos en ABIERTA
+y CERRADA y un único botón principal «Guardar cambios». El masivo prepara solo
+pendientes elegibles; el PATCH existente envía solo diferencias efectivas. No hay
+acción de cierre ni diálogo de corrección ordinaria en esa vista. Justificar
+FALTA/TARDANZA sigue requiriendo motivo Unicode válido de hasta 500 caracteres.
+No se modifican backend, migraciones ni MySQL para este ajuste de frontend.
+
+Mejora posterior: el panel visual de conteos diarios se sustituye por un buscador
+local del padrón cargado, reutilizando searchCorrectionStudents. Ignora tildes y
+mayúsculas, busca nombres/apellidos/código y conserva el orden. El contador muestra
+filas visibles frente al total y cambios globales sin guardar. Ocultar filas no
+modifica marcas ni justificaciones. Guardar y Marcar todos como presentes siguen
+abarcando toda la sección, incluido lo oculto; no cambian PATCH ni reconciliación.
+Los conflictos se revisan fuera del listado filtrado. No hay HTTP por pulsación.
+Los conteos confirmados del día se muestran en Mis secciones, sin modificar Gestión.
+Pruebas nuevas: attendanceSearch.browser.mjs y sectionAttendanceSummaries.test.mjs.
+
 ## Estado actual — 7B.1D, búsqueda global
 
 La pantalla ya no requiere selectores de año, nivel ni sección: título y fecha
@@ -69,7 +99,8 @@ invalida la lista anterior; cuenta/rol/nivel/expiración remontan el ámbito.
 
 SupervisionSessionDetail y useSupervisionCorrection reutilizan la operación única
 de 7B.1: PATCH /api/asistencias/sesiones/:id/registros, con versiones de sesión y
-fila, confirmación y motivo obligatorio poscierre. La respuesta confirmada trae
+fila y confirmación. Desde 7B.3 no solicita ni envía motivo de corrección, tampoco
+en CERRADA; conserva el cierre histórico. La respuesta confirmada trae
 el detalle completo actualizado; no hay actualización optimista ni reenvío
 automático. Conflictos/incertidumbre exigen consultar el estado actual. Cambiar
 filtros durante la escritura pasa por la protección de navegación existente.

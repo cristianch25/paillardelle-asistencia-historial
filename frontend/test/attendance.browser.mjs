@@ -94,8 +94,8 @@ test('6B.2A en navegador: edición, confirmación, foco, solo lectura y tamaños
         await waitFor(() => evaluate('Boolean(document.querySelector("dialog[open]"))'), 'confirmar recuperación');
         await click('Salir sin guardar');
         await ready(); await click('Abrir asistencia');
-        await waitFor(() => evaluate('document.body.textContent.includes("Sesión cerrada")'), 'sesión cerrada');
-        assert.equal(await evaluate('document.querySelectorAll("button[aria-pressed]").length'), 0);
+        await waitFor(() => evaluate('document.body.textContent.includes("Registro de asistencia")'), 'sesión cerrada');
+        assert.equal(await evaluate('document.querySelectorAll("button[aria-pressed]").length'), 16);
         assert.equal(await evaluate('attendanceTest.calls.filter(call => call.method === "patch").length'), 0);
       });
       await t.test('cambiar de cuenta invalida sesión y borrador', async () => {

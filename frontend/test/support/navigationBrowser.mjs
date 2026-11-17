@@ -35,8 +35,7 @@ export async function navigationBrowser() {
     guard: () => wait(`Boolean(${dialog})`),
     dirty: () => evaluate(`${rows}.filter(row => row.textContent.includes('Sin guardar')).length`),
     cancel: async () => {
-      const closing = await evaluate(`${dialog}?.textContent.includes('Cierre de asistencia pendiente') ?? false`);
-      await click(closing ? 'Permanecer aquí' : 'Continuar registrando'); await wait(`!${dialog}`);
+      await click('Continuar registrando'); await wait(`!${dialog}`);
     },
     confirm: async () => { await click('Salir sin guardar'); await wait(`!${dialog}`); },
     menu: async path => {
@@ -44,7 +43,7 @@ export async function navigationBrowser() {
       await wait(`document.querySelector('dialog[aria-label="Menú principal"]').open`);
       await evaluate(`document.querySelector(${JSON.stringify(`dialog[aria-label="Menú principal"] a[href="${path}"]`)}).click()`);
     },
-    save: async () => { await click('Guardar avances'); await wait('document.body.textContent.includes("Avances guardados correctamente")'); },
+    save: async () => { await click('Guardar cambios'); await wait('document.body.textContent.includes("Cambios guardados correctamente")'); },
     touchMark: async () => {
       const selector = `${rows}[0].querySelector('button')`;
       await evaluate(`${selector}.scrollIntoView({ block: 'center' })`);

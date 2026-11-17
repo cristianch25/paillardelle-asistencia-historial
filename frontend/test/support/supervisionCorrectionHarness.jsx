@@ -42,7 +42,6 @@ httpClient.defaults.adapter = async config => {
     if (!status || apply) {
       const row = server.padron.find(item => item.asistencia_id === body.cambios[0].asistencia_id);
       if (server.sesion.version !== body.version || row.version !== body.cambios[0].version) fail(409);
-      if (server.sesion.estado === 'CERRADA' && !body.cambios[0].motivo?.trim()) fail(400);
       row.estado = body.cambios[0].estado; row.version++; server.sesion.version++; controls.recount(server);
     }
     if (status) fail(status);

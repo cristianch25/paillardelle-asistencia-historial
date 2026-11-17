@@ -28,31 +28,25 @@ test('revalidar conserva cambios compatibles y conflictos pendientes de decisió
   assert.deepEqual(editor.changes, {}); assert.deepEqual(editor.conflicts, []);
 });
 
-test('cierre pendiente persiste ante incertidumbre y termina al reconciliar, rechazar o invalidar', () => {
+test('incertidumbre bloquea edicion hasta reconciliar sin estado de cierre pendiente', () => {
   let editor = createEditor('5', data);
-  for (const phase of ['closing', 'refreshing', 'refresh-required']) {
+  for (const phase of ['saving', 'refreshing', 'refresh-required']) {
     editor = reducer(editor, { type: 'phase', epoch: editor.epoch, phase, message: '' });
-    assert.equal(editor.closePending, true);
+    assert.equal(reducer(editor, { type: 'bulk' }), editor);
   }
-  assert.equal(reducer(editor, { type: 'refreshed', epoch: editor.epoch, data, message: '' }).closePending, false);
-  assert.equal(reducer(editor, { type: 'saved', epoch: editor.epoch, data, message: '' }).closePending, false);
-  for (const phase of ['idle', 'denied']) {
-    assert.equal(reducer(editor, { type: 'phase', epoch: editor.epoch, phase, message: '' }).closePending, false);
-  }
-  const fresh = reducer(editor, { type: 'reset', accountId: '6', source: data });
-  assert.equal(fresh.closePending, false);
-  assert.equal(reducer(fresh, { type: 'phase', epoch: editor.epoch, phase: 'closing', message: '' }), fresh);
+  editor = reducer(editor, { type: 'refreshed', epoch: editor.epoch, data, message: '' });
+  assert.equal(editor.phase, 'idle');
+  assert.equal(reducer(editor, { type: 'bulk' }).changes[data.padron[0].asistencia_id], 'PRESENTE');
 });
 
-for (const [dirty, closing] of [[true, false], [false, true], [true, true]]) {
-  test(`diálogo distingue borrador=${dirty} y cierre pendiente=${closing}, con etiquetas accesibles`, () => {
-    const html = renderToStaticMarkup(createElement(Dialog, { open: true, busy: true, dirty, closing,
+for (const dirty of [true, false]) {
+  test(`dialogo de salida con borrador=${dirty}, accesible y bloqueado durante escritura`, () => {
+    const html = renderToStaticMarkup(createElement(Dialog, { open: true, busy: true, dirty,
       onCancel() {}, onConfirm() {} }));
     assert.match(html, /aria-labelledby="[^"]+" aria-describedby="[^"]+"/);
     if (dirty) assert.match(html, /Tienes cambios de asistencia pendientes/);
-    else assert.doesNotMatch(html, /Tienes cambios de asistencia pendientes|Salir sin guardar/);
-    if (closing) assert.match(html, /procesando o verificando el cierre.*Abandonar la pantalla/);
-    else assert.doesNotMatch(html, /procesando o verificando el cierre/);
+    else assert.match(html, /Espera a que termine/);
+    assert.doesNotMatch(html, /Cierre de asistencia pendiente/);
     assert.match(html, /disabled=""/);
   });
 }

@@ -80,18 +80,18 @@ test('vista editable mantiene nombres y orden, cuatro controles táctiles y sele
 
 test('resumen identifica cambios locales y masivo se deshabilita cuando no quedan pendientes', () => {
   const changes = draft.markPendingPresent(data.padron, {});
-  const html = renderToStaticMarkup(h(View, { data, editable: true, changes }));
-  assert.match(html, /1 estudiante sin guardar/);
-  assert.match(html, /El resumen incluye cambios sin guardar/);
+  const html = renderToStaticMarkup(h(View, { data, editable: true, changes, pendingCount: Object.keys(changes).length }));
+  assert.match(html, /1 cambio sin guardar/);
+  assert.match(html, /Mostrando 4 de 4 estudiantes/);
   assert.match(html, /disabled=""[^>]*>Marcar todos como presentes/);
   assert.match(html, /No hay estudiantes sin marcar/);
 });
 
-test('sesión CERRADA no presenta controles ni aplica borrador aunque se solicite edición', () => {
+test('sesion CERRADA permite controles directos y borrador', () => {
   const html = renderToStaticMarkup(h(View, { data: { ...data, sesion: { ...data.sesion, estado: 'CERRADA' } },
     editable: true, changes: { [data.padron[0].asistencia_id]: 'PRESENTE' } }));
-  assert.match(html, /Sesión cerrada · Solo consulta/);
-  assert.doesNotMatch(html, /<button|aria-pressed|Sin guardar|Marcado provisional/);
+  assert.match(html, /Registro de asistencia/);
+  assert.equal((html.match(/aria-pressed=/g) ?? []).length, 16);
 });
 
 test('editar y renderizar no inicia solicitudes HTTP ni PATCH', () => {
@@ -99,6 +99,6 @@ test('editar y renderizar no inicia solicitudes HTTP ni PATCH', () => {
   http.defaults.adapter = async () => { calls++; throw new Error('No debe solicitar HTTP'); };
   const changes = draft.markPendingPresent(data.padron,
     draft.selectAttendanceState(data.padron, {}, data.padron[1].asistencia_id, 'TARDANZA'));
-  renderToStaticMarkup(h(View, { data, editable: true, changes }));
+  renderToStaticMarkup(h(View, { data, editable: true, changes, pendingCount: Object.keys(changes).length }));
   assert.equal(calls, 0);
 });

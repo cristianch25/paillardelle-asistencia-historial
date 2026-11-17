@@ -11,6 +11,8 @@ export type StudentSearchRow = {
   fecha: string;
   situacion: 'CON_REGISTRO' | 'SIN_ASISTENCIA' | 'SIN_SESION';
   estado: AttendanceState | null;
+  justificada: boolean;
+  motivo_justificacion: string | null;
   sesion_id: string | null;
   sesion_estado: 'ABIERTA' | 'CERRADA' | null;
   sesion_version: number | null;

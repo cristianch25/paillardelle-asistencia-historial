@@ -33,7 +33,7 @@ test('corrección usa PATCH existente, IDs exactos y versiones de sesión/fila; 
       calls.push(config);
       assert.equal(config.method, 'patch'); assert.equal(config.url, `/asistencias/sesiones/${sessionId}/registros`);
       assert.deepEqual(JSON.parse(config.data), { version: 3, cambios: [{ asistencia_id: base.padron[0].asistencia_id,
-        version: 1, estado: state, ...(closed ? { motivo: 'Llegada verificada' } : {}) }] });
+        version: 1, estado: state }] });
       return response(config, updated(base, state));
     };
     const result = await api.saveSupervisionCorrection(base, base.padron[0].asistencia_id, state, '  Llegada verificada  ');
@@ -54,12 +54,9 @@ test('validación rechaza estado inválido, misma marca o fila ajena; pendiente 
   assert.equal(api.correctionRequest(base, base.padron[3].asistencia_id, 'PRESENTE', '').cambios[0].version, 0);
 });
 
-test('motivo poscierre obligatorio, longitud por caracteres y Unicode válido; anulación previa es corregible', () => {
+test('correccion poscierre sin motivo; anulacion previa es corregible', () => {
   const base = supervisionDetail(sessionId, 'CERRADA'), id = base.padron[0].asistencia_id;
-  for (const reason of ['', '   ', 'a'.repeat(501), '\ud800', '\udc00']) {
-    assert.throws(() => api.correctionRequest(base, id, 'FALTA', reason), /motivo/);
-  }
-  assert.equal(api.correctionRequest(base, id, 'FALTA', '😀'.repeat(500)).cambios[0].motivo, '😀'.repeat(500));
+  assert.equal(api.correctionRequest(base, id, 'FALTA').cambios[0].motivo, undefined);
   base.padron[3].version = 2;
   assert.equal(api.correctionRequest(base, base.padron[3].asistencia_id, 'PRESENTE', 'Revisión').cambios[0].version, 2);
 });

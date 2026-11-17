@@ -26,7 +26,7 @@ test('6B.4B: revalidación histórica sin POST automático ni pérdida de borrad
           await ui.reset(`attendanceTest.readStatus = ${JSON.stringify(failure)}`); await ui.choose(0, 'Falta'); await focus();
           await wait(`Boolean(${button('Consultar estado actual')})`);
           assert.equal(await ui.dirty(), 1); assert.equal(await evaluate(`${rows}.length`), 4);
-          assert.equal(await evaluate(`${button('Guardar avances')}.disabled`), true);
+          assert.equal(await evaluate(`${button('Guardar cambios')}.disabled`), true);
           assert.match(await evaluate('document.body.textContent'), /No se pudo comprobar el acceso/);
           await evaluate('attendanceTest.readStatus = null'); await click('Consultar estado actual'); await checked();
           assert.equal(await ui.dirty(), 1); assert.equal((await ui.values())[0], 'Falta');
@@ -38,7 +38,7 @@ test('6B.4B: revalidación histórica sin POST automático ni pérdida de borrad
         await evaluate('attendanceTest.externalMark(2, "FALTA")'); await focus(); await checked();
         assert.equal(await ui.dirty(), 1); assert.equal((await ui.values())[0], 'Presente');
         assert.equal((await ui.values())[2], 'Falta'); assert.equal(await reads(), 1);
-        await click('Guardar avances'); await wait('document.body.textContent.includes("Avances guardados correctamente")');
+        await click('Guardar cambios'); await wait('document.body.textContent.includes("Cambios guardados correctamente")');
         assert.equal((await ui.patches())[0].body.version, 8); assert.equal(await reads(), 1);
         assert.equal(await evaluate('attendanceTest.calls.filter(c => c.method === "post").length'), 1);
       });
@@ -47,7 +47,7 @@ test('6B.4B: revalidación histórica sin POST automático ni pérdida de borrad
         await focus(); await checked();
         assert.match(await evaluate('document.body.textContent'), /Estado actual: Tardanza.*Tu selección: Presente/);
         const previous = await reads(); await focus(); await wait(`attendanceTest.calls.filter(c => c.method === "get" && c.url.includes("/sesiones/")).length > ${previous}`);
-        await checked(); assert.equal(await evaluate(`${button('Guardar avances')}.disabled`), true);
+        await checked(); assert.equal(await evaluate(`${button('Guardar cambios')}.disabled`), true);
         assert.equal(await ui.dirty(), 1);
       });
       await t.test('múltiples focos durante un GET no superponen consultas', async () => {

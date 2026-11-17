@@ -52,21 +52,21 @@ test('refinamiento UX: tarjetas directas, apertura, calendario y marcas confirma
       await t.test('nueva sesión solo tras acción explícita; abierta y cerrada tienen estados claros', async () => {
         await ui.setDate('2026-11-13'); await evaluate('navigationTest.server.sesion.seccion_id = "3"; navigationTest.sessionCreated = true');
         assert.equal(await evaluate(`${action}.textContent.trim()`), 'Abrir asistencia');
-        await click('Abrir asistencia'); await wait('document.body.textContent.includes("Asistencia iniciada")');
+        await click('Abrir asistencia'); await wait('document.body.textContent.includes("Registro de asistencia")');
         assert.equal(await evaluate(`Boolean(${action})`), false);
         assert.equal(await evaluate('Boolean(document.querySelector("#opening-hint"))'), false);
         await ui.setDate('2026-11-12'); await wait(`Boolean(${action})`);
         const posts = await evaluate('navigationTest.calls.filter(c => c.method === "post").length');
         await ui.setDate('2026-11-13'); await wait(`Boolean(${action})`);
         assert.equal(await evaluate('navigationTest.calls.filter(c => c.method === "post").length'), posts);
-        await click('Abrir asistencia'); await wait('document.body.textContent.includes("Sesión abierta")');
+        await click('Abrir asistencia'); await wait('document.body.textContent.includes("Registro de asistencia")');
         assert.equal(await evaluate(`Boolean(${action})`), false);
         await ui.setDate('2026-11-12'); await wait(`Boolean(${action})`);
         await evaluate('navigationTest.sessionState = "CERRADA"'); await click('Abrir asistencia');
-        await wait('document.body.textContent.includes("Sesión cerrada")');
+        await wait('document.body.textContent.includes("Registro de asistencia")');
         assert.equal(await evaluate(`Boolean(${action})`), false);
         assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Continuar asistencia|Consultar asistencia|Abrir asistencia/);
-        assert.equal(await evaluate('document.querySelectorAll("button[aria-pressed]").length'), 0);
+        assert.equal(await evaluate('document.querySelectorAll("button[aria-pressed]").length'), 16);
       });
       await t.test('salir sin guardar preserva las marcas confirmadas en el servidor', async () => {
         await ui.prepare(); await ui.choose(0, 'Presente'); await ui.save(); await ui.choose(0, 'Falta');

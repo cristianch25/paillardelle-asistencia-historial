@@ -7,7 +7,7 @@ export const data = {
     abierta_por: '5', abierta_en: '2026-11-13 12:00:00', cerrada_por: null, cerrada_en: null },
   padron: ['PENDIENTE', 'PRESENTE', 'TARDANZA', 'FALTA'].map((estado, index) => ({ asistencia_id: String(9007199254740994n + BigInt(index)),
     matricula_id: String(10 + index), matricula_seccion_id: String(20 + index), version: index,
-    estado, ultimo_cambio: null, estudiante: { id: String(index + 1), apellido_paterno: `Pérez ${index}`,
+    estado, justificada: false, motivo_justificacion: null, ultimo_cambio: null, estudiante: { id: String(index + 1), apellido_paterno: `Pérez ${index}`,
       apellido_materno: 'Del Río', nombres: 'Ana María', codigo_estudiante: null } })),
   resumen: { total: 4, presentes: 1, tardanzas: 1, faltas: 1, pendientes: 1 },
 };

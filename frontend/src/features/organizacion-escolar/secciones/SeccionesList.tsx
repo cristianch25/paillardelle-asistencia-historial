@@ -2,13 +2,14 @@ import Button from '../../../shared/components/Button';
 import type { Section } from './secciones.types';
 import { educationLevelLabels, formatSectionName } from './sectionPresentation';
 import type { SchoolYear } from '../anios-escolares/aniosEscolares.types';
+import type { ReactNode } from 'react';
 
 type Props = { sections: Section[]; years?: SchoolYear[]; selectedId?: string; checking: boolean;
-  formatName?: typeof formatSectionName; showAttendance?: boolean } & (
+  formatName?: typeof formatSectionName; showAttendance?: boolean; renderSummary?: (section: Section) => ReactNode } & (
   { onSelect: (section: Section) => void; onOpen?: never }
   | { onSelect?: never; onOpen: (section: Section, destination: 'asistencia' | 'estudiantes') => void }
 );
-export default function SeccionesList({ sections, years, selectedId, checking, onSelect, onOpen, formatName = formatSectionName, showAttendance = true }: Props) {
+export default function SeccionesList({ sections, years, selectedId, checking, onSelect, onOpen, formatName = formatSectionName, showAttendance = true, renderSummary }: Props) {
   return (
     <ul aria-label="Secciones disponibles" className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
       {sections.map(section => {
@@ -22,6 +23,7 @@ export default function SeccionesList({ sections, years, selectedId, checking, o
             {section.turno && <div><dt className="inline font-medium">Turno: </dt><dd className="inline break-words">{section.turno}</dd></div>}
             <div><dt className="inline font-medium">Estado: </dt><dd className="inline">{section.activo ? 'Activa' : 'Inactiva'}</dd></div>
           </dl>
+          {renderSummary?.(section)}
           {onOpen ? <div className="mt-4 flex flex-col gap-2">
             {showAttendance && <Button disabled={checking || !year} aria-label={`Asistencia diaria de ${formatName(section)} — ${educationLevelLabels[section.nivel]}`}
               onClick={() => onOpen(section, 'asistencia')}>Asistencia diaria</Button>}

@@ -35,8 +35,8 @@ function Correction({ initial, row, onClose, onReload }: {
   const [open, setOpen] = useState(true);
   const entry = correction.data.padron.find(item => item.asistencia_id === row.asistencia_id)!;
   if (open) return <SupervisionCorrectionDialog data={correction.data} row={entry} busy={correction.busy} onCancel={onClose}
-    onSave={async (state, reason) => {
-      const saved = await correction.save(entry.asistencia_id, state, reason);
+    onSave={async (state) => {
+      const saved = await correction.save(entry.asistencia_id, state);
       if (saved) onReload('Corrección guardada correctamente.');
       else setOpen(false);
     }} />;

@@ -1,24 +1,9 @@
-import type { AttendanceDetail, AttendanceState } from '../asistencias.types';
+import type { AttendanceDetail } from '../asistencias.types';
 import { assertAttendanceResponse } from '../attendanceReconciliation';
 import { saveAttendance } from '../asistencias.api';
+import { correctionRequest } from '../attendanceDraft';
 
-export const correctionStates = [
-  ['PRESENTE', 'Presente'], ['TARDANZA', 'Tardanza'], ['FALTA', 'Falta'], ['PENDIENTE', 'Sin marcar'],
-] as const;
-export const correctionLabel = (state: AttendanceState) => correctionStates.find(([value]) => value === state)?.[1];
-
-export function correctionRequest(base: AttendanceDetail, id: string, state: string, reason: string) {
-  const row = base.padron.find(item => item.asistencia_id === id);
-  if (!row || row.version < 0) throw new Error('Selecciona una asistencia existente.');
-  if (!correctionStates.some(([value]) => value === state) || row.estado === state) {
-    throw new Error('Selecciona un nuevo estado válido y diferente del actual.');
-  }
-  if (base.sesion.estado === 'CERRADA' && (!reason.trim() || /[\uD800-\uDFFF]/u.test(reason) || [...reason].length > 500)) {
-    throw new Error('Indica un motivo de corrección de hasta 500 caracteres.');
-  }
-  return { version: base.sesion.version, cambios: [{ asistencia_id: id, version: row.version,
-    estado: state as AttendanceState, ...(base.sesion.estado === 'CERRADA' ? { motivo: reason.trim() } : {}) }] };
-}
+export { correctionRequest, correctionStates, correctionLabel } from '../attendanceDraft';
 
 export function assertCorrectionDetail(before: AttendanceDetail, current: AttendanceDetail) {
   assertAttendanceResponse(before, current);
@@ -39,8 +24,8 @@ export function assertCorrectionDetail(before: AttendanceDetail, current: Attend
   }
 }
 
-export async function saveSupervisionCorrection(base: AttendanceDetail, id: string, state: string, reason: string) {
-  const body = correctionRequest(base, id, state, reason);
+export async function saveSupervisionCorrection(base: AttendanceDetail, id: string, state: string) {
+  const body = correctionRequest(base, id, state);
   const current = await saveAttendance(base.sesion.id, body);
   assertCorrectionDetail(base, current);
   const row = current.padron.find(item => item.asistencia_id === id)!;

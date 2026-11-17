@@ -2,6 +2,8 @@ import Button from '../../shared/components/Button';
 import type { AttendanceDetail, AttendanceState } from './asistencias.types';
 import { draftSummary, type AttendanceChanges } from './attendanceDraft';
 import AttendanceStudentRow from './AttendanceStudentRow';
+import FormField from '../../shared/components/FormField';
+import { searchCorrectionStudents } from './supervision/correctionStudentSearch';
 
 type Props = {
   data: AttendanceDetail;
@@ -12,42 +14,46 @@ type Props = {
   created?: boolean;
   onSelect?: (id: string, state: AttendanceState) => void;
   onMarkPending?: () => void;
+  reasons?: Record<string, string>;
+  justificationDisabled?: boolean;
+  onJustify?: (id: string, reason: string | undefined) => void;
+  query?: string;
+  onSearch?: (query: string) => void;
+  pendingCount?: number;
 };
 
-export default function AsistenciaSessionView({ data, changes = {}, editable = false, disabled = false, updated = [], created = false, onSelect, onMarkPending }: Props) {
-  const canEdit = editable && data.sesion.estado === 'ABIERTA';
+export default function AsistenciaSessionView({ data, changes = {}, editable = false, disabled = false, updated = [], created = false, onSelect, onMarkPending,
+  reasons = {}, justificationDisabled = disabled, onJustify, query = '', onSearch, pendingCount = 0 }: Props) {
+  const canEdit = editable;
   const local = canEdit ? changes : {};
-  const changedCount = Object.keys(local).length;
-  const counts = changedCount ? draftSummary(data.padron, local) : data.resumen;
-  const summary = [['Total', 'Total', counts.total], ['Presentes', 'Pres.', counts.presentes], ['Tardanzas', 'Tard.', counts.tardanzas],
-    ['Faltas', 'Faltas', counts.faltas], ['Sin marcar', 'Sin marcar', counts.pendientes]] as const;
+  const counts = Object.keys(local).length ? draftSummary(data.padron, local) : data.resumen;
+  const visible = searchCorrectionStudents(data.padron, query);
   return (
     <section aria-label="Sesión de asistencia" className="space-y-3">
       <div role="status" className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
-        <p className="font-semibold">{data.sesion.estado === 'CERRADA' ? 'Sesión cerrada'
-          : created ? 'Asistencia iniciada' : 'Sesión abierta'}{!canEdit && ' · Solo consulta'}</p>
-        {changedCount > 0 && <p className="font-medium text-amber-800">{changedCount} {changedCount === 1 ? 'estudiante sin guardar' : 'estudiantes sin guardar'}</p>}
+        <p className="font-semibold">{canEdit ? 'Registro de asistencia' : created ? 'Asistencia iniciada'
+          : `Sesión ${data.sesion.estado === 'CERRADA' ? 'cerrada' : 'abierta'}`}{!canEdit && !onJustify && ' · Solo consulta'}</p>
       </div>
-      {canEdit && <p className="text-xs text-slate-600">Las marcas se guardan solo al pulsar «Guardar avances». Si sales con cambios sin guardar, se perderán.</p>}
-      <dl aria-label="Resumen de asistencia" className="grid grid-cols-5 gap-1 rounded-xl border border-slate-200 bg-white p-3 sm:gap-3 sm:p-4">
-        {summary.map(([label, short, value]) => <div key={label} className="min-w-0">
-          <dt className="min-h-8 text-xs text-slate-600 sm:min-h-0"><span className="sm:hidden" aria-hidden="true">{short}</span>
-            <span className="sr-only sm:not-sr-only">{label}</span></dt><dd className="mt-1 text-xl font-semibold">{value}</dd>
-        </div>)}
-      </dl>
-      {changedCount > 0 && <p role="status" className="text-xs text-amber-800">El resumen incluye cambios sin guardar.</p>}
+      {canEdit && <p className="text-xs text-slate-600">Las marcas se guardan solo al pulsar «Guardar cambios». Si sales con cambios sin guardar, se perderán.</p>}
+      <div className="max-w-lg">
+        <FormField label="Buscar estudiante" type="search" value={query} onChange={event => onSearch?.(event.target.value)}
+          placeholder="Nombres, apellidos o código" />
+        <p role="status" className="mt-2 text-xs text-slate-600">Mostrando {visible.length} de {data.padron.length} estudiantes · {pendingCount} {pendingCount === 1 ? 'cambio sin guardar' : 'cambios sin guardar'}</p>
+      </div>
       {canEdit && <div className="space-y-1">
         <Button variant="secondary" className="w-full sm:w-auto" disabled={disabled || !counts.pendientes} onClick={onMarkPending}>
           Marcar todos como presentes
         </Button>
-        <p className="text-xs text-slate-600">Solo cambia estudiantes sin marcar, previa confirmación.
+        <p className="text-xs text-slate-600">Se aplica a los estudiantes sin marcar elegibles de toda la sección, incluidos los ocultos por la búsqueda, previa confirmación.
           {!counts.pendientes && ' No hay estudiantes sin marcar.'}</p>
       </div>}
       <ul aria-label="Estudiantes y marcas actuales" className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
-        {data.padron.map(row => <AttendanceStudentRow key={row.asistencia_id} row={row}
-          state={local[row.asistencia_id] ?? row.estado} changed={local[row.asistencia_id] !== undefined}
-          editable={canEdit} disabled={disabled} updated={updated.includes(row.asistencia_id)} onSelect={onSelect} />)}
+        {visible.map(row => <AttendanceStudentRow key={row.asistencia_id} row={row}
+          state={local[row.asistencia_id] ?? row.estado} changed={local[row.asistencia_id] !== undefined || reasons[row.asistencia_id] !== undefined}
+          editable={canEdit} disabled={disabled} updated={updated.includes(row.asistencia_id)} onSelect={onSelect}
+          reason={reasons[row.asistencia_id]} onJustify={onJustify} justificationDisabled={justificationDisabled} />)}
       </ul>
+      {!visible.length && <p role="status" className="text-sm text-slate-600">No hay estudiantes que coincidan con la búsqueda. Los cambios pendientes se conservan.</p>}
     </section>
   );
 }

@@ -26,10 +26,19 @@ export function attendanceMock() {
   function apply(body) {
     if (body.version !== controls.server.sesion.version || body.cambios.some(change =>
       controls.server.padron.find(row => row.asistencia_id === change.asistencia_id)?.version !== change.version)) return 409;
-    if (controls.sessionState === 'CERRADA') return 400;
     for (const change of body.cambios) {
       const row = controls.server.padron.find(row => row.asistencia_id === change.asistencia_id);
-      if (row.estado !== change.estado) Object.assign(row, { estado: change.estado, version: row.version + 1 });
+      if (row.justificada && (row.estado !== change.estado || change.justificada === false
+        || (change.motivo_justificacion !== undefined && change.motivo_justificacion !== row.motivo_justificacion))) return 409;
+      if (change.justificada && (!['FALTA', 'TARDANZA'].includes(change.estado) || !change.motivo_justificacion?.trim()
+        || [...change.motivo_justificacion].length > 500)) return 400;
+    }
+    for (const change of body.cambios) {
+      const row = controls.server.padron.find(row => row.asistencia_id === change.asistencia_id);
+      if (row.estado !== change.estado || (change.justificada && !row.justificada)) Object.assign(row, {
+        estado: change.estado, version: row.version + 1,
+        ...(change.justificada ? { justificada: true, motivo_justificacion: change.motivo_justificacion.trim() } : {}),
+      });
     }
     controls.server.sesion.version++; summary(); return 200;
   }
@@ -54,6 +63,12 @@ export function attendanceMock() {
           fecha_ingreso: '2026-03-02', fecha_retiro: null, estado: 'ACTIVA', fecha_inicio: '2026-03-02', fecha_fin: null,
           estudiante: { ...row.estudiante, tipo_documento: null, numero_documento: null, fecha_nacimiento: null,
             created_at: '2026-03-02 12:00:00', updated_at: '2026-03-02 12:00:00' } })) };
+    } else if (config.url === '/asistencias/sesiones' && config.method === 'get') {
+      const sections = controls.allow ? [selection.section, ...controls.extraSections] : [];
+      result = { anio_escolar_id: config.params.anio_escolar_id, fecha: config.params.fecha,
+        secciones: sections.map(seccion => ({ seccion: structuredClone(seccion), es_lectivo: controls.calendar.es_lectivo,
+          situacion: controls.sessionState, sesion_id: controls.server.sesion.id, resumen: structuredClone(controls.server.resumen) })),
+        pagination: { page: config.params.page, limit: config.params.limit, has_more: false } };
     } else if (config.url.startsWith('/asistencias/sesiones')) {
       if (!controls.sessionAllowed) fail(404);
       if (config.url.endsWith('/cierre') && config.method === 'post') {

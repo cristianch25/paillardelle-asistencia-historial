@@ -78,7 +78,7 @@ test('resolver conflicto permite conservar servidor o selección local; nunca gu
     assert.equal(state.success, false);
   }
 });
-test('saving/refresh-required y sesión cerrada rechazan edición; respuesta tardía no altera nueva cuenta', () => {
+test('saving/refresh-required rechazan edicion y cerrada permite masivo; respuesta tardía no altera nueva cuenta', () => {
   let state = editor.createAttendanceEditor('5', data);
   for (const phase of ['saving', 'refreshing', 'refresh-required']) {
     state = { ...state, phase };
@@ -89,14 +89,15 @@ test('saving/refresh-required y sesión cerrada rechazan edición; respuesta tar
   assert.equal(editor.attendanceEditorReducer(state, { type: 'saved', epoch, data: change('PRESENTE'), message: 'OK' }), state);
   const closed = structuredClone(data); closed.sesion.estado = 'CERRADA';
   state = editor.createAttendanceEditor('6', closed);
-  assert.equal(editor.attendanceEditorReducer(state, { type: 'bulk' }), state);
+  assert.equal(editor.attendanceEditorReducer(state, { type: 'bulk' }).changes[id], 'PRESENTE');
 });
-test('consulta de sesión cerrada conserva selecciones sin permitir corrección posterior al cierre', () => {
+test('consulta cerrada conserva seleccion sin conflicto artificial', () => {
   let state = editor.createAttendanceEditor('5', data); state.changes = { [id]: 'PRESENTE' };
   const closed = structuredClone(data); closed.sesion.estado = 'CERRADA';
   state = editor.attendanceEditorReducer(state, { type: 'refreshed', epoch: state.epoch, data: closed, message: '' });
-  assert.deepEqual(state.conflicts, [id]);
-  assert.equal(editor.attendanceEditorReducer(state, { type: 'resolve', id, local: true }), state);
+  assert.deepEqual(state.conflicts, []);
+  assert.equal(state.changes[id], 'PRESENTE');
+  assert.equal(reconcile.attendancePatch(state.base, state.changes).cambios.length, 1);
 });
 test('rechazo de lote conserva todas las selecciones y perder acceso retira datos de la vista', () => {
   let state = editor.createAttendanceEditor('5', data); state.changes = { [id]: 'FALTA', [data.padron[1].asistencia_id]: 'TARDANZA' };

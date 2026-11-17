@@ -10,18 +10,18 @@ test('6B.2C: guardado en curso, pérdida de acceso y beforeunload nativo',
     try {
       await t.test('durante PATCH no se puede confirmar salida; cancelar conserva la operación única', async () => {
         await ui.prepare(); await ui.choose(0, 'Presente');
-        await evaluate('navigationTest.holdPatch = true'); await click('Guardar avances'); await wait('Boolean(navigationTest.releasePatch)');
+        await evaluate('navigationTest.holdPatch = true'); await click('Guardar cambios'); await wait('Boolean(navigationTest.releasePatch)');
         await ui.menu('/inicio'); await ui.guard();
         assert.equal(await evaluate(`${ui.button('Salir sin guardar')}.disabled`), true);
         await ui.cancel(); await evaluate('navigationTest.releasePatch()');
-        await wait('document.body.textContent.includes("Avances guardados correctamente")');
+        await wait('document.body.textContent.includes("Cambios guardados correctamente")');
         assert.equal(await ui.dirty(), 0);
         assert.equal(await evaluate('navigationTest.calls.filter(c => c.method === "patch").length'), 1);
         assert.equal(await evaluate('(() => { const event = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented; })()'), false);
         await ui.menu('/inicio'); await wait('location.pathname === "/inicio"'); assert.equal(await evaluate(`Boolean(${dialog})`), false);
       });
       await t.test('una navegación pendiente solo continúa después de confirmar el guardado', async () => {
-        await ui.prepare(); await ui.choose(0, 'Falta'); await evaluate('navigationTest.holdPatch = true'); await click('Guardar avances');
+        await ui.prepare(); await ui.choose(0, 'Falta'); await evaluate('navigationTest.holdPatch = true'); await click('Guardar cambios');
         await wait('Boolean(navigationTest.releasePatch)'); await ui.menu('/inicio'); await ui.guard();
         await evaluate('navigationTest.releasePatch()'); await wait('location.pathname === "/inicio"');
         assert.equal(await evaluate('navigationTest.server.padron[0].estado'), 'FALTA');
@@ -29,13 +29,13 @@ test('6B.2C: guardado en curso, pérdida de acceso y beforeunload nativo',
       });
       await t.test('resultado incierto impide salir hasta consultar; no reenvía ni anuncia éxito', async () => {
         await ui.prepare(); await ui.choose(0, 'Presente');
-        await evaluate('navigationTest.saveStatus = 500; navigationTest.holdRead = true'); await click('Guardar avances');
+        await evaluate('navigationTest.saveStatus = 500; navigationTest.holdRead = true'); await click('Guardar cambios');
         await wait('Boolean(navigationTest.releaseRead)'); await ui.menu('/inicio'); await ui.guard();
         assert.equal(await evaluate(`${ui.button('Salir sin guardar')}.disabled`), true);
         await evaluate('navigationTest.releaseRead()'); await wait('document.body.textContent.includes("Lista consultada")');
         assert.equal(await evaluate('location.pathname'), '/secciones/asistencia');
         assert.equal(await evaluate(`${ui.button('Salir sin guardar')}.disabled`), false);
-        assert.doesNotMatch(await evaluate('document.body.textContent'), /Avances guardados correctamente/);
+        assert.doesNotMatch(await evaluate('document.body.textContent'), /Cambios guardados correctamente/);
         assert.equal(await evaluate('navigationTest.calls.filter(c => c.method === "patch").length'), 1);
         await ui.cancel(); assert.equal(await ui.dirty(), 1);
       });

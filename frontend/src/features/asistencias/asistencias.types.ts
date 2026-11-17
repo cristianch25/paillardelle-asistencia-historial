@@ -17,6 +17,8 @@ export type AttendanceEntry = {
   matricula_seccion_id: string;
   estado: AttendanceState;
   version: number;
+  justificada: boolean;
+  motivo_justificacion: string | null;
   estudiante: {
     id: string;
     codigo_estudiante: string | null;
@@ -37,5 +39,6 @@ export type AttendanceClosing = AttendanceDetail & {
 };
 export type AttendancePatch = {
   version: number;
-  cambios: { asistencia_id: string; version: number; estado: AttendanceState }[];
+  cambios: { asistencia_id: string; version: number; estado: AttendanceState;
+    justificada?: boolean; motivo_justificacion?: string | null; motivo?: string }[];
 };
