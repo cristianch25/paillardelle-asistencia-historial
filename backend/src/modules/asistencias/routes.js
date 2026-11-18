@@ -7,6 +7,7 @@ export function createAttendanceRoutes(authService, service = createAttendanceSe
   const router = Router(), controller = createAttendanceController(service);
   router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   router.use(authenticate(authService));
+  router.get('/seguimiento-mensual', controller.monthlyFollowup);
   router.get('/estadisticas', controller.statistics);
   router.get('/busqueda-estudiantes', controller.searchStudents);
   router.get('/sesiones', controller.list);

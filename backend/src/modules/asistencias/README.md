@@ -1,5 +1,40 @@
 # Asistencia diaria
 
+## Seguimiento mensual — D11/D12 y RN-19/RN-23 V8
+
+`GET /api/asistencias/seguimiento-mensual?anio_escolar_id=1&mes=2026-11&page=1&limit=20`
+admite `nivel` opcional. Año y mes YYYY-MM obligatorios; rechaza campos
+desconocidos/repetidos y filtros inválidos con 400. El mes calendario se
+intersecta con las fechas del año; sin intersección, 400; año inexistente, 404.
+Paginación compartida: página 1 y límite 20 por defecto, máximo 100.
+
+ADMIN consulta los tres niveles; SUBDIRECCION principal y adicionales explícitos
+mediante el mismo servicio general de Estadísticas, nunca la matriz especial
+de asistencia. REGISTRADOR/nivel ajeno: 403; sin autenticación/inactivo: 401.
+
+Respuesta: `filtros` (año, mes, nivel/null y fechas efectivas),
+`niveles_autorizados`, `estudiantes` y `pagination` (page, limit, total, has_more).
+Cada fila incluye `estudiante` (id textual, nombres y apellidos), `secciones`
+(id textual, nivel, grado, letra), `faltas`, `tardanzas`, `total`, `justificadas`
+e `injustificadas`. Secciones son las de sus incidencias, no la sección actual.
+
+SQL agrupa por identidad de estudiante y año, reuniendo cambios de sección.
+Solo suma estados actuales FALTA/TARDANZA, justificadas o no. Filtra año, mes
+y ámbito/nivel antes del umbral `COUNT(*) >= 3`. Orden estable: total descendente,
+apellido paterno, materno, nombres e ID. Total, página y secciones de esa página
+comparten READ ONLY/REPEATABLE READ reutilizando `list.repository.js` y
+`shared/transaction.js`. No exige actividad actual de sección/matrícula,
+año ABIERTO ni sesiones CERRADA para consultar históricos.
+
+El estudiante aparece al alcanzar tres incidencias, incluso en una semana;
+no espera fin de mes ni cierres. Cada consulta refleja marcas vigentes;
+una corrección que lo deja por debajo de tres lo excluye. PRESENTE/PENDIENTE,
+fechas sin registro y eventos de historial no cuentan. Las páginas son consultas
+independientes; actualizar vuelve al inicio para reflejar cambios recientes.
+Sin escrituras, sanciones, notificaciones, tareas programadas ni historial técnico.
+Cache-Control: no-store. Pruebas de SQL/HTTP con conexión simulada en
+`backend/test/asistencias.followup.test.js`; no acredita integración MySQL real.
+
 ## Estadísticas por período — 17/11/2026
 
 `GET /api/asistencias/estadisticas` requiere JWT y actor activo. Parámetros:

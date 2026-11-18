@@ -2,7 +2,8 @@
 
 Pantalla compartida en `/estadisticas`, solo para ADMIN y SUBDIRECCION.
 Implementación autorizada del 17/11/2026 según RN-23 V8 y el contrato mínimo
-aprobado por el usuario. No incluye alertas individuales, reportes ni exportaciones.
+aprobado por el usuario. Incluye seguimiento mensual institucional; no incluye
+reportes, exportaciones ni perfil individual del estudiante.
 
 - Año inicial mediante `useInitialSchoolYear`; conserva cambios manuales.
 - Día, semana civil lunes–domingo y mes calendario. Rangos inclusivos
@@ -35,3 +36,24 @@ el contrato del cliente.
 
 Verificación: `test/statistics.test.mjs` y `test/statistics.browser.mjs` usan
 APIs simuladas. No acreditan integración real React → Express → MySQL.
+
+## Seguimiento de estudiantes con tres incidencias
+
+El bloque comparte año/nivel con los gráficos y tiene un mes propio, inicialmente
+el mes de hoy en Lima ajustado al año. No depende de Día/Semana/Mes/Personalizado
+de los gráficos, incluso si ese rango está incompleto. Consulta exclusivamente
+`GET /api/asistencias/seguimiento-mensual`, sin descargar historiales individuales.
+Los niveles disponibles también pueden provenir de esta respuesta si los gráficos
+todavía no se han consultado. Mes/año/nivel nuevos vuelven a página 1.
+
+Tabla con una fila por estudiante, secciones con incidencias, faltas, tardanzas,
+total y desglose de justificadas/injustificadas; contador global y paginación de 20.
+La tabla se desplaza horizontalmente en móvil. Actualizar seguimiento consulta
+marcas vigentes y vuelve a la primera página; errores y respuestas antiguas
+retiran las filas previas. Sin autoactualización, notificaciones ni sanciones.
+La tercera incidencia activa el indicador durante el mes, sin cierres; bajar de
+tres por corrección lo retira en la próxima consulta.
+
+Archivos `monthlyFollowup.types.ts`, `monthlyFollowup.api.ts`,
+`useMonthlyFollowup.ts` y `MonthlyFollowup.tsx`. Pruebas unitarias/de navegador
+en `test/monthlyFollowup.test.mjs` y `test/monthlyFollowup.browser.mjs` con API simulada.

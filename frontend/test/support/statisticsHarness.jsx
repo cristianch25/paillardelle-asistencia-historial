@@ -2,9 +2,11 @@ import './authHarness.jsx';
 import { AxiosError } from 'axios';
 import { httpClient } from '../../src/shared/api/httpClient';
 import { statisticsYear, statisticsResponse } from './statisticsFixture.mjs';
+import { monthlyFollowupResponse } from './monthlyFollowupFixture.mjs';
 
 const authAdapter = httpClient.defaults.adapter;
 const controls = { role: 'ADMIN', levels: ['INICIAL', 'PRIMARIA', 'SECUNDARIA'], calls: [], status: null, hold: false, pending: [], mode: 'normal' };
+controls.monthly = { total: 21, status: null, hold: false, pending: [] };
 window.statisticsTest = controls;
 httpClient.defaults.adapter = async config => {
   if (config.url.startsWith('/auth/')) {
@@ -19,7 +21,12 @@ httpClient.defaults.adapter = async config => {
     { ...statisticsYear, id: '2', anio: 2025, fecha_inicio: '2025-03-03', fecha_fin: '2025-12-19' }], pagination: { page: 1, limit: 100, has_more: false } };
   else if (config.url === '/asistencias/sesiones') data = { anio_escolar_id: config.params.anio_escolar_id,
     fecha: config.params.fecha, secciones: [], pagination: { page: 1, limit: 100, has_more: false } };
-  else if (config.url === '/asistencias/estadisticas') {
+  else if (config.url === '/asistencias/seguimiento-mensual') {
+    data = monthlyFollowupResponse(config.params, controls.monthly.total, controls.levels);
+    const status = controls.monthly.status;
+    if (controls.monthly.hold) await new Promise(resolve => controls.monthly.pending.push(resolve));
+    if (status) throw new AxiosError('Privado', '', config, null, { config, status });
+  } else if (config.url === '/asistencias/estadisticas') {
     data = statisticsResponse(config.params); data.niveles_autorizados = [...controls.levels];
     if (controls.mode !== 'normal') {
       data.totales = { presentes: 0, tardanzas: 0, faltas: 0, pendientes: controls.mode === 'pending' ? 7 : 0 };

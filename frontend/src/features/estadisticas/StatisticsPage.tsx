@@ -12,6 +12,8 @@ import type { StatisticsPeriod } from './statistics.types';
 import { initialStatisticsDate, statisticsRange } from './statisticsPeriod';
 import { useStatistics } from './useStatistics';
 import StatisticsCharts from './StatisticsCharts';
+import MonthlyFollowup from './MonthlyFollowup';
+import { useMonthlyFollowup } from './useMonthlyFollowup';
 
 const inputClass = 'mt-2 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base';
 const levelNames = { INICIAL: 'Inicial', PRIMARIA: 'Primaria', SECUNDARIA: 'Secundaria' };
@@ -23,6 +25,7 @@ function StatisticsContent() {
   const [custom, setCustom] = useState({ yearId: '', start: '', end: '' });
   useInitialSchoolYear(years.years, !years.loading && !years.error, yearId, setYear);
   const year = years.years.find(row => row.id === yearId);
+  const followup = useMonthlyFollowup(year, level, !years.loading && !years.error);
   const date = reference.yearId === yearId ? reference.date : initialStatisticsDate(peruToday(), year);
   const customRange = custom.yearId === yearId ? custom : { start: '', end: '' };
   const personalized = period === 'personalizado';
@@ -61,7 +64,7 @@ function StatisticsContent() {
       <label htmlFor={`${id}-level`} className="min-w-0 text-sm font-semibold">Nivel educativo
         <select id={`${id}-level`} className={inputClass} value={level} onChange={e => setLevel(e.target.value as EducationLevel | '')}>
           <option value="">Todos los niveles autorizados</option>
-          {query.levels.map(value => <option key={value} value={value}>{levelNames[value]}</option>)}
+          {(query.levels.length ? query.levels : followup.levels).map(value => <option key={value} value={value}>{levelNames[value]}</option>)}
         </select></label>
     </section>
     {years.loading ? <LoadingState message="Cargando años escolares…" /> : years.error ? <>
@@ -79,6 +82,7 @@ function StatisticsContent() {
         : <StatisticsCharts data={query.data} />}
     </>}
     <p className="text-xs text-slate-600">Los días y salones sin registro no se cuentan como faltas ni pendientes. Incluye registros históricos de secciones inactivas.</p>
+    <MonthlyFollowup year={year} state={followup} />
   </div>;
 }
 
