@@ -1,0 +1,62 @@
+import type { StudentProfile } from './profile.types';
+import { educationLevelLabels, formatSectionName } from '../../organizacion-escolar/secciones/sectionPresentation';
+import { formatCivilDate } from '../../../shared/dates/civilDate';
+import GuardianPhoneEditor from './GuardianPhoneEditor';
+
+const labels = { PRESENTE: 'Presente', TARDANZA: 'Tardanza', FALTA: 'Falta', PENDIENTE: 'Pendiente',
+  SIN_SESION: 'Sin sesión', SIN_ASISTENCIA: 'Sin marca individual', FUERA_DE_VIGENCIA: 'Fuera de vigencia o sin contexto autorizado' };
+const name = (section: NonNullable<StudentProfile['contexto']['seccion_actual']>) => `${educationLevelLabels[section.nivel]} · ${formatSectionName(section)}`;
+export default function StudentProfileView({ data, compact = false, onBusyChange, onReload }: {
+  data: StudentProfile; compact?: boolean; onBusyChange?: (busy: boolean) => void; onReload?: () => void;
+}) {
+  const phone = data.apoderado && data.apoderado_visible ? <GuardianPhoneEditor key={`${data.estudiante.id}:${data.apoderado.telefono}`}
+    studentId={data.estudiante.id} phone={data.apoderado.telefono} onBusyChange={onBusyChange} onReload={onReload} /> : null;
+  if (compact) return <div aria-label="Datos del perfil individual" className="min-w-0 space-y-4 break-words">
+    <section className="space-y-2">
+      <h3 className="text-lg font-bold">{[data.estudiante.apellido_paterno, data.estudiante.apellido_materno, data.estudiante.nombres].filter(Boolean).join(' ')}</h3>
+      <p className="text-sm text-slate-600">{data.contexto.seccion_actual ? name(data.contexto.seccion_actual) : 'Sin sección actual'}</p>
+    </section>
+    <section className="space-y-2 border-t border-slate-200 pt-4">
+      <h3 className="text-sm font-semibold text-slate-600">Apoderado</h3>
+      {!data.apoderado_visible ? <p>Contacto no disponible.</p> : !data.apoderado ? <p>Sin apoderado vinculado.</p> : <>
+        <p className="font-medium">{data.apoderado.nombres_apellidos}</p>
+        {phone}
+      </>}
+    </section>
+  </div>;
+  return <div className="min-w-0 space-y-4" aria-label="Datos del perfil individual">
+    <section className="space-y-1 break-words">
+      <h3 className="text-lg font-bold">{[data.estudiante.apellido_paterno, data.estudiante.apellido_materno, data.estudiante.nombres].filter(Boolean).join(' ')}</h3>
+      <p>Código: {data.estudiante.codigo_estudiante || 'No disponible'}</p>
+      <p>Sección actual: {data.contexto.seccion_actual ? name(data.contexto.seccion_actual) : 'Sin sección vigente autorizada'}</p>
+      <p className="text-sm">Secciones del período:</p>
+      <ul className="text-sm">{data.contexto.secciones.map((section, index) => <li key={`${section.id}-${index}`}>
+        {name(section)} · desde {formatCivilDate(section.fecha_inicio)}{section.fecha_fin ? ` hasta ${formatCivilDate(section.fecha_fin)}` : ''}</li>)}</ul>
+    </section>
+    <section className="rounded-lg bg-slate-50 p-3">
+      <h3 className="font-semibold">Apoderado actual</h3>
+      {!data.apoderado_visible ? <p className="text-sm">Sin permiso para consultar el apoderado actual.</p>
+        : data.apoderado ? <><p className="break-words">{data.apoderado.nombres_apellidos}</p>{phone}</>
+          : <p className="text-sm">Sin apoderado vinculado actualmente.</p>}
+      <p className="text-xs text-slate-600">Vínculo activo actual; no representa el apoderado histórico del mes.</p>
+    </section>
+    <section><h3 className="font-semibold">Resumen mensual</h3>
+      <dl className="grid grid-cols-2 gap-3 py-3 sm:grid-cols-4">{(['presentes', 'tardanzas', 'faltas', 'pendientes'] as const).map(key =>
+        <div key={key}><dt className="text-sm capitalize">{key}</dt><dd className="text-xl font-bold">{data.resumen[key]}</dd></div>)}</dl>
+      <p className="text-sm">Incidencias justificadas: {data.resumen.justificadas} · No justificadas: {data.resumen.injustificadas}.</p>
+      <p className="text-xs text-slate-600">Faltas justificadas: {data.resumen.faltas_justificadas} · Tardanzas justificadas: {data.resumen.tardanzas_justificadas}.</p>
+      {!data.resumen.total && <p className="text-sm">No hay marcas individuales registradas en este mes y ámbito.</p>}
+    </section>
+    <div className="max-w-full overflow-x-auto"><table className="w-full min-w-[32rem] text-left text-sm">
+      <caption className="py-2 text-left font-semibold">Historial diario del mes</caption>
+      <thead><tr>{['Fecha', 'Sección', 'Estado', 'Justificación vigente'].map(label => <th key={label} className="p-2" scope="col">{label}</th>)}</tr></thead>
+      <tbody>{data.dias.map(day => <tr key={day.fecha} className="border-t border-slate-200 align-top">
+        <th scope="row" className="p-2 font-normal">{formatCivilDate(day.fecha)}</th>
+        <td className="p-2">{day.seccion ? name(day.seccion) : '—'}</td>
+        <td className="p-2">{day.estado ? labels[day.estado] : labels[day.situacion as Exclude<typeof day.situacion, 'CON_REGISTRO'>]}
+          {day.es_lectivo === false && <span className="block text-xs text-slate-600">Día no lectivo</span>}</td>
+        <td className="max-w-xs break-words p-2">{day.justificada ? day.motivo_justificacion || 'Justificada' : '—'}</td>
+      </tr>)}</tbody>
+    </table></div>
+  </div>;
+}

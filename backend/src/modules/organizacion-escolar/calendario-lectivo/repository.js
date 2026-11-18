@@ -36,14 +36,15 @@ export async function readCalendar(connection, scope, lock = false) {
 export function createCalendarRepository(poolProvider = getPool) {
   return {
     // Interno: consultas consistentes sobre la conexión de lectura del módulo consumidor.
-    async dayForLevels(connection, yearId, date, levels) {
+    async dayForLevels(connection, yearId, date, levels, until = date) {
       if (!levels.length) return { periods: [], exceptions: [] };
       const placeholders = levels.map(() => '?').join(', ');
       const [periods] = await connection.execute(`SELECT nivel, fecha_inicio, fecha_fin FROM periodos_lectivos
         WHERE anio_escolar_id = ? AND nivel IN (${placeholders}) AND fecha_inicio <= ? AND fecha_fin >= ?`,
-      [yearId, ...levels, date, date]);
+      [yearId, ...levels, until, date]);
       const [exceptions] = await connection.execute(`SELECT nivel, fecha, es_lectivo, descripcion FROM calendario_lectivo
-        WHERE anio_escolar_id = ? AND nivel IN (${placeholders}) AND fecha = ?`, [yearId, ...levels, date]);
+        WHERE anio_escolar_id = ? AND nivel IN (${placeholders}) AND ${until === date ? 'fecha = ?' : 'fecha BETWEEN ? AND ?'}`,
+      [yearId, ...levels, date, ...(until === date ? [] : [until])]);
       return { periods, exceptions };
     },
     async levelsForSections(ids) {

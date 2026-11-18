@@ -11,6 +11,7 @@ import LoadingState from '../../../shared/components/LoadingState';
 import Button from '../../../shared/components/Button';
 import AdminAttendanceEditor from './AdminAttendanceEditor';
 import { useNavigationProtection } from '../../../shared/navigation/NavigationProtectionContext';
+import StudentProfileButton from '../../estudiantes/perfil/StudentProfileButton';
 
 export default function StudentAttendanceProfile({ row, onBack, onReload }: {
   row: StudentSearchRow; onBack: () => void; onReload: () => void;
@@ -36,6 +37,7 @@ export default function StudentAttendanceProfile({ row, onBack, onReload }: {
     <div className="space-y-2 break-words rounded-xl border border-slate-200 bg-white p-4">
       <h2 className="text-xl font-bold">{[row.estudiante.apellido_paterno, row.estudiante.apellido_materno, row.estudiante.nombres].filter(Boolean).join(' ')}</h2>
       <p className="text-sm">Código: {row.estudiante.codigo_estudiante || 'No disponible'}</p>
+      <StudentProfileButton studentId={row.estudiante.id} yearId={row.anio_escolar.id} month={row.fecha.slice(0, 7)} />
       <p className="text-sm">{row.anio_escolar.anio} · {educationLevelLabels[row.seccion.nivel]} · {formatSectionName(row.seccion)}</p>
       <h3 className="font-semibold">Asistencia del {formatCivilDate(row.fecha)}</h3>
       <p className="text-sm text-slate-600">Se muestra la fecha consultada. El historial individual completo todavía no está disponible.</p>

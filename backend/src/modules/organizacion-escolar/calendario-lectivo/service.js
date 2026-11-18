@@ -18,6 +18,11 @@ export function createCalendarService({ repository = createCalendarRepository(),
       pagination: { page: data.page, limit: data.limit, has_more: rows.length > data.limit } };
   }
   return {
+    async effectiveForRange(connection, yearId, from, until, levels) {
+      const { periods, exceptions } = await repository.dayForLevels(connection, yearId, from, levels, until);
+      return new Map(datesInRange(from, until).map(date => [date, new Map(levels.map(level => [level,
+        effectiveDay(date, periods.filter(row => row.nivel === level), exceptions.filter(row => row.nivel === level))]))]));
+    },
     async effectiveForDate(connection, yearId, date, levels) {
       const { periods, exceptions } = await repository.dayForLevels(connection, yearId, date, levels);
       return new Map(levels.map(level => [level, effectiveDay(date, periods.filter(row => row.nivel === level),

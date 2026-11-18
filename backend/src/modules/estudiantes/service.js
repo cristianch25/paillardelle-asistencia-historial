@@ -2,6 +2,8 @@ import { HttpError } from '../../shared/http-error.js';
 import { validateId } from '../../shared/query-validation.js';
 import { createStudentsRepository } from './repository.js';
 import { validateStudent } from './validation.js';
+import { createStudentProfileService } from './profile.service.js';
+import { createGuardianPhoneService } from './phone.service.js';
 
 export function createStudentIdentitiesService({ repository = createStudentsRepository() } = {}) {
   return {
@@ -24,9 +26,12 @@ export function createStudentIdentitiesService({ repository = createStudentsRepo
   };
 }
 
-export function createStudentsService({ repository = createStudentsRepository(), matriculasService } = {}) {
+export function createStudentsService({ repository = createStudentsRepository(), matriculasService,
+  profileService = createStudentProfileService(), phoneService = createGuardianPhoneService() } = {}) {
   if (!matriculasService) throw new Error('Se requiere el servicio de matrículas.');
   return {
+    ...profileService,
+    ...phoneService,
     async create(body, actor) {
       const data = validateStudent(body);
       return matriculasService.createStandalone(data, actor);

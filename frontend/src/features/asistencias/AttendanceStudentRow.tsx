@@ -2,6 +2,7 @@
 import type { AttendanceEntry, AttendanceState } from './asistencias.types';
 import FormField from '../../shared/components/FormField';
 import { justificationError } from './attendanceDraft';
+import StudentProfileButton from '../estudiantes/perfil/StudentProfileButton';
 
 const states = [
   { value: 'PRESENTE', label: 'Presente', Icon: Check, selected: 'border-emerald-700 bg-emerald-50 text-emerald-900' },
@@ -11,6 +12,7 @@ const states = [
 ] as const;
 
 type Props = {
+  profileContext?: { yearId: string; month: string };
   row: AttendanceEntry; state: AttendanceState; changed: boolean; editable: boolean;
   disabled?: boolean; updated?: boolean; justificationDisabled?: boolean; reason?: string;
   onSelect?: (id: string, state: AttendanceState) => void;
@@ -18,7 +20,7 @@ type Props = {
 };
 
 export default function AttendanceStudentRow({ row, state, changed, editable, disabled, updated, onSelect,
-  reason, onJustify, justificationDisabled = disabled }: Props) {
+  reason, onJustify, justificationDisabled = disabled, profileContext }: Props) {
   const name = [row.estudiante.apellido_paterno, row.estudiante.apellido_materno, row.estudiante.nombres].filter(Boolean).join(' ');
   const persisted = row.justificada, checked = persisted || reason !== undefined;
   const value = persisted ? row.motivo_justificacion ?? '' : reason;
@@ -39,6 +41,7 @@ export default function AttendanceStudentRow({ row, state, changed, editable, di
           </button>)}
         </div>
       ) : <p className="text-sm font-semibold text-institutional-950">{states.find(item => item.value === state)?.label}</p>}
+      {profileContext && <div className="md:col-span-2"><StudentProfileButton studentId={row.estudiante.id} {...profileContext} disabled={disabled && editable} /></div>}
       {(persisted || onJustify) && (state === 'FALTA' || state === 'TARDANZA') && <div className="space-y-2 md:col-span-2 md:max-w-md">
         <label className="flex min-h-11 items-center gap-2 text-sm font-medium">
           <input type="checkbox" className="size-5" checked={Boolean(checked)} disabled={persisted || justificationDisabled}

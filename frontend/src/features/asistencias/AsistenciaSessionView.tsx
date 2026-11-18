@@ -49,6 +49,7 @@ export default function AsistenciaSessionView({ data, changes = {}, editable = f
       </div>}
       <ul aria-label="Estudiantes y marcas actuales" className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
         {visible.map(row => <AttendanceStudentRow key={row.asistencia_id} row={row}
+          profileContext={{ yearId: data.sesion.anio_escolar_id, month: data.sesion.fecha.slice(0, 7) }}
           state={local[row.asistencia_id] ?? row.estado} changed={local[row.asistencia_id] !== undefined || reasons[row.asistencia_id] !== undefined}
           editable={canEdit} disabled={disabled} updated={updated.includes(row.asistencia_id)} onSelect={onSelect}
           reason={reasons[row.asistencia_id]} onJustify={onJustify} justificationDisabled={justificationDisabled} />)}

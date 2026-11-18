@@ -8,6 +8,7 @@ import LoadingState from '../../shared/components/LoadingState';
 import EmptyState from '../../shared/components/EmptyState';
 import Pagination from '../../shared/components/Pagination';
 import type { useMonthlyFollowup } from './useMonthlyFollowup';
+import StudentProfileButton from '../estudiantes/perfil/StudentProfileButton';
 
 type Props = { year?: SchoolYear; state: ReturnType<typeof useMonthlyFollowup> };
 export default function MonthlyFollowup({ year, state }: Props) {
@@ -40,7 +41,8 @@ export default function MonthlyFollowup({ year, state }: Props) {
                 <th key={label} scope="col" className="px-2 py-3">{label}</th>)}
             </tr></thead>
             <tbody>{state.data.estudiantes.map(row => <tr key={row.estudiante.id} className="border-b border-slate-100 align-top">
-              <th scope="row" className="px-2 py-3 font-medium">{[row.estudiante.apellido_paterno, row.estudiante.apellido_materno, row.estudiante.nombres].filter(Boolean).join(' ')}</th>
+              <th scope="row" className="px-2 py-3 font-medium">{[row.estudiante.apellido_paterno, row.estudiante.apellido_materno, row.estudiante.nombres].filter(Boolean).join(' ')}
+                <StudentProfileButton studentId={row.estudiante.id} yearId={year?.id} month={state.month} /></th>
               <td className="px-2 py-3"><ul>{row.secciones.map(section => <li key={section.id}>
                 {educationLevelLabels[section.nivel]} · {formatSectionName(section)}</li>)}</ul></td>
               {[row.faltas, row.tardanzas, row.total, row.justificadas, row.injustificadas].map((value, index) =>
