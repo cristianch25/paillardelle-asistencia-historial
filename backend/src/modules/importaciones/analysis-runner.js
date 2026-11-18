@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { HttpError } from '../../shared/http-error.js';
 import { MAX_UPLOAD_FILE_BYTES } from './limits.js';
+import { decodeExtraction, MAX_EXTRACTION_RESPONSE_BYTES } from './analysis-result.js';
 
 export const MAX_ANALYSIS_MS = 20_000;
 export const MAX_ANALYSIS_RESPONSE_BYTES = 4096;
@@ -12,21 +13,14 @@ const failed = () => new HttpError(500, 'No se pudo completar el análisis.');
 const cancelled = () => new HttpError(400, 'Análisis cancelado.');
 const expired = () => new HttpError(408, 'El análisis superó el plazo permitido.');
 
-function parseResult(output, bytes) {
-  const result = JSON.parse(output.toString('utf8'));
-  if (!result || Array.isArray(result) || Object.keys(result).length !== 3
-    || result.ok !== true || result.bytes !== bytes || typeof result.sha256 !== 'string'
-    || !/^[a-f0-9]{64}$/.test(result.sha256)) throw failed();
-  return result;
-}
-
 /** Opciones de composición internas, nunca procedentes de una petición HTTP.
  * No hay cola, pool, reintentos ni límite de RAM. El Buffer pertenece al llamador.
  * Se transmiten únicamente sus bytes válidos, con contrapresión y sin base64.
  * El plazo incluye arranque, transferencia y cierre; el cupo espera al cierre real.
  */
 export function createAnalysisRunner({ launch = spawn, entrypoint = entry,
-  executable = process.execPath, timeoutMs = MAX_ANALYSIS_MS } = {}) {
+  executable = process.execPath, timeoutMs = MAX_ANALYSIS_MS,
+  decode = decodeExtraction, maxResponseBytes = MAX_EXTRACTION_RESPONSE_BYTES } = {}) {
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > MAX_ANALYSIS_MS) {
     throw new TypeError('Plazo de análisis inválido.');
   }
@@ -41,7 +35,7 @@ export function createAnalysisRunner({ launch = spawn, entrypoint = entry,
     return new Promise((resolve, reject) => {
       let child, failure, closed = false, exited = false, killing = false;
       let offset = 0, outputBytes = 0;
-      const output = Buffer.alloc(MAX_ANALYSIS_RESPONSE_BYTES);
+      const output = Buffer.alloc(maxResponseBytes);
       const unsubscribe = [];
       function listen(emitter, event, listener) {
         emitter.on(event, listener);
@@ -70,10 +64,10 @@ export function createAnalysisRunner({ launch = spawn, entrypoint = entry,
           if (performance.now() >= deadline) failure ??= expired();
           if (failure) throw failure;
           if (code !== 0 || !child.stdin?.writableFinished || !child.stdout?.readableEnded) throw failed();
-          const result = parseResult(output.subarray(0, outputBytes), bytes);
+          const result = decode(output.subarray(0, outputBytes), bytes);
           if (performance.now() >= deadline) throw (failure = expired());
           resolve(result);
-        } catch { reject(failure ?? failed()); }
+        } catch (error) { reject(failure ?? (error instanceof HttpError ? error : failed())); }
         finally { output.fill(0); }
       }
       function transfer() {

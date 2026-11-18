@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { EventEmitter, getEventListeners, once } from 'node:events';
 import { test } from 'node:test';
 import { HttpError } from '../src/shared/http-error.js';
-import { createAnalysisRunner, runAnalysis, MAX_ANALYSIS_MS,
+import { createAnalysisRunner as createRunner, MAX_ANALYSIS_MS,
   MAX_ANALYSIS_RESPONSE_BYTES } from '../src/modules/importaciones/analysis-runner.js';
 import { MAX_UPLOAD_FILE_BYTES } from '../src/modules/importaciones/limits.js';
 import { receiveXlsxUpload } from '../src/modules/importaciones/upload.js';
@@ -12,6 +12,17 @@ import { PassThrough, Readable } from 'node:stream';
 
 const input = Buffer.from([0, 255, 128, 13, 10, 42]);
 const fixture = new URL('../test-support/importaciones/analysis-child.js', import.meta.url);
+// Pruebas del transporte aislado; producción ejecuta el extractor real.
+function createAnalysisRunner(options = {}) {
+  return createRunner({ entrypoint: fixture, maxResponseBytes: MAX_ANALYSIS_RESPONSE_BYTES,
+    decode(output, bytes) {
+      const result = JSON.parse(output.toString('utf8'));
+      if (!result || Array.isArray(result) || Object.keys(result).length !== 3 || result.ok !== true
+        || result.bytes !== bytes || !/^[a-f0-9]{64}$/.test(result.sha256)) throw new Error('Protocolo inválido.');
+      return result;
+    }, ...options });
+}
+const runAnalysis = createAnalysisRunner();
 function runner(mode, timeoutMs = 1500) {
   const children = [];
   const run = createAnalysisRunner({ entrypoint: fixture, timeoutMs,

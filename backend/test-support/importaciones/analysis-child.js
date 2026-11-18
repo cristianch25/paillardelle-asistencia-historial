@@ -17,8 +17,11 @@ if (mode === 'response-limit' || mode === 'response-limit-plus') {
   const json = JSON.stringify({ ok: true, bytes, sha256: 'a'.repeat(64) });
   process.stdout.end(json.padEnd(mode === 'response-limit' ? 4096 : 4097, ' '));
 }
-if (mode === 'stderr' || mode === 'result-stall') {
+if (mode === undefined || mode === 'stderr' || mode === 'result-stall') {
   if (mode === 'stderr') process.stderr.write('dato_privado');
-  await import('../../src/modules/importaciones/analysis-process.js');
+  const { createHash } = await import('node:crypto');
+  const hash = createHash('sha256'); let bytes = 0;
+  for await (const chunk of process.stdin) { bytes += chunk.length; hash.update(chunk); }
+  process.stdout.end(JSON.stringify({ ok: true, bytes, sha256: hash.digest('hex') }));
   if (mode === 'result-stall') setInterval(() => {}, 1000);
 }

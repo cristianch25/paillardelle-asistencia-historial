@@ -1,19 +1,22 @@
-import { createHash } from 'node:crypto';
 import { MAX_UPLOAD_FILE_BYTES } from './limits.js';
+import { extractStudents } from './student-extraction.js';
+import { MAX_EXTRACTION_RESPONSE_BYTES } from './analysis-result.js';
 
-// Tarea ficticia de 1B.2A: no interpreta XLSX ni importa aplicación/configuración.
-// stdin es binario; stdout es exclusivamente el protocolo privado del supervisor.
+// Proceso sin configuración, credenciales ni acceso a BD. XLSX siempre es dato.
 let bytes = 0;
-const hash = createHash('sha256');
+const chunks = [];
 try {
   for await (const chunk of process.stdin) {
     bytes += chunk.length;
     if (bytes > MAX_UPLOAD_FILE_BYTES) throw new Error('Entrada excesiva.');
-    hash.update(chunk);
+    chunks.push(chunk);
   }
   if (!bytes) throw new Error('Entrada vacía.');
-  process.stdout.end(JSON.stringify({ ok: true, bytes, sha256: hash.digest('hex') }));
-} catch {
-  // No imprimir excepciones originales ni datos recibidos.
-  process.exitCode = 1;
+  const output = JSON.stringify({ ok: true, extracted: await extractStudents(Buffer.concat(chunks, bytes)) });
+  if (Buffer.byteLength(output) > MAX_EXTRACTION_RESPONSE_BYTES) throw { status: 413 };
+  process.stdout.end(output);
+} catch (error) {
+  process.stdout.end(JSON.stringify({ ok: false, status: [400, 408, 413].includes(error.status) ? error.status : 400 }));
+} finally {
+  for (const chunk of chunks) chunk.fill(0);
 }

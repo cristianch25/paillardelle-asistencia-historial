@@ -20,6 +20,7 @@ export const router = createBrowserRouter(createRoutesFromElements(
       <Route element={<AppLayout />}>
         <Route path="/usuarios" lazy={async () => ({ Component: (await import('../features/usuarios/UsersPage')).default })} />
         <Route path="/estadisticas" lazy={async () => ({ Component: (await import('../features/estadisticas/StatisticsPage')).default })} />
+        <Route path="/secciones/importar" lazy={async () => ({ Component: (await import('../features/importaciones/ImportPadronPage')).default })} />
         <Route path="/asistencias/supervision" element={<SupervisionWorkspace />}>
           <Route index element={<SupervisionPage />} />
           <Route path=":sesionId" element={<SupervisionDetailPage />} />

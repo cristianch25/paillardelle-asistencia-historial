@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { useSchoolYears } from '../anios-escolares/useSchoolYears';
 import { useSectionSelection } from './SeccionSelectionContext';
 import { useAdministrativeSectionLocation } from './useAdministrativeSectionLocation';
@@ -38,6 +38,7 @@ export default function AdministrativeSeccionesPage() {
   }
   return <div className="min-w-0 space-y-6">
     <header className="space-y-3"><h1 className="text-3xl font-bold tracking-tight">Secciones</h1>
+      <Link to="/secciones/importar" className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold">Importar padrón SIAGIE</Link>
       <p className="text-base leading-7 text-slate-600">Consulta las secciones autorizadas por año escolar.</p>
     </header>
     {years.loading ? <LoadingState message="Cargando años escolares…" /> : years.error ? <>

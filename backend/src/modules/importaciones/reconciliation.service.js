@@ -9,7 +9,7 @@ import { createSeccionesService } from '../organizacion-escolar/secciones/servic
 import { createAniosEscolaresService } from '../organizacion-escolar/anios-escolares/service.js';
 import { createUsuariosService } from '../usuarios/usuarios.service.js';
 import { createReconciliationRepository } from './reconciliation.repository.js';
-import { issue, validateImportRecord } from './reconciliation-validation.js';
+import { issue, validateImportRecord, cleanText } from './reconciliation-validation.js';
 import { academicKey, validateAcademic } from './academic-validation.js';
 import { reconcileIdentity } from './identity-conciliation.js';
 import { contactConflicts, reconcileContact } from './contact-conciliation.js';
@@ -40,6 +40,21 @@ export function createImportReconciliationService(options = {}) {
   const aniosService = options.aniosService ?? createAniosEscolaresService();
   const matriculasService = options.matriculasService ?? createEnrollmentService({ usuariosService, seccionesService, identitiesService });
   return {
+    async authorize(actor, level, selection) {
+      requireActor(actor, true); validateId(actor.id);
+      const current = await repository.actor(actor.id);
+      requireActor(current, true, true);
+      const { access } = await matriculasService.importContext([], null, current);
+      const levels = access.levels ?? educationLevels;
+      if (level && !levels.includes(level)) throw new HttpError(403, 'Nivel no autorizado para importar.');
+      if (selection) {
+        const year = await aniosService.findById(selection.anio_escolar_id);
+        if (selection.fecha_ingreso < year.fecha_inicio || selection.fecha_ingreso > year.fecha_fin) {
+          throw new HttpError(400, 'La fecha efectiva debe estar dentro del año escolar.');
+        }
+      }
+      return { current, levels };
+    },
     async prepare(extracted, selection, actor) {
       requireActor(actor, true); validateId(actor.id);
       if (!Array.isArray(extracted?.registros) || extracted.registros.length > 2000) throw new HttpError(400, 'Registros de importación inválidos.');
@@ -49,10 +64,14 @@ export function createImportReconciliationService(options = {}) {
         requireActor(current, true, true);
         const year = await aniosService.findById(selected.anio_escolar_id);
         const rows = extracted.registros.map(validateImportRecord);
-        const keys = rows.map(row => ({ index: row.index,
+        const keys = rows.map(row => {
+          // Un número de ocho dígitos con tipo dudoso solo ayuda a detectar conflictos;
+          // no identifica por sí solo ni se recupera como documento propuesto.
+          const number = row.documentOmitted ? cleanText(row.original.estudiante?.numero_documento) : row.student.numero_documento;
+          return { index: row.index,
           codigo: row.student.codigo_estudiante?.isWellFormed() && [...row.student.codigo_estudiante].length <= 30 ? row.student.codigo_estudiante : null,
-          tipo: row.student.tipo_documento === 'DNI' && /^\d{8}$/.test(row.student.numero_documento ?? '') ? 'DNI' : null,
-          numero: /^\d{8}$/.test(row.student.numero_documento ?? '') ? row.student.numero_documento : null }));
+          tipo: (row.student.tipo_documento === 'DNI' || row.documentOmitted) && /^\d{8}$/.test(number ?? '') ? 'DNI' : null,
+          numero: /^\d{8}$/.test(number ?? '') ? number : null }; });
         const identities = await identitiesService.matchImportIdentities(keys);
         const ids = [...new Set(identities.matches.map(match => match.id))];
         const context = await matriculasService.importContext(ids, selected.anio_escolar_id, current);

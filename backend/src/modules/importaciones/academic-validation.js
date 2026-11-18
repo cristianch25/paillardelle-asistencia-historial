@@ -1,10 +1,11 @@
 import { enrollmentContext } from '../matriculas/access.js';
 import { validDate } from '../../shared/date-validation.js';
 import { issue, cleanText } from './reconciliation-validation.js';
+import { sourceLevel } from './source-mapping.js';
 
 export function academicKey(record) {
   const context = record.contexto ?? {};
-  const level = cleanText(context.nivel)?.toUpperCase();
+  const level = sourceLevel(context.nivel);
   const raw = cleanText(context.grado_edad)?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
   const ordinal = ['PRIMERO', 'SEGUNDO', 'TERCERO', 'CUARTO', 'QUINTO', 'SEXTO'].indexOf(raw);
   const initial = /^(?:GRUPO\s+)?([45])(?:\s+ANOS)?$/.exec(raw ?? '');
@@ -18,9 +19,11 @@ export function validateAcademic(row, year, section, selectedLevel, effectiveDat
   if (String(record.contexto?.anio ?? '').trim() !== String(year.anio)) issues.push(issue(record, 'contexto.anio', 'ANIO_NO_COINCIDE'));
   if (key.nivel !== selectedLevel || !key.grado
     || (key.nivel === 'INICIAL' ? ![4, 5].includes(key.grado) : key.grado > (key.nivel === 'SECUNDARIA' ? 5 : 6))) {
-    issues.push(issue(record, 'contexto.grado_edad', 'NIVEL_O_GRADO_INVALIDO'));
+    issues.push({ ...issue(record, 'contexto.grado_edad', 'NIVEL_O_GRADO_INVALIDO'),
+      ...(row.state === 'TRASLADADO' && key.nivel === selectedLevel ? { bloqueante: false } : {}) });
   }
-  if (!section) issues.push(issue(record, 'contexto.seccion', 'SECCION_INEXISTENTE_O_NO_AUTORIZADA'));
+  if (!section) issues.push({ ...issue(record, 'contexto.seccion', 'SECCION_INEXISTENTE_O_NO_AUTORIZADA'),
+    ...(row.state === 'TRASLADADO' ? { bloqueante: false } : {}) });
   if (preparingEnrollment && row.state === 'MATRICULADO' && section) {
     if (!validDate(effectiveDate)) issues.push(issue(record, 'fecha_ingreso', 'FECHA_EFECTIVA_REQUERIDA'));
     else {

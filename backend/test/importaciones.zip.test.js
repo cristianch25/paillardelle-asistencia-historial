@@ -238,7 +238,12 @@ test('éxitos y fallos repetidos cierran lectores y retiran listeners/timers', a
   assert.ok(process.getActiveResourcesInfo().filter(type => type === 'Timeout').length <= baseline);
 });
 test('adaptador ficticio ejecuta la inspección aislada sin cambiar el contrato del supervisor', async () => {
-  const run = createAnalysisRunner({ entrypoint: new URL('../test-support/importaciones/zip-analysis-child.js', import.meta.url) });
+  const run = createAnalysisRunner({ entrypoint: new URL('../test-support/importaciones/zip-analysis-child.js', import.meta.url),
+    maxResponseBytes: 4096, decode(output, bytes) {
+      const result = JSON.parse(output.toString('utf8'));
+      assert.equal(result.ok, true); assert.equal(result.bytes, bytes); assert.match(result.sha256, /^[a-f0-9]{64}$/);
+      return result;
+    } });
   const zip = await makeZip();
   assert.equal((await run(zip)).bytes, zip.length);
   await assert.rejects(run(await namedEntry('../x.xml')), safeError(500));

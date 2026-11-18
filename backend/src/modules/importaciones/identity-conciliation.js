@@ -11,6 +11,7 @@ export function reconcileIdentity(row, matches, duplicated, enrollment, visibleI
     return { existing: null, observations, actions, conflict: true, needsEnrollment: false };
   }
   if (existing) {
+    if (row.documentOmitted && !existing.coincide_codigo) fail('DOCUMENTO_NO_FIABLE_COINCIDE_OTRA_IDENTIDAD');
     const changed = Object.entries(row.student).filter(([key, value]) => value !== null
       && !(key === 'codigo_estudiante' && existing.coincide_codigo)
       && !(['tipo_documento', 'numero_documento'].includes(key) && existing.coincide_documento)

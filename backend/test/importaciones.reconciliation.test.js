@@ -88,9 +88,11 @@ test('lote mixto conserva filas inválidas observadas y propone solo válidas', 
   assert.equal(plan.registros[1].origen.fila, 14); assert.deepEqual(plan.registros[1].acciones, []);
 });
 
-test('solo DNI de ocho dígitos es fiable; otros documentos quedan observados', async () => {
+test('documento no validado se omite con advertencia si hay código fiable; original se conserva', async () => {
   const plan = await serviceFixture().prepare([record({ estudiante: { tipo_documento: 'CE', numero_documento: '000000001' } })]);
-  assert.equal(plan.resumen.OBSERVADO, 1); assert.ok(plan.registros[0].observaciones.some(o => o.motivo === 'TIPO_DOCUMENTO_PENDIENTE'));
+  assert.equal(plan.resumen.NUEVO, 1); assert.ok(plan.registros[0].observaciones.some(o => o.motivo === 'TIPO_DOCUMENTO_PENDIENTE' && o.bloqueante === false));
+  assert.equal(plan.registros[0].datos.estudiante.numero_documento, null);
+  assert.equal(plan.registros[0].original.estudiante.numero_documento, '000000001');
 });
 
 test('DNI numérico validado no pierde ceros ni queda bloqueado solo por su tipo técnico', async () => {

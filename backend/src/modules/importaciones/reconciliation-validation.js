@@ -1,4 +1,5 @@
 import { validateStudent } from '../estudiantes/validation.js';
+import { sourceState } from './source-mapping.js';
 
 export const cleanText = value => typeof value === 'string' && value.trim() ? value.trim() : null;
 export function issue(record, field, reason, scope = 'estudiante') {
@@ -38,6 +39,11 @@ export function validateImportRecord(record, index) {
     'apellido_materno', 'nombres'].map(field => [field, cleanText(record.estudiante?.[field])]));
   const doc = document(student, record, 'estudiante', issues);
   student.tipo_documento = doc.tipo_documento;
+  const reliableCode = student.codigo_estudiante?.isWellFormed() && [...student.codigo_estudiante].length <= 30;
+  // Excepción explícita posterior a V8: omitir solo de la propuesta, nunca del original.
+  // Duplicados y contradicciones siguen bloqueándose en la conciliación de identidad.
+  const documentOmitted = Boolean(reliableCode && !doc.fiable && (doc.tipo_documento || doc.numero_documento));
+  if (documentOmitted) { student.tipo_documento = null; student.numero_documento = null; }
   try { validateStudent(student); }
   catch (error) {
     const field = /^Campo inválido: (\w+)\.$/.exec(error.message)?.[1] ?? 'numero_documento';
@@ -68,7 +74,11 @@ export function validateImportRecord(record, index) {
       && /(?:codigo_estudiante|numero_documento|grado_edad)$/.test(observed.campo))) item.bloqueante = false;
     issues.push(item);
   }
-  const state = cleanText(record.estudiante?.estado_matricula)?.toUpperCase();
-  if (!['MATRICULADO', 'TRASLADADO'].includes(state)) issues.push(issue(record, 'estudiante.estado_matricula', 'ESTADO_ORIGEN_NO_ADMITIDO'));
-  return { index, original: record, student, guardian, contactDoc, supplied, phone, state, issues };
+  const state = sourceState(record.estudiante?.estado_matricula);
+  if (!state) issues.push(issue(record, 'estudiante.estado_matricula', 'ESTADO_ORIGEN_NO_ADMITIDO'));
+  if (documentOmitted) {
+    for (const item of issues) if (['estudiante.tipo_documento', 'estudiante.numero_documento'].includes(item.campo)) item.bloqueante = false;
+    issues.push({ ...issue(record, 'estudiante.numero_documento', 'DOCUMENTO_OMITIDO_POR_CODIGO_FIABLE'), bloqueante: false });
+  }
+  return { index, original: record, student, guardian, contactDoc, supplied, phone, state, issues, documentOmitted };
 }
