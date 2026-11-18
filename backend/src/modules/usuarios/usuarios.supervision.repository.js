@@ -1,9 +1,9 @@
 import { getPool } from '../../config/database.js';
 import { inTransaction } from '../../shared/transaction.js';
 
-export async function readAdditionalLevels(connection, id) {
+export async function readAdditionalLevels(connection, id, { readOnly = false } = {}) {
   const [rows] = await connection.execute(
-    'SELECT nivel FROM usuario_niveles_adicionales WHERE usuario_id = ? ORDER BY nivel FOR UPDATE', [id],
+    `SELECT nivel FROM usuario_niveles_adicionales WHERE usuario_id = ? ORDER BY nivel${readOnly ? '' : ' FOR UPDATE'}`, [id],
   );
   return rows.map(row => row.nivel);
 }

@@ -23,9 +23,9 @@ function response({ user, levels }) {
 }
 export function createSupervisionService({ repository = createSupervisionRepository() } = {}) {
   return {
-    async levelsFor(user, connection) {
+    async levelsFor(user, connection, options) {
       if (user.rol !== 'SUBDIRECCION') return [];
-      if (connection) return effective(user, await readAdditionalLevels(connection, user.id));
+      if (connection) return effective(user, await readAdditionalLevels(connection, user.id, options));
       const current = await repository.inspect(user.id);
       return current ? effective(current.user, current.levels) : [];
     },

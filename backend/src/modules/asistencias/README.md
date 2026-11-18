@@ -1,5 +1,49 @@
 # Asistencia diaria
 
+## Estadísticas por período — 17/11/2026
+
+`GET /api/asistencias/estadisticas` requiere JWT y actor activo. Parámetros:
+`anio_escolar_id` (BIGINT como texto), `fecha_desde` y `fecha_hasta` (fechas
+civiles YYYY-MM-DD reales, inclusivas y ordenadas), `nivel` opcional.
+El rango completo debe pertenecer al año escolar, independientemente de su
+estado. No exige lectividad ni actividad actual de la sección para consultar.
+No admite campos desconocidos ni parámetros repetidos.
+
+Ámbito aprobado para Estadísticas (RN-23 V8): ADMIN los tres niveles;
+SUBDIRECCION nivel principal y adicionales explícitos mediante el servicio
+de Usuarios, sin trasladar la matriz especial de asistencia. REGISTRADOR: 403.
+Nivel válido fuera del ámbito: 403; filtros inválidos/rango fuera del año: 400;
+año inexistente: 404; sin autenticación o actor inactivo: 401.
+
+Respuesta 200:
+
+```json
+{
+  "filtros": { "anio_escolar_id": "1", "fecha_desde": "2026-11-01", "fecha_hasta": "2026-11-30", "nivel": null },
+  "niveles_autorizados": ["INICIAL", "PRIMARIA", "SECUNDARIA"],
+  "totales": { "presentes": 0, "tardanzas": 0, "faltas": 0, "pendientes": 0 },
+  "marcas_registradas": 0,
+  "sesiones_con_registro": 0
+}
+```
+
+Ejemplo sin sesiones. Omitir nivel suma todos los niveles autorizados; el
+campo `niveles_autorizados` siempre describe las opciones del actor.
+`marcas_registradas = presentes + tardanzas + faltas` es el denominador
+del circular; si es cero, no hay porcentajes. Pendientes se muestra separado.
+FALTA/TARDANZA justificadas siguen contando en sus estados base (RN-09 V8).
+Son registros estudiante-día, no estudiantes únicos del período.
+
+SQL agrega estados actuales sobre sesiones ABIERTA/CERRADA, incluyendo
+secciones inactivas. No genera marcas para fechas/secciones sin sesión,
+no consulta historial técnico ni devuelve estudiantes. Una única lectura
+READ ONLY/REPEATABLE READ incluye actor, adicionales, año y agregado.
+Reutiliza `list.repository.js` y `shared/transaction.js`; el servicio de
+supervisión ofrece lectura sin bloqueos mediante opción interna `readOnly`.
+Los demás consumidores conservan sus bloqueos predeterminados.
+Cache-Control: no-store; sin escrituras, migraciones ni nuevas dependencias.
+Pruebas simuladas: `backend/test/asistencias.statistics.test.js`.
+
 Implementa registro manual según v6 D06-D09/D36-D45 y RN-03-RN-10/RN-35-RN-45.
 Requiere esquema v1 + 002 + 003 + 004 + 005 + 006 migrado; no aplica SQL al arrancar.
 005 fue aplicada en local; 006 solo está preparada. Las correcciones sin motivo

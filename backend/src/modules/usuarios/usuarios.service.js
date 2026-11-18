@@ -80,7 +80,7 @@ export function createUsuariosService({ repository = createUsuariosRepository(),
       const rows = await repository.historicalSectionIds(id, date, today, connection);
       return rows.map(row => String(row.seccion_id));
     },
-    supervisionLevels: (user, connection) => supervision.levelsFor(user, connection),
+    supervisionLevels: (user, connection, options) => supervision.levelsFor(user, connection, options),
     getAdditionalLevels: id => supervision.get(id),
     updateAdditionalLevels: (id, body, actorId) => supervision.update(id, body, actorId),
     async currentSectionIds(id, today = getToday()) {

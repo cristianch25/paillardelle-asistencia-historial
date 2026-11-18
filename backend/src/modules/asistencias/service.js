@@ -13,6 +13,7 @@ import { scopeFor, assertScope, assertWritable, assertVersion, planChanges, summ
 import { opening, closing, changes, sessionInput } from './validation.js';
 import { createAttendanceListService } from './list.service.js';
 import { createAttendanceSearchService } from './search.service.js';
+import { createAttendanceStatisticsService } from './statistics.service.js';
 
 export function createAttendanceService(options = {}) {
   const users = options.users ?? createUsuariosService();
@@ -53,6 +54,7 @@ export function createAttendanceService(options = {}) {
         apellido_materno: row.apellido_materno, nombres: row.nombres }, ultimo_cambio: latest.get(row.id) ?? null })), resumen: summary(rows) };
   }
   return {
+    ...createAttendanceStatisticsService({ repository: options.statisticsRepository, users }),
     ...createAttendanceListService({ repository: options.listRepository, users, calendar, getToday: today }),
     ...createAttendanceSearchService({ repository: options.searchRepository, enrollments, users, getToday: today }),
     async open(body, actor) {

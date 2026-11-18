@@ -1,5 +1,6 @@
 export function createAttendanceController(service) {
   return {
+    async statistics(req, res) { res.json(await service.statistics(req.query, req.authUser)); },
     async searchStudents(req, res) { res.json(await service.searchStudents(req.query, req.authUser)); },
     async list(req, res) { res.json(await service.list(req.query, req.authUser)); },
     async open(req, res) {
