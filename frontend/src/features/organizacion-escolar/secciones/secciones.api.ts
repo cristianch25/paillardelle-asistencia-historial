@@ -1,5 +1,38 @@
 import { httpClient } from '../../../shared/api/httpClient';
-import type { Section, SectionsQuery, SectionsResponse } from './secciones.types';
+import axios from 'axios';
+import type { EducationLevel } from './secciones.types';
+import type { Section, SectionInput, SectionPatch, SectionsQuery, SectionsResponse } from './secciones.types';
+
+export async function getSectionManagementLevels(): Promise<EducationLevel[]> {
+  const levels: EducationLevel[] = ['INICIAL', 'PRIMARIA', 'SECUNDARIA'];
+  const allowed = await Promise.all(levels.map(async nivel => {
+    try {
+      // El GET comprueba el ámbito antes de listar, incluso cuando no hay secciones.
+      const data = await getSections({ nivel, page: 1, limit: 1 });
+      if (!Array.isArray(data.secciones) || data.pagination?.page !== 1 || data.pagination.limit !== 1
+        || typeof data.pagination.has_more !== 'boolean') throw new Error('Ámbito de secciones no confirmado.');
+      return nivel;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 403) return null;
+      throw error;
+    }
+  }));
+  return allowed.filter((level): level is EducationLevel => level !== null);
+}
+
+export async function createSection(input: SectionInput): Promise<Section> {
+  const { data, status } = await httpClient.post<{ seccion: Section }>('/secciones', input);
+  if (status !== 201 || typeof data?.seccion?.id !== 'string' || data.seccion.activo !== true
+    || Object.entries(input).some(([key, value]) => data.seccion[key as keyof Section] !== value)) throw new Error('Confirmación de sección no válida.');
+  return data.seccion;
+}
+
+export async function updateSection(id: string, input: SectionPatch): Promise<Section> {
+  const { data, status } = await httpClient.patch<{ seccion: Section }>(`/secciones/${id}`, input);
+  if (status !== 200 || data?.seccion?.id !== id
+    || Object.entries(input.cambios).some(([key, value]) => data.seccion[key as keyof Section] !== value)) throw new Error('Confirmación de sección no válida.');
+  return data.seccion;
+}
 
 export async function getSections(query: SectionsQuery): Promise<SectionsResponse> {
   const { data } = await httpClient.get<SectionsResponse>('/secciones/', { params: query });

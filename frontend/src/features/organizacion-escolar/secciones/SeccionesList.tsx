@@ -5,11 +5,12 @@ import type { SchoolYear } from '../anios-escolares/aniosEscolares.types';
 import type { ReactNode } from 'react';
 
 type Props = { sections: Section[]; years?: SchoolYear[]; selectedId?: string; checking: boolean;
-  formatName?: typeof formatSectionName; showAttendance?: boolean; renderSummary?: (section: Section) => ReactNode } & (
+  formatName?: typeof formatSectionName; showAttendance?: boolean; renderSummary?: (section: Section) => ReactNode;
+  renderActions?: (section: Section) => ReactNode } & (
   { onSelect: (section: Section) => void; onOpen?: never }
   | { onSelect?: never; onOpen: (section: Section, destination: 'asistencia' | 'estudiantes') => void }
 );
-export default function SeccionesList({ sections, years, selectedId, checking, onSelect, onOpen, formatName = formatSectionName, showAttendance = true, renderSummary }: Props) {
+export default function SeccionesList({ sections, years, selectedId, checking, onSelect, onOpen, formatName = formatSectionName, showAttendance = true, renderSummary, renderActions }: Props) {
   return (
     <ul aria-label="Secciones disponibles" className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
       {sections.map(section => {
@@ -34,6 +35,7 @@ export default function SeccionesList({ sections, years, selectedId, checking, o
             aria-label={`Seleccionar ${formatName(section)} — ${educationLevelLabels[section.nivel]}`} onClick={() => onSelect(section)}>
             {section.id === selectedId ? 'Seleccionada' : 'Seleccionar'}
           </Button>}
+          {renderActions?.(section)}
           {years !== undefined && !year && !checking && <p className="mt-2 text-sm text-slate-600">No se puede seleccionar sin los datos del año escolar.</p>}
         </li>
       ); })}

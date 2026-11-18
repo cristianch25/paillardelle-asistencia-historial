@@ -201,7 +201,63 @@ Errores: 400 por datos inválidos, 401 sin autenticación, 403 por permisos, 404
 recurso inexistente/no visible, 409 por duplicado/cierre/deadlock/timeout y 500 genérico.
 La referencia histórica de 6C fue v2 RF-01/03/09, RN-14/15/18 y RNF-02/04/05/08.
 Para cambios posteriores aplicar las reglas v5, no la numeración histórica sin versión.
-No hay PATCH/DELETE, desactivación, calendario, matrícula, asistencia ni frontend.
+La etapa 6C original no incluía PATCH/DELETE ni desactivación. El PATCH y la
+gestión actual se describen a continuación; DELETE sigue sin implementarse.
+
+### Gestión de secciones — ampliación autorizada del 18/11/2026
+
+Referencias vigentes: V8 D03/D08, RF-03 y RNF-02/04/05/08; autorización expresa
+del contrato PATCH y sus protecciones en esta etapa. Los textos v2/v5 anteriores
+conservan su contexto histórico. No se usa la matriz especial de asistencia.
+
+`PATCH /api/secciones/:id` devuelve 200 `{ seccion: {...} }`, con los mismos
+campos públicos del GET y `Cache-Control: no-store`. Cuerpo estricto:
+`{ "esperado": { "grado": 4, "letra": "A", "activo": true }, "cambios": { "letra": "CREATIVOS" } }`.
+`esperado` exige los tres campos; `cambios` admite uno o más de esos campos.
+Grado entero válido para el nivel, nombre Unicode de hasta 30 caracteres y
+activo booleano estricto. Se conserva la compatibilidad del POST con nombres
+literales, incluidos vacíos; no se modifica turno, año ni nivel mediante PATCH.
+
+ADMIN gestiona todos los niveles; SUBDIRECCION solo principal y adicionales
+explícitos persistidos. REGISTRADOR no administra. Se revalida actor activo,
+rol y ámbito con la misma conexión transaccional. Año PLANIFICADO/ABIERTO;
+CERRADO devuelve 409, sin exigir día lectivo para preparación académica.
+
+Orden: actor FOR UPDATE, localización del año sin bloquear sección, año FOR
+UPDATE, sección FOR UPDATE, autorización/comparación de esperado, dependencias
+FOR UPDATE, UPDATE y auditoría ACTUALIZAR_SECCION antes/después. Reutiliza
+assignmentContext y shared/transaction.js; no adquiere usuarios tras el año.
+Las altas existentes de matrícula/asignación y sesiones comparten año/sección,
+por lo que una dependencia concurrente se relee tras esperar. Las consultas de
+dependencias son lecturas actuales, sin confiar en una instantánea anterior.
+
+Cambiar grado o nombre se rechaza si existe cualquier vínculo de matrícula,
+asignación o sesión, incluso histórico: evita reinterpretar referencias.
+Desactivar se rechaza si un vínculo de matrícula y su matrícula no terminaron
+antes de hoy, o si existe asignación sin fin o con fin >= hoy, incluidos
+futuros y extremos inclusivos. No se ignoran asignaciones por usuario inactivo.
+Hoy se calcula en America/Lima tras adquirir los bloqueos de contexto.
+Reactivar conserva todos los datos y requiere las mismas autorizaciones.
+
+Esperado distinto, referencias incompatibles, año cerrado, UNIQUE duplicada
+(incluida colación MySQL), deadlock y timeout devuelven 409. No-op vigente no
+escribe ni audita. La comparación detecta diferencias en el estado actual;
+no introduce una columna de versión ni detecta ciclos ABA ya retornados al mismo
+estado. No se elimina información ni se altera asistencia/historial.
+UPDATE y auditoría son atómicos. COMMIT incierto descarta conexión sin reintento;
+un rollback posterior no demuestra reversión. Errores internos permanecen seguros.
+
+Implementación nueva: secciones/update.repository.js separa SQL transaccional;
+service.js concentra autorización y reglas; validation.js valida el contrato;
+routes/controller.js conservan HTTP. repository.js sigue reuniendo las consultas
+previas y delega el PATCH. service.js (119 líneas) y repository.js (101) superan
+100 por cohesión con sus responsabilidades existentes; ninguno supera 150.
+
+Pruebas: test/secciones.update.test.js y test-support/secciones-update-pool.js,
+con regresión de test/secciones*.test.js. Cubren permisos revocados/adicionales,
+vigencias, referencias, concurrencia, duplicados, auditoría y COMMIT incierto.
+Conexiones simuladas: esta etapa no conecta a MySQL real, no ejecuta migraciones
+ni certifica el estado de ninguna instalación. No añade dependencias.
 
 6C-A incorpora INICIAL reutilizando REGISTRADOR/asignaciones: grupo 4 CREATIVOS y
 grupo 5 GENIALES son datos institucionales, no se insertan automáticamente ni se

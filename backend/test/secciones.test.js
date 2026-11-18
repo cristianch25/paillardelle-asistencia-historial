@@ -147,7 +147,7 @@ test('POST 201 y Location con activo TRUE; SUBDIRECCION por nivel y REGISTRADOR 
   assert.equal((await request('', '1', 'POST', { ...sectionBody, activo: false })).status, 400);
 });
 
-test('POST errores HTTP de año, UNIQUE y auditoría seguros; PATCH/DELETE no implementados', async () => {
+test('POST errores HTTP de año, UNIQUE y auditoría seguros; DELETE no implementado', async () => {
   for (const [options, status] of [[{ year: null }, 404], [{ year: { estado: 'CERRADO' } }, 409],
     [{ failAt: 'audit' }, 500]]) {
     state = sectionsPool(options);
@@ -158,5 +158,6 @@ test('POST errores HTTP de año, UNIQUE y auditoría seguros; PATCH/DELETE no im
   state = sectionsPool();
   const first = await request('', '1', 'POST', sectionBody); await first.text();
   const duplicate = await request('', '1', 'POST', sectionBody); assert.equal(duplicate.status, 409); await duplicate.text();
-  for (const method of ['PATCH', 'DELETE']) assert.equal((await request('/1', '1', method)).status, 404);
+  assert.equal((await request('/1', '1', 'DELETE')).status, 404);
+  assert.equal((await request('/1', '1', 'PATCH')).status, 400);
 });

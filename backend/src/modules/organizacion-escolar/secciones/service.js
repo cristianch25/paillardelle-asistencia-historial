@@ -4,7 +4,7 @@ import { peruDate } from '../../../shared/peru-date.js';
 import { unauthorized } from '../../auth/auth.errors.js';
 import { createUsuariosService } from '../../usuarios/usuarios.service.js';
 import { createSeccionesRepository } from './repository.js';
-import { validateNewSection, validateSectionQuery } from './validation.js';
+import { validateNewSection, validateSectionQuery, validateSectionPatch } from './validation.js';
 
 function publicSection(row) {
   return { id: String(row.id), anio_escolar_id: String(row.anio_escolar_id), nivel: row.nivel,
@@ -31,6 +31,46 @@ export function createSeccionesService({ repository = createSeccionesRepository(
     return {};
   }
   return {
+    async update(id, body, actor) {
+      validateId(id);
+      const data = validateSectionPatch(body);
+      if (!actor || !['ADMIN', 'SUBDIRECCION'].includes(actor.rol)) {
+        throw new HttpError(403, 'No tienes permiso para administrar secciones.');
+      }
+      try {
+        const row = await repository.update(id, actor.id, async (current, year, section, connection) => {
+          if (!current || !(current.activo === 1 || current.activo === true)) throw unauthorized();
+          await authorize(current, section?.nivel, connection);
+          if (!section || !year) throw new HttpError(404, 'Sección no encontrada.');
+          if (year.estado === 'CERRADO') throw new HttpError(409, 'El año escolar está cerrado.');
+          validateSectionPatch(data, section.nivel);
+          const before = publicSection(section), after = { ...before, ...data.cambios };
+          if (Object.keys(data.esperado).some(key => data.esperado[key] !== before[key])) {
+            throw new HttpError(409, 'La sección cambió. Actualiza las secciones antes de volver a editar.');
+          }
+          if (Object.keys(data.cambios).every(key => after[key] === before[key])) return null;
+          return { before, after, check({ enrollments, assignments, sessions, today }) {
+            if ((before.grado !== after.grado || before.letra !== after.letra)
+              && (enrollments.length || assignments.length || sessions.length)) {
+              throw new HttpError(409, 'No se puede cambiar grado o nombre: la sección tiene referencias académicas.');
+            }
+            const ongoing = enrollments.some(row => (!row.fecha_fin || row.fecha_fin >= today)
+              && (!row.fecha_retiro || row.fecha_retiro >= today));
+            if (before.activo && !after.activo && (ongoing
+              || assignments.some(row => !row.fecha_fin || row.fecha_fin >= today))) {
+              throw new HttpError(409, 'No se puede desactivar: existen matrículas o asignaciones vigentes o futuras.');
+            }
+          } };
+        }, getToday);
+        return publicSection(row);
+      } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') throw new HttpError(409, 'La sección ya está registrada.');
+        if (['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT'].includes(error.code)) {
+          throw new HttpError(409, 'Conflicto concurrente: actualiza las secciones y vuelve a intentar.');
+        }
+        throw error;
+      }
+    },
     async matchForImport(records, yearId, level, actor) {
       validateId(yearId);
       const access = await scope(actor, level);

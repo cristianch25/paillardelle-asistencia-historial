@@ -12,7 +12,7 @@ test('7B.0B: catálogo administrativo, búsqueda completa, acciones directas y a
       await command('Emulation.setDeviceMetricsOverride', { width: 320, height: 812, deviceScaleFactor: 1, mobile: true });
       await ui.navigate('/login'); await ui.signIn('ADMIN', undefined, 2);
       await t.test('ADMIN selecciona año actual y publica 230 secciones solo tras tres páginas', async () => {
-        assert.equal(await evaluate('document.querySelectorAll("select").length'), 1);
+        assert.equal(await evaluate('document.querySelectorAll("select").length'), 2);
         await wait('sectionSearchTest.pending.length === 1');
         assert.equal(await evaluate('document.querySelector("select").value'), '1');
         assert.equal(await evaluate(`Boolean(${results})`), false); assert.equal(await evaluate(`${rows}.length`), 0);
@@ -22,7 +22,7 @@ test('7B.0B: catálogo administrativo, búsqueda completa, acciones directas y a
         assert.ok((await evaluate(`${calls}.map(c => Object.keys(c.params).sort())`)).every(keys => keys.join(',') === 'anio_escolar_id,limit,page'));
         assert.equal(await evaluate(`${rows}.length`), 20);
         assert.doesNotMatch(await evaluate(`${results}.textContent`), /Sección seleccionada|Seleccionar|Seleccionada/);
-        assert.ok(await evaluate(`${rows}.every(row => row.querySelectorAll('button').length === 1 && row.querySelector('button').textContent === 'Ver estudiantes')`));
+        assert.ok(await evaluate(`${rows}.every(row => row.querySelectorAll('button').length === 3 && row.querySelector('button').textContent === 'Ver estudiantes')`));
         assert.doesNotMatch(await evaluate(`${results}.textContent`), /Asistencia diaria/);
       });
       await t.test('búsqueda flexible y paginación local sin HTTP por pulsación', async () => {
@@ -82,12 +82,12 @@ test('7B.0B: catálogo administrativo, búsqueda completa, acciones directas y a
         await ui.type('creativ'); await wait(`${rows}.length === 1`);
         assert.match(await evaluate(`${rows}[0].textContent`), /Inicial.*CREATIVOS/);
         assert.doesNotMatch(await evaluate(`${results}.textContent`), /Asistencia diaria/);
-        assert.ok(await evaluate(`${rows}.every(row => row.querySelectorAll('button').length === 1)`));
+        assert.ok(await evaluate(`${rows}.every(row => row.querySelectorAll('button').length === 3)`));
         await click('Ver estudiantes'); await wait('location.pathname === "/secciones/estudiantes"');
         assert.doesNotMatch(await evaluate('document.body.textContent'), /Asistencia diaria/);
         await click('Volver a secciones'); await ui.ready();
         await ui.signIn('SUBDIRECCION', ['SECUNDARIA']); await ui.chooseYear('1'); await ui.ready();
-        assert.ok(await evaluate(`${rows}.every(row => row.querySelectorAll('button').length === 1)`));
+        assert.ok(await evaluate(`${rows}.every(row => row.querySelectorAll('button').length === 3)`));
         assert.doesNotMatch(await evaluate(`${results}.textContent`), /Asistencia diaria/);
         await evaluate(`${rows}[0].querySelector('button').click()`); await wait('location.pathname === "/secciones/estudiantes"');
         assert.doesNotMatch(await evaluate('document.body.textContent'), /Asistencia diaria/);

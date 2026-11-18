@@ -11,6 +11,12 @@ export function createSeccionesRoutes(authService, service = createSeccionesServ
   router.use(authenticate(authService));
   router.get('/', controller.list);
   router.get('/:id', controller.findById);
+  router.patch('/:id', (req, _res, next) => {
+    if (!['ADMIN', 'SUBDIRECCION'].includes(req.authUser.rol)) {
+      throw new HttpError(403, 'No tienes permiso para administrar secciones.');
+    }
+    next();
+  }, json({ limit: '8kb' }), controller.update);
   router.post('/', (req, _res, next) => {
     if (!['ADMIN', 'SUBDIRECCION'].includes(req.authUser.rol)) {
       throw new HttpError(403, 'No tienes permiso para crear secciones.');

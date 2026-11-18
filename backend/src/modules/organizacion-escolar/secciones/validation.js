@@ -14,6 +14,22 @@ function grade(value, level) {
   return value;
 }
 
+export function validateSectionPatch(body, level) {
+  const fields = ['grado', 'letra', 'activo'];
+  const object = value => value && typeof value === 'object' && !Array.isArray(value);
+  if (!object(body) || Object.keys(body).length !== 2 || !object(body.esperado) || !object(body.cambios)
+    || Object.keys(body).some(key => !['esperado', 'cambios'].includes(key))
+    || fields.some(key => !Object.hasOwn(body.esperado, key))
+    || Object.keys(body.esperado).some(key => !fields.includes(key))
+    || !Object.keys(body.cambios).length || Object.keys(body.cambios).some(key => !fields.includes(key))) invalid();
+  for (const data of [body.esperado, body.cambios]) {
+    if (Object.hasOwn(data, 'grado')) grade(data.grado, level);
+    if (Object.hasOwn(data, 'letra')) text(data.letra, 30);
+    if (Object.hasOwn(data, 'activo') && typeof data.activo !== 'boolean') invalid();
+  }
+  return { esperado: { ...body.esperado }, cambios: { ...body.cambios } };
+}
+
 export function validateNewSection(body) {
   const fields = ['anio_escolar_id', 'nivel', 'grado', 'letra', 'turno'];
   if (!body || typeof body !== 'object' || Array.isArray(body)

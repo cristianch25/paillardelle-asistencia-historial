@@ -24,6 +24,11 @@ httpClient.defaults.adapter = async config => {
   if (config.url === '/anios-escolares') return { config, data: { anios_escolares: [catalogYear, { ...catalogYear, id: '2', anio: 2025 }],
     pagination: { page: 1, limit: 100, has_more: false } }, status: 200, statusText: 'OK', headers: {} };
   if (config.url === '/secciones/') {
+    if (config.params.nivel && config.params.limit === 1) {
+      if (controls.levelFailure) fail(controls.levelFailure);
+      if (controls.role === 'SUBDIRECCION' && !controls.allowedLevels.includes(config.params.nivel)) fail(403);
+      return catalogResponse(config, []);
+    }
     if (config.params.limit === 100) controls.verifying = true;
     const params = config.params;
     let rows = sectionCatalog(controls.total, params.anio_escolar_id ?? '1');

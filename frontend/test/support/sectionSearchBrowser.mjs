@@ -6,7 +6,7 @@ export async function sectionSearchBrowser(harness = 'sectionSearchHarness.jsx')
   const results = `document.querySelector('[aria-label="Resultados de secciones"]')`;
   const rows = `Array.from(document.querySelectorAll('ul[aria-label="Secciones disponibles"] > li'))`;
   const search = `document.querySelector('input[type="search"]')`;
-  const calls = `sectionSearchTest.calls.filter(c => c.url === '/secciones/')`;
+  const calls = `sectionSearchTest.calls.filter(c => c.url === '/secciones/' && c.params.limit !== 1)`;
   async function change(selector, value) {
     await evaluate(`(() => { const e = ${selector}; Object.getOwnPropertyDescriptor(e.tagName === 'SELECT'
       ? HTMLSelectElement.prototype : HTMLInputElement.prototype, 'value').set.call(e, ${JSON.stringify(value)});

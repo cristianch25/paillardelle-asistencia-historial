@@ -1,5 +1,61 @@
 # Secciones — consulta administrativa 7B.0B / 7B.0D
 
+## Gestión autorizada — 18/11/2026
+
+La vista administrativa permite crear con POST /api/secciones y editar,
+desactivar/reactivar con PATCH /api/secciones/:id. Conserva búsqueda, filtros
+de año, filtro local explícito de nivel, paginación y enlace SIAGIE. REGISTRADOR
+conserva Mis secciones sin gestión administrativa. Referencias: V8 D03/D08 y
+RF-03, más autorización expresa de esta etapa. Las descripciones previas de
+consulta exclusiva documentan las etapas anteriores.
+
+SectionForm admite grados del nivel y hasta 30 caracteres Unicode para el
+nombre, sin restringir a una letra ni normalizar el texto. Al editar, año/nivel
+se conservan y solo se envían grado/nombre. El cambio de estado requiere una
+confirmación separada y envía exclusivamente cambios.activo. El PATCH incluye
+grado/letra/activo originales en esperado; no sobrescribe un conflicto de forma
+automática. Año CERRADO deshabilita gestión, pero conserva consultas.
+
+Los controles ofrecen exclusivamente los niveles confirmados por el GET existente
+de Secciones. getSectionManagementLevels consulta cada nivel con page=1/limit=1,
+sin limitar por año: el servicio autoriza el filtro antes de listar. Un 200,
+incluso sin filas, confirma el nivel; solo 403 lo excluye. Red/401/500 o respuestas
+inválidas impiden publicar opciones parciales. No se deducen permisos del nivel
+principal, de la matriz de asistencia ni del contenido del catálogo. Se preservan
+los adicionales explícitos aunque no haya secciones en el año seleccionado.
+
+useSectionManagementLevels invalida resultados al desmontar/cambiar cuenta y
+vuelve a comprobar al Actualizar secciones o Reintentar niveles. Durante la carga
+o un error se deshabilita gestión sin ampliar ámbitos. ADMIN conserva los tres
+niveles confirmados; SUBDIRECCION solo los autorizados. Con un nivel se oculta el
+filtro y se muestra el nivel fijo en el formulario, que lo envía automáticamente;
+con varios se limita cada selector a ellos. Edición muestra el nivel inmutable
+como texto. Crear sección está junto al enlace SIAGIE en la cabecera, con ajuste
+de líneas en móvil. Año y búsqueda se conservan.
+
+useSectionManagement coordina formularios, confirmación, bloqueo de doble envío,
+errores y recarga. Durante escritura bloquea el selector de año y utiliza la
+protección de navegación existente. Conflictos conservan el formulario y muestran
+el motivo seguro; Actualizar secciones descarta la edición obsoleta y recarga.
+Red/500 advierten comprobar el resultado antes de reintentar; no hay reenvíos
+automáticos. La API verifica ID, estado y valores confirmados antes de anunciar
+éxito. Las escrituras exitosas recargan el catálogo conservando año/búsqueda/nivel.
+
+Archivos nuevos: SectionForm.tsx y useSectionManagement.ts. Integración en
+AdministrativeSeccionesPage.tsx, SeccionesList.tsx, SeccionesSearchFilters.tsx y
+secciones.api/types.ts. El ajuste visual añade useSectionManagementLevels.ts.
+AdministrativeSeccionesPage.tsx tiene 101 líneas: se mantiene como composición
+cohesiva de la vista; ningún archivo de implementación de este ajuste supera 150.
+
+Pruebas: sectionManagement.test.mjs, sectionManagement.browser.mjs y su arnés
+support/sectionManagementHarness.jsx; regresiones sectionSearch*.browser.mjs.
+Adaptadores simulados, sin credenciales reales ni MySQL. Revisión en Edge
+headless a 1440 px y 320 px, con capturas locales ignoradas en node_modules/.tmp.
+Typecheck, lint y build usan las dependencias existentes.
+sectionPermissions.browser.mjs y sectionManagement.test.mjs cubren ADMIN,
+SUBDIRECCION Primaria/Secundaria, adicionales explícitos, años vacíos, fallos de
+consulta y ocultación de selectores redundantes, sin escrituras de backend nuevas.
+
 ## Mejora posterior — resúmenes diarios de Mis secciones
 
 REGISTRADOR conserva sus tarjetas, datos académicos, acciones y paginación.

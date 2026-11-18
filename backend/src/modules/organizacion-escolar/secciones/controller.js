@@ -1,5 +1,8 @@
 export function createSeccionesController(service) {
   return {
+    async update(req, res) {
+      res.json({ seccion: await service.update(req.params.id, req.body, req.authUser) });
+    },
     async list(req, res) { res.json(await service.list(req.query, req.authUser)); },
     async findById(req, res) {
       res.json({ seccion: await service.findById(req.params.id, req.authUser) });

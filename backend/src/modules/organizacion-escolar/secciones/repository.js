@@ -1,5 +1,6 @@
 import { getPool } from '../../../config/database.js';
 import { inTransaction } from '../../../shared/transaction.js';
+import { updateSection } from './update.repository.js';
 
 const fields = ['id', 'anio_escolar_id', 'nivel', 'grado', 'letra', 'turno', 'activo'];
 const columns = fields.map(field => `s.${field}`).join(', ');
@@ -22,7 +23,10 @@ function conditions(filters, access) {
 }
 
 export function createSeccionesRepository(poolProvider = getPool) {
-  return {
+  const repository = {
+    update(id, actorId, decide, getToday) {
+      return updateSection(poolProvider(), repository.assignmentContext, id, actorId, decide, getToday);
+    },
     async matchForImport(records, yearId, level, access) {
       if (!records.length) return [];
       const where = conditions({ anio_escolar_id: yearId, nivel: level }, access);
@@ -93,4 +97,5 @@ export function createSeccionesRepository(poolProvider = getPool) {
       });
     },
   };
+  return repository;
 }
