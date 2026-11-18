@@ -14,9 +14,10 @@ export default function AdminAttendanceEditor({ initial, entryId, revalidate }: 
   initial: AttendanceDetail; entryId?: string; revalidate: () => Promise<void>;
 }) {
   const { session } = useAuth();
-  const draft = useAttendanceDraft(session?.user.rol === 'ADMIN' ? session.user.id : null, initial, false, revalidate, true);
+  const allowed = session && ['ADMIN', 'SUBDIRECCION'].includes(session.user.rol);
+  const draft = useAttendanceDraft(allowed ? session.user.id : null, initial, false, revalidate, true);
   const [query, setQuery] = useState('');
-  if (session?.user.rol !== 'ADMIN') return null;
+  if (!allowed) return null;
   if (!draft.base) return <ErrorState message={draft.message || 'La asistencia ya no está disponible.'} />;
   const entry = entryId ? draft.base.padron.find(row => row.asistencia_id === entryId) : null;
   if (entryId && !entry) return <ErrorState message="La asistencia del estudiante ya no está disponible." />;

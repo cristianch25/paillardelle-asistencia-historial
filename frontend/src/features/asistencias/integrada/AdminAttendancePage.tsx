@@ -17,8 +17,11 @@ import ErrorState from '../../../shared/components/ErrorState';
 import EmptyState from '../../../shared/components/EmptyState';
 import AdminAttendanceFilters from './AdminAttendanceFilters';
 import StudentAttendanceProfile from './StudentAttendanceProfile';
+import { useAuth } from '../../auth/AuthContext';
+import { supervisionLevels } from '../supervision/supervisionAccess';
 
 export default function AdminAttendancePage() {
+  const { session } = useAuth();
   const years = useSchoolYears(), { request } = useNavigationProtection();
   const { filters, setFilters, yearInitialization } = useSupervisionWorkspace();
   const [text, setText] = useState(''), [page, setPage] = useState(1), [selection, setSelection] = useState({ key: '', id: '' });
@@ -38,6 +41,7 @@ export default function AdminAttendancePage() {
     {years.loading ? <LoadingState message="Cargando años escolares…" /> : years.error ? <>
       <ErrorState message={years.error} /><Button variant="secondary" onClick={years.retry}>Reintentar años escolares</Button>
     </> : <AdminAttendanceFilters years={years.years} value={filters} globalSearch={searching}
+      levels={session ? supervisionLevels(session.user) : []}
       onChange={next => change(() => { setFilters(next); setPage(1); if (next.fecha !== filters.fecha) search.retry(); })} />}
     {searching ? <>
       <p className="text-sm text-slate-600">La búsqueda usa la fecha y todos los niveles autorizados. Año y nivel filtran solo los salones.</p>

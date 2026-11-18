@@ -4,9 +4,11 @@ import type { SchoolYear } from '../../organizacion-escolar/anios-escolares/anio
 import { educationLevelLabels } from '../../organizacion-escolar/secciones/sectionPresentation';
 import type { SupervisionFilters } from '../supervision/supervision.types';
 import { supervisionDateError } from '../supervision/supervisionDate';
+import type { EducationLevel } from '../../organizacion-escolar/secciones/secciones.types';
 
-export default function AdminAttendanceFilters({ years, value, onChange, globalSearch = false }: {
+export default function AdminAttendanceFilters({ years, value, onChange, globalSearch = false, levels }: {
   years: SchoolYear[]; value: SupervisionFilters; onChange: (filters: SupervisionFilters) => void; globalSearch?: boolean;
+  levels: readonly EducationLevel[];
 }) {
   const id = useId(), year = years.find(row => row.id === value.anio_escolar_id);
   const control = 'mt-2 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base';
@@ -21,7 +23,7 @@ export default function AdminAttendanceFilters({ years, value, onChange, globalS
       error={supervisionDateError(value.fecha, globalSearch ? undefined : year) || undefined} onChange={e => change({ fecha: e.target.value })} />
     <label htmlFor={`${id}-level`} className="min-w-0 text-sm font-semibold">Nivel educativo
       <select id={`${id}-level`} className={control} value={value.nivel} onChange={e => change({ nivel: e.target.value as SupervisionFilters['nivel'] })}>
-        <option value="">Todos</option>{Object.entries(educationLevelLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+        <option value="">Todos los autorizados</option>{levels.map(level => <option key={level} value={level}>{educationLevelLabels[level]}</option>)}
       </select>
     </label>
   </section>;

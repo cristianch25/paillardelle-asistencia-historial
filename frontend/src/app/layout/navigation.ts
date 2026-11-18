@@ -1,4 +1,4 @@
-import { House, School, ClipboardList, ClipboardPen, Users, ChartColumn, type LucideIcon } from 'lucide-react';
+import { House, School, ClipboardList, Users, ChartColumn, type LucideIcon } from 'lucide-react';
 import type { UserRole } from '../../features/auth/auth.types';
 
 type NavigationItem = {
@@ -16,12 +16,10 @@ const navigation: readonly NavigationItem[] = [
   { label: 'Usuarios', path: '/usuarios', icon: Users, roles: ['ADMIN'] },
   { label: 'Estadísticas', path: '/estadisticas', icon: ChartColumn, roles: ['ADMIN', 'SUBDIRECCION'] },
   { label: 'Secciones', registradorLabel: 'Mis secciones', path: '/secciones', icon: School, roles: ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'] },
-  { label: 'Supervisión de asistencias', path: '/asistencias/supervision', icon: ClipboardList, roles: ['ADMIN', 'SUBDIRECCION'] },
-  { label: 'Gestión de asistencias', path: '/asistencias/gestion', icon: ClipboardPen, roles: ['SUBDIRECCION'] },
+  { label: 'Asistencias', path: '/asistencias/supervision', icon: ClipboardList, roles: ['ADMIN', 'SUBDIRECCION'] },
 ];
 
 export function navigationFor(role: UserRole) {
   return navigation.filter(item => item.roles.includes(role))
-    .map(item => ({ ...item, label: role === 'ADMIN' && item.path === '/asistencias/supervision' ? 'Asistencias'
-      : role === 'REGISTRADOR' ? item.registradorLabel ?? item.label : item.label }));
+    .map(item => ({ ...item, label: role === 'REGISTRADOR' ? item.registradorLabel ?? item.label : item.label }));
 }
