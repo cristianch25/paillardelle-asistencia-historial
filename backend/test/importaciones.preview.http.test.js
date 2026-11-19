@@ -8,7 +8,7 @@ import { errorHandler } from '../src/middlewares/error-handler.js';
 import { serviceFixture, actor, selection, section } from '../test-support/importaciones/reconciliation-fixture.js';
 import { makePadron } from '../test-support/importaciones/padron-fixture.js';
 
-test('HTTP: multipart real, niveles, paginación y selección; roles y formato; ninguna ruta de confirmación', async () => {
+test('HTTP: multipart real, niveles, paginación y selección; roles y formato; confirmación exige contrato', async () => {
   const f = serviceFixture({ sections: [{ ...section, letra: 'A' }] });
   const service = createImportPreviewService({ reconcile: f.service });
   const app = express();
@@ -25,7 +25,7 @@ test('HTTP: multipart real, niveles, paginación y selección; roles y formato; 
     const form = new FormData(); form.append('archivo', new Blob([await makePadron({ records: [{ values: { AZ: '999111222 / 988111222' } }] })]), 'padron.xlsx');
     response = await fetch(base + '/vistas-previas?' + new URLSearchParams(selection), { method: 'POST', headers, body: form });
     assert.equal(response.status, 201); const data = await response.json();
-    assert.equal(data.resumen.NUEVO, 1); assert.equal(data.confirmacion_habilitada, false);
+    assert.equal(data.resumen.NUEVO, 1); assert.equal(data.confirmacion_habilitada, true);
     assert.deepEqual(data.filas_seleccionadas, [data.registros[0].id]);
     assert.doesNotMatch(JSON.stringify(data), /contacto_id|actor_id|auditoria|referencia_contacto/);
     const phonePath = base + `/vistas-previas/${data.id}/filas/${encodeURIComponent(data.registros[0].id)}/contacto`;

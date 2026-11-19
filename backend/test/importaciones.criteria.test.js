@@ -14,7 +14,7 @@ test('DEFINITIVA válida con apoderado dudoso propone matrícula; no crea contac
   assert.deepEqual(eligiblePreviewIds(plan), ['1:13']);
   assert.ok(plan.registros[0].observaciones.some(row => row.ambito === 'apoderado'));
 });
-test('TRASLADADO sin sección: ADMIN conserva identidad sin matrícula; SUBDIRECCION requiere ADMIN', async () => {
+test('TRASLADADO sin sección: ADMIN y SUBDIRECCION del nivel conservan identidad sin matrícula', async () => {
   const source = record({ estudiante: { estado_matricula: 'TRASLADADO' }, contexto: { grado_edad: null, seccion: 'NO EXISTE' }, apoderado: noContact });
   const admin = await serviceFixture({ sections: [] }).prepare([source]);
   assert.deepEqual(admin.acciones.map(row => row.tipo), ['CREAR_ESTUDIANTE']);
@@ -22,14 +22,26 @@ test('TRASLADADO sin sección: ADMIN conserva identidad sin matrícula; SUBDIREC
   assert.ok(admin.registros[0].observaciones.every(row => row.bloqueante === false));
   const sub = { ...actor, rol: 'SUBDIRECCION', nivel_asignado: 'INICIAL' };
   const scoped = await serviceFixture({ current: sub, sections: [] }).prepare([source], selection, sub);
-  assert.equal(scoped.registros[0].clasificacion, 'REQUIERE_ADMIN'); assert.deepEqual(scoped.acciones, []);
+  assert.equal(scoped.registros[0].clasificacion, 'NUEVO'); assert.deepEqual(scoped.acciones.map(row => row.tipo), ['CREAR_ESTUDIANTE']);
 });
 test('TRASLADADO existente no depende de nueva sección ni modifica matrícula histórica', async () => {
   const student = existingStudent(), historical = enrollment();
   const source = record({ estudiante: { estado_matricula: 'TRASLADADO' }, contexto: { seccion: 'NO EXISTE' }, apoderado: noContact });
   const plan = await serviceFixture({ students: [student], enrollments: [historical], sections: [] }).prepare([source]);
   assert.equal(plan.registros[0].clasificacion, 'EXISTENTE'); assert.deepEqual(plan.acciones, []);
-  assert.deepEqual(eligiblePreviewIds(plan), []); assert.equal(historical.estado, 'ACTIVA');
+  assert.deepEqual(eligiblePreviewIds(plan), ['1:13']); assert.equal(historical.estado, 'ACTIVA');
+});
+
+test('SUBDIRECCION reconoce trasladados propios del recibo sin revelar identidades ajenas', async () => {
+  const sub = { ...actor, rol: 'SUBDIRECCION', nivel_asignado: 'INICIAL' };
+  const source = record({ estudiante: { estado_matricula: 'TRASLADADO' }, apoderado: noContact });
+  for (const transferred of [[], ['100']]) {
+    const plan = await serviceFixture({ current: sub, students: [existingStudent()], visible: [], transferred })
+      .prepare([source], selection, sub);
+    assert.equal(plan.registros[0].clasificacion, transferred.length ? 'EXISTENTE' : 'CONFLICTIVO');
+    assert.deepEqual(plan.acciones, []);
+    if (!transferred.length) assert.equal(plan.registros[0].estudiante_id, null);
+  }
 });
 test('DEFINITIVA sin sección sigue bloqueada; traslado tampoco elude año o nivel válidos', async () => {
   const blocked = await serviceFixture({ sections: [] }).prepare([record({ estudiante: { estado_matricula: 'DEFINITIVA' } })]);
@@ -62,7 +74,7 @@ test('excepción aprobada: código fiable permite omitir documento inválido/inc
     const reservation = await service.begin(selection, actor), preview = await service.load(reservation, Buffer.from('ficticio'), actor);
     assert.equal(preview.registros[0].documento_omitido, true);
     assert.deepEqual(preview.registros[0].documento_original, { tipo: document.tipo_documento, numero: document.numero_documento });
-    assert.equal(preview.confirmacion_habilitada, false); service.discard(preview.id);
+    assert.equal(preview.confirmacion_habilitada, true); service.discard(preview.id);
   }
 });
 test('excepción no se aplica sin código válido, ni habilita duplicados o contradicciones de identidad', async () => {

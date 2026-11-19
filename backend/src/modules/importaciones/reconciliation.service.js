@@ -9,10 +9,11 @@ import { createSeccionesService } from '../organizacion-escolar/secciones/servic
 import { createAniosEscolaresService } from '../organizacion-escolar/anios-escolares/service.js';
 import { createUsuariosService } from '../usuarios/usuarios.service.js';
 import { createReconciliationRepository } from './reconciliation.repository.js';
-import { issue, validateImportRecord, cleanText } from './reconciliation-validation.js';
+import { validateImportRecord, cleanText } from './reconciliation-validation.js';
 import { academicKey, validateAcademic } from './academic-validation.js';
 import { reconcileIdentity } from './identity-conciliation.js';
 import { contactConflicts, reconcileContact } from './contact-conciliation.js';
+import { preparationError } from './preparation-error.js';
 
 const rowKey = record => `${record.origen.hoja_id}:${record.origen.fila}`;
 function selectionData(selection, records) {
@@ -34,6 +35,7 @@ function selectionData(selection, records) {
  */
 export function createImportReconciliationService(options = {}) {
   const repository = options.repository ?? createReconciliationRepository();
+  const connection = options.connection;
   const usuariosService = options.usuariosService ?? createUsuariosService();
   const identitiesService = options.identitiesService ?? createStudentIdentitiesService();
   const seccionesService = options.seccionesService ?? createSeccionesService({ usuariosService });
@@ -44,7 +46,7 @@ export function createImportReconciliationService(options = {}) {
       requireActor(actor, true); validateId(actor.id);
       const current = await repository.actor(actor.id);
       requireActor(current, true, true);
-      const { access } = await matriculasService.importContext([], null, current);
+      const { access } = await matriculasService.importContext([], null, current, connection);
       const levels = access.levels ?? educationLevels;
       if (level && !levels.includes(level)) throw new HttpError(403, 'Nivel no autorizado para importar.');
       if (selection) {
@@ -59,10 +61,13 @@ export function createImportReconciliationService(options = {}) {
       requireActor(actor, true); validateId(actor.id);
       if (!Array.isArray(extracted?.registros) || extracted.registros.length > 2000) throw new HttpError(400, 'Registros de importación inválidos.');
       const selected = selectionData(selection, extracted.registros);
+      let stage = 'ACTOR';
+      const at = (name, work) => { stage = name; return work(); };
       try {
         const current = await repository.actor(actor.id);
         requireActor(current, true, true);
-        const year = await aniosService.findById(selected.anio_escolar_id);
+        const year = await at('ANIO', () => aniosService.findById(selected.anio_escolar_id));
+        stage = 'VALIDACION';
         const rows = extracted.registros.map(validateImportRecord);
         const keys = rows.map(row => {
           // Un número de ocho dígitos con tipo dudoso solo ayuda a detectar conflictos;
@@ -72,15 +77,18 @@ export function createImportReconciliationService(options = {}) {
           codigo: row.student.codigo_estudiante?.isWellFormed() && [...row.student.codigo_estudiante].length <= 30 ? row.student.codigo_estudiante : null,
           tipo: (row.student.tipo_documento === 'DNI' || row.documentOmitted) && /^\d{8}$/.test(number ?? '') ? 'DNI' : null,
           numero: /^\d{8}$/.test(number ?? '') ? number : null }; });
-        const identities = await identitiesService.matchImportIdentities(keys);
+        const identities = await at('IDENTIDADES', () => identitiesService.matchImportIdentities(keys));
         const ids = [...new Set(identities.matches.map(match => match.id))];
-        const context = await matriculasService.importContext(ids, selected.anio_escolar_id, current);
+        const context = await at('MATRICULAS', () => matriculasService.importContext(ids, selected.anio_escolar_id, current, connection, selected.fecha_ingreso));
         if (context.access.levels && !context.access.levels.includes(selected.nivel)) throw new HttpError(403, 'Nivel no autorizado.');
-        const sections = await seccionesService.matchForImport(rows.map(row => ({ index: row.index, ...academicKey(row.original) }))
-          .filter(key => key.nivel === selected.nivel && key.grado && key.letra?.isWellFormed() && [...key.letra].length <= 30), year.id, selected.nivel, current);
-        const visible = current.rol === 'ADMIN' ? ids : context.visibleIds;
-        const contacts = await repository.contacts(rows.filter(row => row.contactDoc.fiable).map(row => ({ index: row.index,
-          tipo: row.contactDoc.tipo_documento, numero: row.contactDoc.numero_documento })), ids.filter(id => visible.includes(id)));
+        const sections = await at('SECCIONES', () => seccionesService.matchForImport(rows.map(row => ({ index: row.index, ...academicKey(row.original) }))
+          .filter(key => key.nivel === selected.nivel && key.grado && key.letra?.isWellFormed() && [...key.letra].length <= 30), year.id, selected.nivel, current));
+        const transferred = current.rol === 'ADMIN' ? [] : await repository.transferredIds(
+          identities.matches.filter(match => rows[Number(match.source_index)].state === 'TRASLADADO').map(match => match.id), selected.nivel);
+        const visible = current.rol === 'ADMIN' ? ids : [...new Set([...context.visibleIds, ...transferred])];
+        const contacts = await at('CONTACTOS', () => repository.contacts(rows.filter(row => row.contactDoc.fiable).map(row => ({ index: row.index,
+          tipo: row.contactDoc.tipo_documento, numero: row.contactDoc.numero_documento })), ids.filter(id => visible.includes(id))));
+        stage = 'CONCILIACION';
         const duplicates = new Set(identities.duplicates), badContacts = contactConflicts(rows);
         const byIdentity = new Map();
         for (const match of identities.matches) {
@@ -100,8 +108,7 @@ export function createImportReconciliationService(options = {}) {
           const observations = [...row.issues.filter(item => item.ambito !== 'apoderado'), ...identity.observations,
             ...validateAcademic(row, year, section, selected.nivel, date, context.access, identity.needsEnrollment)];
           let classification = identity.conflict ? 'CONFLICTIVO' : observations.some(item => item.bloqueante !== false) ? 'OBSERVADO'
-            : identity.requiresAdmin ? 'REQUIERE_ADMIN' : identity.existing ? 'EXISTENTE' : 'NUEVO';
-          if (identity.requiresAdmin) observations.push(issue(source, 'estudiante', 'ALTA_INDEPENDIENTE_REQUIERE_ADMIN'));
+            : identity.existing ? 'EXISTENTE' : 'NUEVO';
           const selectable = ['NUEVO', 'EXISTENTE'].includes(classification);
           const contact = selectable ? reconcileContact(row, identity.existing?.id ?? null, contacts, visible, current, badContacts.has(row.index))
             : { estado: 'PENDIENTE_REVISION', observations: row.issues.filter(item => item.ambito === 'apoderado'), actions: [] };
@@ -121,15 +128,19 @@ export function createImportReconciliationService(options = {}) {
           }
           return { id: key, origen: source.origen, original: source, datos: { estudiante: row.student, apoderado: row.guardian },
             clasificacion: classification, seleccionable: selectable, estudiante_id: identity.existing?.id ?? null,
+            matricula_id: context.enrollments.find(item => item.estudiante_id === identity.existing?.id && item.seccion_id === section?.id)?.id ?? null,
             contacto: { estado: contact.estado, telefono: row.phone }, observaciones: [...observations, ...contact.observations], acciones: proposed };
         });
-        return { resumen: { total: records.length, ...Object.fromEntries(['NUEVO', 'EXISTENTE', 'EXISTENTE_CON_PROPUESTA', 'OBSERVADO', 'CONFLICTIVO', 'REQUIERE_ADMIN']
+        const plan = { resumen: { total: records.length, ...Object.fromEntries(['NUEVO', 'EXISTENTE', 'EXISTENTE_CON_PROPUESTA', 'OBSERVADO', 'CONFLICTIVO', 'REQUIERE_ADMIN']
           .map(state => [state, records.filter(record => record.clasificacion === state).length])) }, registros: records, acciones: actions,
         observaciones: extracted.observaciones ?? [], seleccion: selected, actor_id: current.id,
         requiere_revalidacion: true, confirmacion_habilitada: false };
+        Object.defineProperty(plan, 'concurrencia', { value: { anio: year, identidades: identities.matches,
+          matriculas: context.enrollments, secciones: sections, contactos: contacts } });
+        return plan;
       } catch (error) {
         if (error instanceof HttpError) throw error;
-        throw new HttpError(500, 'No se pudo preparar la propuesta de importación.');
+        throw preparationError(error, stage, options.onPreparationError);
       }
     },
   };

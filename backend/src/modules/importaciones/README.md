@@ -1,4 +1,104 @@
-# SIAGIE — carga y vista previa (etapa 1)
+# SIAGIE — vista previa y confirmación única
+
+## Etapa 2 — implementada el 18/11/2026
+
+Diagnóstico de preparación: el 500 «No se pudo preparar la propuesta de
+importación» se lanza durante la revalidación anterior a applyConfirmation,
+antes de las altas y el recibo. El catch conserva la excepción original como
+cause no enumerable y emite SIAGIE_PREPARACION_FALLIDA en stderr con etapa,
+tipo, código permitido, número de error y ubicación relativa si está disponible.
+Nunca registra mensaje original, SQL, parámetros, stack completo ni datos del
+padrón/credenciales. El JSON HTTP sigue siendo genérico. Los errores funcionales
+HttpError conservan sus estados sin diagnóstico adicional. Sin el código/etapa
+del error original no se atribuye la causa a estudiantes, apoderados o una
+consulta determinada. No se ha reproducido el fallo del usuario en MySQL real.
+
+El usuario aprobó el contrato académico y su ampliación a contactos. Un único
+POST confirma las filas seleccionadas, estudiantes/matrículas iniciales,
+apoderados fiables, vínculos válidos y teléfonos expresamente autorizados.
+Los apartados posteriores de etapa 1 conservan el contexto de la vista previa;
+sus referencias a confirmación ausente quedan superadas por esta sección.
+F04 precisada ya está incorporada a V8; el comentario previo sobre incorporación
+pendiente documenta la preparación del 17/11/2026, no el estado documental actual.
+
+- POST /api/importaciones/vistas-previas/:id/confirmacion: cuerpo estricto
+  `{aceptar:true, version_plan, filas, clave_operacion, decisiones_telefono}`.
+  Clave UUID minúscula no secreta, versión SHA-256 del plan revisado y filas
+  únicas (1–2000). Cada decisión contiene id_propuesta y ACTUALIZAR/CONSERVAR.
+- GET /api/importaciones/confirmaciones/:clave_operacion: consulta del actor dueño,
+  con revalidación de su ámbito actual; no escribe ni reenvía confirmaciones.
+- Respuesta 200: CONFIRMADA, confirmacion_id como texto, repetida, cantidades
+  originales y resultados por fila. Sin recibo: SIN_CONFIRMACION_VERIFICADA;
+  no demuestra reversión ni permite reintento automático. Ambas rutas usan no-store.
+
+La vista publica version_plan, resumen_confirmacion, decisiones telefónicas
+agrupadas y confirmacion_habilitada. Cada consulta completa actualiza el plan
+revisado; selección/corrección lo invalida. Todas las filas seleccionadas deben
+estar autorizadas y corresponder a MATRICULADO/DEFINITIVA, con año PLANIFICADO o
+ABIERTO. Trasladados y altas independientes no son confirmables aquí. Los datos
+del apoderado mostrados proceden del archivo; no exponen identidades ajenas.
+
+Confirmación: actor/adicionales, años y secciones de contexto ordenados, sesiones,
+estudiantes/matrículas/vínculos, contactos y sus vínculos. Se usa READ COMMITTED
+y se vuelve a conciliar en la misma conexión con lecturas actuales y bloqueos.
+Las búsquedas de identidad bloquean coincidencias; UNIQUE rechaza altas ausentes
+concurrentes. Años/secciones se bloquean también en contextos académicos de
+identidades existentes para revalidar su visibilidad. Cambios de plan o día de
+vigencia generan 409 antes de confirmar. Las reglas de alta y protección de
+padrones se reutilizan mediante createInTransaction, sin transacciones por fila.
+
+Las dependencias privadas del plan son no enumerables: no se serializan en
+respuestas de conciliación. La huella sí las incluye explícitamente. La revisión
+de contactos incluye su último evento de auditoría y sus vínculos; detecta cambios
+intermedios aunque el teléfono vuelva al valor anterior. No se amplía F08 ni se
+concede autorización mediante un vínculo futuro propuesto. Los pendientes de
+contacto ya revisados permiten el alta académica; un conflicto nuevo aborta todo.
+
+### Suficiencia del recibo sin migración
+
+auditoria_administrativa admite actor, acción, entidad y JSON. Se inserta un
+evento CONFIRMAR_IMPORTACION_SIAGIE con clave, huella canónica, nivel y resultado
+mínimo en la misma transacción que todos los cambios y sus auditorías. No contiene
+padrones completos, documentos inválidos originales ni tokens secretos. La clave
+es identificador de operación, no credencial. El ID del evento identifica el recibo.
+
+Todos los POST y GET de recibo bloquean primero usuarios.id del actor. Esta fila
+existe incluso sin recibos previos: dos instancias del backend quedan serializadas
+por MySQL sobre el mismo actor. Bajo READ COMMITTED se busca el recibo antes de
+adquirir la vista temporal. Así no se necesita un UNIQUE adicional para proteger
+la ausencia: el protocolo impide dos escritores simultáneos de (actor, clave).
+Una huella diferente con la misma clave devuelve 409. Si hubiera recibos duplicados,
+se falla de forma segura; no se elige uno arbitrariamente. Todo futuro escritor
+de este tipo de evento debe conservar este protocolo. Los otros eventos no pueden
+considerarse recibos solo por contener una clave en JSON.
+
+El recibo sobrevive a caducidad/reinicio. Si COMMIT falla, shared/transaction.js
+descarta la conexión y conserva el error; no se transforma en conflicto reintentable
+ni se reintenta automáticamente. GET permite recuperar el recibo si se confirmó.
+Consultar no crea auditorías. Se conserva el historial ordinario sin eliminaciones.
+La búsqueda usa el índice existente por usuario; no hay índice dedicado al UUID,
+por lo que su coste crece con la auditoría del actor. No se promete escalabilidad
+ilimitada ni se ha inspeccionado el esquema real en esta etapa.
+
+### Mapa y verificación
+
+Nuevos en importaciones/: confirmation.service.js (coordinación),
+confirmation.repository.js (transacción/recibo/bloqueos), confirmation-context.js
+(composición), confirmation-plan.js (huella/resumen), confirmation.validation.js,
+confirmation-effects.js y confirmation-write.repository.js (contactos/auditoría).
+Modificados controller/routes, preview.service/response y reconciliation.service/
+repository. Estudiantes/repository añade lectura de identidad bloqueada; matrícula
+service/repository admite conexión compartida sin alterar su API HTTP.
+
+Pruebas nuevas: importaciones.confirmation.test.js y
+importaciones.confirmation.http.test.js, con confirmation-fixture.js simulado.
+Regresiones de criteria, preview, selección, teléfono y HTTP actualizadas porque
+la vista ya puede habilitar confirmación. Las suites de matrícula siguen aplicando.
+Todo se verifica con repositorios/conexiones simulados, sin MySQL principal ni DDL.
+reconciliation.service.js (140 líneas) y matriculas/
+service.js (113) mantienen responsabilidades cohesivas; ninguno supera 150.
+
+## Contexto conservado — carga y vista previa de etapa 1
 
 Un único flujo para INICIAL, PRIMARIA y SECUNDARIA. V8 F01–F10 / T01–T05.
 ADMIN global; SUBDIRECCION reutiliza el ámbito del importador/matrículas existente
@@ -179,3 +279,107 @@ Creados:
 - frontend/test/importPreview.test.mjs
 - frontend/test/support/importPreviewFixture.mjs
 - frontend/test/support/importPreviewHarness.jsx
+
+## Diagnóstico MySQL aislado — 18/11/2026
+
+El recorrido XLSX ficticio → vista previa → POST confirmación reprodujo HTTP 500
+con `SIAGIE_PREPARACION_FALLIDA`, etapa CONTACTOS, número 3569
+(`ER_DUPLICATE_TABLE_LOCK`: `Table j appears in multiple locking clauses.`).
+No persistieron altas ni auditorías; el recibo fue SIN_CONFIRMACION_VERIFICADA.
+La consulta de contactos combinaba JSON_TABLE con FOR UPDATE sin tabla explícita.
+Se cambió únicamente a `FOR UPDATE OF c`, preservando el bloqueo de contactos;
+el diagnóstico seguro ahora reconoce también ese código sin publicar el mensaje.
+Esto demuestra un defecto reproducible del recorrido, no recupera el log del
+fallo histórico anterior a la instrumentación.
+
+Instancia comprobada: 127.0.0.1:3311, UUID
+`afb09129-e20f-11f1-8789-9c6b009e6a76`, datadir local backend/tmp/asistencia-006/data.
+Se inició esa instancia secundaria porque estaba detenida. No se conectó a 3306.
+Se crearon tres esquemas nuevos, sin borrar ninguno: `siagie_diag_ficticio_antes_20261118`,
+`siagie_diag_ficticio_despues_20261118` y `siagie_diag_ficticio_despues_20261118_v2`.
+El segundo conserva un ensayo intermedio cuya aserción sobre reimportación
+se ajustó al alcance vigente; el tercero contiene la verificación final completa.
+Solo se copiaron estructuras mediante SHOW CREATE TABLE desde la secundaria,
+sin registros existentes, volcados, migraciones ni cambios de .env. Todos los
+datos insertados son ficticios. Puerto, UUID y base se verificaron antes de DDL/DML
+y al adquirir cada conexión de la aplicación de pruebas.
+
+Resultado final: confirmación 200, un estudiante, matrícula, vínculo de sección,
+contacto y vínculo de apoderado; cinco auditorías, incluido un único recibo.
+Se verificaron rollback íntegro al fallar antes del recibo, dos confirmaciones
+concurrentes con el mismo recibo, reintento sin duplicados, conflicto 409 ante
+otra solicitud con igual clave y consulta del recibo desde un proceso nuevo.
+Una nueva vista del padrón existente sigue sin habilitar confirmación; no se
+implementaron las simplificaciones pendientes. Se preservan RN-11/RN-20,
+RF-04 y RNF-09 V8, sin modificar documentos V8.
+
+Evidencias locales ignoradas: backend/tmp/siagie-diagnostico.mjs,
+siagie-diagnostico-antes.json, siagie-diagnostico-despues.json y
+siagie-diagnostico-suite.log. Suite: 837 correctas, 0 fallos y 1 omitida.
+La prueba MySQL optativa pasó por separado y confirmó el bloqueo real hasta rollback:
+en PowerShell, desde backend, `$env:SIAGIE_MYSQL_DATABASE='siagie_diag_ficticio_despues_20261118_v2'`
+y `node --test test/importaciones.contacts.mysql.test.js`. No crea tablas ni datos.
+
+## Finalización del flujo SIAGIE — 18/11/2026, posterior al diagnóstico
+
+Este bloque sustituye las limitaciones de la etapa de diagnóstico anterior:
+DEFINITIVA/MATRICULADO permite alta académica en sección existente; las filas sin
+sección quedan pendientes y no se crean sus identidades. La selección válida se
+confirma atómicamente, aunque haya filas pendientes fuera de ella.
+TRASLADADO permite alta de identidad sin matrícula a ADMIN y SUBDIRECCION del nivel
+autorizado. Se reutiliza estudiantes/service.js dentro de la misma transacción;
+no habilita alta manual independiente para SUBDIRECCION. D18/F03, RN-20 y RF-05 V8
+recogen la excepción aprobada. El recibo guarda nivel y solo_identidad para
+reconocer posteriores importaciones del mismo ámbito sin matrícula ficticia.
+
+Las filas existentes válidas también pueden confirmarse sin efectos académicos;
+se conserva un recibo nuevo para cada nueva operación revisada. Un reintento de
+la misma clave conserva su recibo original. Solo se crean las altas que falten;
+contradicciones e historiales siguen protegidos. La visibilidad del importador
+reúne matrículas vigentes hoy y en la fecha efectiva, además de las identidades
+TRASLADADO del recibo autorizado. No cambia la visibilidad de otros módulos.
+Los contactos dudosos no bloquean las altas académicas y no producen contactos
+ni vínculos inseguros. La tabla resume sus advertencias como «Contacto por revisar»;
+se mantienen la selección/corrección de celulares y la decisión explícita sobre
+teléfonos existentes. Vista previa y recibo muestran importados, existentes y pendientes.
+
+Prueba integrada optativa: `test/importaciones.flow.mysql.test.js`, con la misma
+variable SIAGIE_MYSQL_DATABASE documentada arriba. Usa solo el esquema ficticio
+confirmado en 127.0.0.1:3311 y verifica puerto, UUID y base al adquirir conexiones.
+No ejecuta DDL, migraciones ni borrados. Cada ensayo crea datos ficticios únicos.
+Ejercita XLSX real, HTTP, corrección de celular, SUBDIRECCION, alta de apoderado,
+TRASLADADO sin matrícula, omisión por sección, rollback previo al recibo, repetición,
+recuperación de recibo, rechazo de nivel ajeno y padrón mixto con una sola alta faltante.
+Resultado base: 3 identidades, 2 matrículas, 1 contacto, 1 vínculo y 1 fila pendiente.
+Repetición: 0 altas, 3 existentes, 1 fila pendiente; historiales y cantidades conservados.
+La corrección temporal de celular se conserva en su vista previa; otro archivo
+con varios números vuelve a requerir selección, sin cambiar el contacto persistido.
+
+Archivos de implementación ajustados en esta finalización: identity-conciliation.js,
+preview-eligibility.js, preview-response.js, reconciliation.repository.js,
+reconciliation.service.js, confirmation-context.js, confirmation-plan.js,
+confirmation-effects.js y matriculas/service.js; en frontend ImportPreviewTable.tsx,
+ImportConfirmation.tsx, PreviewPhoneEditor.tsx e importPresentation.ts. Se actualizaron sus pruebas,
+fixtures, documentación del módulo y la excepción puntual en los cinco documentos V8.
+Superan 100 líneas reconciliation.service.js (147) y matriculas/service.js (116);
+ningún archivo de implementación ajustado supera 150 líneas.
+
+## Equivalencia de matrículas al reimportar — 18/11/2026
+
+La fecha efectiva del formulario se aplica únicamente a matrículas nuevas.
+Para reconocer una existente se conserva la comprobación de identidad, año y
+sección resuelta por nivel/grado/nombre, matrícula ACTIVA sin retiro y vínculo
+sin finalizar, sin comparar sus fechas guardadas con la nueva fecha del formulario.
+No se modifican fechas originales ni se proponen movimientos académicos.
+Los contadores y ya_matriculado reflejan esa equivalencia sin cambios de frontend.
+
+Corrección limitada a identity-conciliation.js (37 líneas). Pruebas nuevas:
+importaciones.equivalence.test.js e importaciones.equivalence.mysql.test.js;
+el fixture de historia solo permite descartar vistas temporales durante el ensayo.
+58 pruebas focalizadas correctas; en MySQL 3311, 48 matrículas ficticias de dos
+secciones se reconocen con cuatro fechas: 0 nuevos, 48 registrados, 0 pendientes.
+Las tres páginas identifican todas como ya matriculadas. Se comparan íntegros
+estudiantes, matrículas, vínculos, contactos, sesiones, asistencias, historial y
+auditorías previas: idénticos después de cada confirmación, con solo recibos nuevos.
+Un cambio auténtico de grado/sección sigue bloqueado. No se ejecutó DDL ni se
+accedió a MySQL principal. Evidencia local: backend/tmp/siagie-equivalencia-*.log.

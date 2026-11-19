@@ -78,3 +78,15 @@ test('matrículas conserva la restricción de SUBDIRECCION Secundaria y filtra i
   const result = await service.importContext(['100', '999'], '10', { id: '2', rol: 'SUBDIRECCION', nivel_asignado: 'SECUNDARIA', activo: true });
   assert.deepEqual(result.access.levels, ['SECUNDARIA']); assert.deepEqual(ids, ['100']);
 });
+
+test('importación conserva visibles actuales y reconoce matrículas preparadas para la fecha efectiva', async () => {
+  let selected;
+  const service = createEnrollmentService({ repository: {
+    studentIds: async ({ date }) => date === '2026-11-18' ? ['100'] : ['101'],
+    inspectForImport: async ids => { selected = ids; return []; },
+  }, usuariosService: { supervisionLevels: async () => ['INICIAL'] }, seccionesService: {}, identitiesService: {},
+  getToday: () => '2026-11-18' });
+  await service.importContext(['100', '101', '999'], '10',
+    { id: '2', rol: 'SUBDIRECCION', nivel_asignado: 'INICIAL', activo: true }, undefined, '2027-03-01');
+  assert.deepEqual(selected, ['100', '101']);
+});

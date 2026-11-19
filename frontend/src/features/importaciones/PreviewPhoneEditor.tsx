@@ -8,7 +8,7 @@ export default function PreviewPhoneEditor({ row, disabled, save }: Props) {
   const [editing, setEditing] = useState(false), [value, setValue] = useState(''), [error, setError] = useState('');
   const id = useId(), contact = row.contacto;
   if (!contact) return null;
-  if (contact.requiere_revision_identidad) return <p className="mt-2 text-xs font-semibold">El apoderado o su vínculo requiere revisión; corregir el celular no resuelve su identidad.</p>;
+  if (contact.requiere_revision_identidad) return null;
   const hasIssue = row.observaciones.some(item => item.campo === 'apoderado.telefonos_originales'
     || item.motivo === 'CONTACTO_CONTRADICTORIO_EN_ARCHIVO');
   if (!contact.puede_corregir || !hasIssue && !contact.corregido) return null;

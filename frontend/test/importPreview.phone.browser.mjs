@@ -18,7 +18,7 @@ for (const role of ['ADMIN', 'SUBDIRECCION']) test(`${role}: celular temporal, o
       const file=document.querySelector('input[type=file]'), transfer=new DataTransfer(); transfer.items.add(new File(['ficticio'],'padron.xlsx')); file.files=transfer.files; file.dispatchEvent(new Event('change',{bubbles:true}));
     })()`);
     await click('Ver vista previa'); await wait('Boolean(document.querySelector("table"))');
-    assert.equal(await evaluate('document.querySelectorAll("tbody tr")[3].textContent.includes("requiere revisión")'), true);
+    assert.equal(await evaluate('document.querySelectorAll("tbody tr")[3].textContent.includes("Contacto por revisar")'), true);
     assert.equal(await evaluate('document.querySelectorAll("tbody tr")[3].querySelectorAll("button").length'), 0);
     await click('Corregir celular'); await wait(`${row}.querySelector('input[type=tel]') !== null`);
     assert.equal(await evaluate(`${row}.textContent.includes('999123456 / 988123456')`), true);

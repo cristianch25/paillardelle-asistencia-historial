@@ -16,7 +16,8 @@ before(async () => {
 after(async () => { await vite?.close(); });
 test('tabla: preselección del servidor, origen conservado, observados deshabilitados y sin guardado', () => {
   const html = renderToStaticMarkup(h(Table, { data: importPreviewFixture(), disabled: false, toggle() {}, page() {} }));
-  for (const text of ['24', 'DEFINITIVA', 'Matrículas propuestas', 'Teléfonos diferentes', 'Observado', 'Falta código']) assert.ok(html.includes(text));
+  for (const text of ['DEFINITIVA', 'Contacto por revisar', 'Observado', 'Falta código']) assert.ok(html.includes(text));
+  assert.doesNotMatch(html, /<dl|Existentes con propuesta|Matrículas propuestas|Ya existentes/);
   assert.equal((html.match(/type="checkbox"/g) ?? []).length, 20);
   assert.match(html, /disabled=""/); assert.equal((html.match(/checked=""/g) ?? []).length, 19);
   for (const text of ['bg-emerald-50', 'bg-amber-50', 'bg-rose-50', 'Listo con observaciones', 'Revisión requerida']) assert.ok(html.includes(text));
@@ -36,7 +37,7 @@ test('presentación diferencia matrícula ACTIVA propuesta, identidad sin matrí
   assert.equal(presentation.operationLabel({ ...row, estado_original: 'TRASLADADO', propuestas: ['CREAR_ESTUDIANTE'] }), 'Identidad sin nueva matrícula');
   assert.equal(presentation.operationLabel({ ...row, estado_original: 'TRASLADADO', propuestas: [] }), 'Identidad sin nueva matrícula');
   assert.equal(presentation.operationLabel({ ...row, clasificacion: 'OBSERVADO', propuestas: [] }), 'Operación bloqueada');
-  assert.match(presentation.observationLabel('SECCION_INEXISTENTE_O_NO_AUTORIZADA'), /créala desde Secciones/);
+  assert.match(presentation.observationLabel('SECCION_INEXISTENTE_O_NO_AUTORIZADA'), /Esta fila se omite/);
   const data = importPreviewFixture();
   Object.assign(data.registros[1], { documento_omitido: true, documento_original: { tipo: 'DN', numero: '123' },
     observaciones: [{ campo: 'estudiante.numero_documento', motivo: 'DOCUMENTO_OMITIDO_POR_CODIGO_FIABLE', ambito: 'estudiante', bloqueante: false }] });

@@ -25,7 +25,7 @@ export async function correctPreviewPhone(id: string, rowId: string, telefono: s
   const { data } = await httpClient.patch<ImportPreview>(
     `/importaciones/vistas-previas/${id}/filas/${encodeURIComponent(rowId)}/contacto`, { telefono, version });
   const row = data.registros?.find(row => row.id === rowId);
-  if (data.id !== id || data.confirmacion_habilitada !== false || row?.contacto.version !== version + 1
+  if (data.id !== id || typeof data.confirmacion_habilitada !== 'boolean' || row?.contacto.version !== version + 1
     || row.contacto.telefono_propuesto !== telefono || !row.contacto.corregido) throw new Error('Corrección temporal no confirmada.');
   return data;
 }

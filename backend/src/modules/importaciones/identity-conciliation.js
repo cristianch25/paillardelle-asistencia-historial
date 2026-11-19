@@ -21,19 +21,17 @@ export function reconcileIdentity(row, matches, duplicated, enrollment, visibleI
   const enrollments = existing ? enrollment.filter(item => item.estudiante_id === existing.id) : [];
   const ids = new Set(enrollments.map(item => item.id));
   if (row.state === 'MATRICULADO' && ids.size) {
+    // La fecha del formulario solo rige altas nuevas; nunca refecha una matrícula equivalente.
     const matching = enrollments.filter(item => item.estado === 'ACTIVA' && item.fecha_retiro === null
-      && item.seccion_id === section?.id && (effectiveDate
-        ? item.fecha_ingreso <= effectiveDate && item.fecha_inicio <= effectiveDate && (!item.fecha_fin || item.fecha_fin >= effectiveDate)
-        : item.fecha_fin === null));
+      && item.seccion_id === section?.id && item.fecha_fin === null);
     if (ids.size !== 1 || matching.length !== 1) fail('MATRICULA_EXISTENTE_REQUIERE_REVISION');
   }
   const needsEnrollment = row.state === 'MATRICULADO' && !ids.size;
-  const requiresAdmin = !existing && row.state === 'TRASLADADO' && actor.rol !== 'ADMIN';
   const conflict = observations.length > 0;
-  if (!conflict && !requiresAdmin) {
+  if (!conflict) {
     if (!existing) actions.push({ tipo: 'CREAR_ESTUDIANTE', datos: row.student });
     if (needsEnrollment) actions.push({ tipo: 'CREAR_MATRICULA_INICIAL', datos: {
       estudiante_id: existing?.id ?? null, seccion_id: section?.id ?? null, fecha_ingreso: effectiveDate ?? null } });
   }
-  return { existing, observations, actions, conflict, requiresAdmin, needsEnrollment };
+  return { existing, observations, actions, conflict, needsEnrollment };
 }

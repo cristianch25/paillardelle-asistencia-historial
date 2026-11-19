@@ -3,6 +3,8 @@ import { receiveXlsxUpload } from './upload.js';
 
 export function createImportPreviewController(service) {
   return {
+    confirm: async (req, res) => res.json(await service.confirm(req.params.id, req.body, req.authUser)),
+    status: async (req, res) => res.json(await service.status(req.params.clave_operacion, req.authUser)),
     levels: async (req, res) => res.json(await service.levels(req.authUser)),
     get: async (req, res) => res.json(await service.get(req.params.id, req.query, req.authUser)),
     select: async (req, res) => res.json(await service.select(req.params.id, req.body, req.authUser)),

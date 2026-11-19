@@ -26,7 +26,9 @@ export function enrollment(id = '100', overrides = {}) {
 export function serviceFixture(options = {}) {
   const students = options.students ?? [], calls = [];
   const service = createImportReconciliationService({
+    onPreparationError: options.onPreparationError,
     repository: {
+      async transferredIds() { return options.transferred ?? []; },
       async actor() { calls.push('actor'); return options.current === undefined ? actor : options.current; },
       async contacts(records) {
         calls.push('contacts');

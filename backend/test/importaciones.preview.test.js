@@ -29,7 +29,7 @@ test('permisos reales de conciliación: rol, actor vigente, ámbito propio y fec
   assert.deepEqual((await serviceFixture({ current: sub, levels: ['INICIAL', 'SECUNDARIA'] }).service.authorize(sub)).levels, ['INICIAL', 'SECUNDARIA']);
   await assert.rejects(base.service.authorize(actor, 'INICIAL', { ...selection, fecha_ingreso: '2026-01-01' }), status(400));
 });
-test('carga, consulta paginada y selección protegida: sin confirmación ni escrituras', async () => {
+test('carga, consulta paginada y selección protegida: habilita confirmación sin escribir al consultar', async () => {
   const records = Array.from({ length: 25 }, (_, i) => record({}, i));
   records[0].estudiante.estado_matricula = 'AMBIGUO';
   const reconcile = serviceFixture().service;
@@ -37,7 +37,7 @@ test('carga, consulta paginada y selección protegida: sin confirmación ni escr
   const reservation = await service.begin(selection, actor), bytes = Buffer.from('ficticio');
   const loaded = await service.load(reservation, bytes, actor);
   assert.ok(bytes.every(value => value === 0)); assert.equal(loaded.registros.length, 20);
-  assert.equal(loaded.filas_seleccionadas.length, 24); assert.equal(loaded.confirmacion_habilitada, false);
+  assert.equal(loaded.filas_seleccionadas.length, 24); assert.equal(loaded.confirmacion_habilitada, true);
   assert.equal(loaded.resumen.NUEVO, 24); assert.equal(loaded.resumen.matriculas_propuestas, 24);
   await assert.rejects(service.select(loaded.id, { filas: [loaded.registros[0].id] }, actor), status(400));
   await assert.rejects(service.select(loaded.id, { filas: ['inventada'] }, actor), status(400));

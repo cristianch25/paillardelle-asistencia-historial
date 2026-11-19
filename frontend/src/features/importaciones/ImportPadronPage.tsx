@@ -12,6 +12,7 @@ import { importLevels } from './import.api';
 import { importFormError, importErrorMessage } from './importPresentation';
 import { useImportPreview } from './useImportPreview';
 import ImportPreviewTable from './ImportPreviewTable';
+import ImportConfirmation from './ImportConfirmation';
 
 const field = 'mt-1 min-h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white p-2 text-base';
 function ImportContent() {
@@ -21,6 +22,7 @@ function ImportContent() {
   const [levels, setLevels] = useState<EducationLevel[] | null>(null), [error, setError] = useState('');
   const [levelsError, setLevelsError] = useState('');
   const [revision, setRevision] = useState(0);
+  const [confirmationBlocking, setConfirmationBlocking] = useState(false);
   useInitialSchoolYear(years.years, !years.loading && !years.error, yearId, setYearId);
   useEffect(() => {
     let current = true;
@@ -34,13 +36,13 @@ function ImportContent() {
   return <div className="min-w-0 space-y-5">
     <header><Link to="/secciones" className="text-sm underline">Volver a secciones</Link>
       <h1 className="mt-3 text-2xl font-bold">Importar padrón SIAGIE</h1>
-      <p className="mt-2 text-sm text-slate-600">Solo carga y vista previa. No se guardarán estudiantes, matrículas ni teléfonos.</p></header>
+      <p className="mt-2 text-sm text-slate-600">Carga el Excel, revisa los datos y confirma una sola vez los estudiantes, matrículas y apoderados válidos.</p></header>
     {years.loading || !levels && !levelsError ? <LoadingState message="Cargando opciones…" /> : null}
     {years.error && <><ErrorState message={years.error} /><Button onClick={years.retry}>Reintentar años</Button></>}
     <form className="grid min-w-0 gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2"
       onSubmit={e => { e.preventDefault(); const message = importFormError(file, selection, year);
         setError(message); if (!message && file) void preview.load(file, selection); }}>
-      <fieldset disabled={preview.busy} className="contents">
+      <fieldset disabled={preview.busy || confirmationBlocking} className="contents">
         <label className="min-w-0 text-sm font-semibold">Archivo XLSX<input className={field} type="file" accept=".xlsx" required
           onChange={e => { clear(); setFile(e.target.files?.[0] ?? null); }} /></label>
         <label className="text-sm font-semibold">Año escolar<select className={field} value={yearId} required
@@ -59,7 +61,8 @@ function ImportContent() {
     {preview.busy && <LoadingState message="Procesando vista previa…" />}
     {preview.expired && <ErrorState message="La vista previa ha caducado. Carga nuevamente el archivo." />}
     {preview.error && preview.data && <Button disabled={preview.busy} onClick={() => void preview.page(preview.data!.pagination.page)}>Actualizar vista previa</Button>}
-    {preview.data && <ImportPreviewTable data={preview.data} disabled={preview.busy || preview.expired}
+    {preview.data && <ImportConfirmation key={preview.data.id} data={preview.data} disabled={preview.busy || preview.expired} onBlocking={setConfirmationBlocking} />}
+    {preview.data && <ImportPreviewTable data={preview.data} disabled={preview.busy || preview.expired || confirmationBlocking}
       toggle={(id, value) => void preview.toggle(id, value)} page={value => void preview.page(value)} correctPhone={preview.correctPhone} />}
   </div>;
 }

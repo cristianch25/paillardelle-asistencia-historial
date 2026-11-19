@@ -34,8 +34,8 @@ export function createEnrollmentRepository(poolProvider = getPool) {
     standalone(actorId, decide) {
       return inTransaction(poolProvider(), async connection => decide(await actor(connection, actorId), connection));
     },
-    create(data, actorId, hooks) {
-      return inTransaction(poolProvider(), async connection => {
+    create(data, actorId, hooks, sharedConnection) {
+      const work = async connection => {
         // Orden: actor y adicionales, año, sección, estudiante, matrícula. Sin otros usuarios después.
         const access = await hooks.authorize(await actor(connection, actorId), connection);
         const context = await hooks.sectionContext(data.seccion_id, connection);
@@ -49,7 +49,8 @@ export function createEnrollmentRepository(poolProvider = getPool) {
         await hooks.checkExisting(existing);
         const matricula = await insertEnrollment(connection, data, identity.estudiante.id, actorId);
         return { ...identity, matricula };
-      });
+      };
+      return sharedConnection ? work(sharedConnection) : inTransaction(poolProvider(), work);
     },
   };
 }

@@ -25,7 +25,7 @@ test('celulares válidos, prefijos y null: normalización, versión, selección,
     assert.equal(contact.telefono_original, '999123456 / 988123456');
     assert.equal(f.records[0].apoderado.telefonos_originales, contact.telefono_original);
     assert.deepEqual(next.filas_seleccionadas, f.data.filas_seleccionadas); assert.equal(next.caduca_en, f.data.caduca_en);
-    assert.equal(next.resumen.filas_con_observaciones, 0); assert.equal(next.confirmacion_habilitada, false);
+    assert.equal(next.resumen.filas_con_observaciones, 0); assert.equal(next.confirmacion_habilitada, true);
     assert.equal((await f.service.get(id, {}, actor)).registros[0].contacto.version, 2);
     f.service.discard(id);
   }

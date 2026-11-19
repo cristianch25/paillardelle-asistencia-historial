@@ -115,13 +115,13 @@ test('sin sección/año coincidente ni año abierto para preparar matrícula no 
   await assert.rejects(serviceFixture({ yearError: new HttpError(404, 'Año no encontrado.') }).prepare(), status(404));
 });
 
-test('TRASLADADO: ADMIN propone solo identidad, SUBDIRECCION requiere ADMIN', async () => {
+test('TRASLADADO: ADMIN y SUBDIRECCION autorizados proponen solo identidad', async () => {
   const data = record({ estudiante: { estado_matricula: 'TRASLADADO' }, apoderado: {
     tipo_documento: null, numero_documento: null, nombres_apellidos: null, parentesco: null, telefonos_originales: null } });
   const adminPlan = await serviceFixture().prepare([data], { anio_escolar_id: '10', nivel: 'INICIAL' });
   assert.deepEqual(types(adminPlan), ['CREAR_ESTUDIANTE']);
   const subPlan = await serviceFixture({ current: sub }).prepare([data], selection, sub);
-  assert.equal(subPlan.resumen.REQUIERE_ADMIN, 1); assert.deepEqual(subPlan.acciones, []);
+  assert.equal(subPlan.resumen.NUEVO, 1); assert.deepEqual(types(subPlan), ['CREAR_ESTUDIANTE']);
 });
 
 test('otros estados de origen quedan observados sin convertirlos en ACTIVA', async () => {

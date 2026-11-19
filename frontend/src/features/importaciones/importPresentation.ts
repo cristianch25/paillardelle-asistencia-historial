@@ -3,6 +3,7 @@ import type { SchoolYear } from '../organizacion-escolar/anios-escolares/aniosEs
 import { validCivilDate } from '../../shared/dates/civilDate';
 import axios from 'axios';
 import { apiErrorMessage } from '../../shared/api/apiError';
+import { academicConflict } from './previewReview';
 
 export function importErrorMessage(error: unknown) {
   if (axios.isAxiosError(error)) {
@@ -14,7 +15,7 @@ export function importErrorMessage(error: unknown) {
 }
 
 export const classificationLabels: Record<string, string> = {
-  NUEVO: 'Nuevo', EXISTENTE: 'Existente', EXISTENTE_CON_PROPUESTA: 'Existente con propuesta',
+  NUEVO: 'Nuevo', EXISTENTE: 'Ya registrado', EXISTENTE_CON_PROPUESTA: 'Ya registrado',
   OBSERVADO: 'Observado', CONFLICTIVO: 'Conflicto', REQUIERE_ADMIN: 'Requiere ADMIN',
 };
 const reasons: Record<string, string> = {
@@ -26,7 +27,7 @@ const reasons: Record<string, string> = {
   DOCUMENTO_NO_FIABLE_COINCIDE_OTRA_IDENTIDAD: 'El documento dudoso coincide con otra identidad: requiere revisión.',
   DNI_INVALIDO: 'DNI de origen no validado.', DOCUMENTO_INCOMPLETO: 'Documento de origen incompleto.',
   MATRICULA_EXISTENTE_REQUIERE_REVISION: 'La matrícula existente necesita revisión manual.',
-  SECCION_INEXISTENTE_O_NO_AUTORIZADA: 'Sección no disponible: si falta, créala desde Secciones; verifica tus permisos.',
+  SECCION_INEXISTENTE_O_NO_AUTORIZADA: 'Pendiente: sección no disponible. Esta fila se omite; puedes importar las demás.',
   ANIO_NO_COINCIDE: 'El año del archivo no coincide con el seleccionado.',
   NIVEL_O_GRADO_INVALIDO: 'Nivel o grado no reconocido.', CONTEXTO_MATRICULA_INVALIDO: 'Año, sección o fecha incompatibles para el alta.',
   FECHA_EFECTIVA_REQUERIDA: 'Se necesita una fecha efectiva explícita.',
@@ -37,7 +38,8 @@ const reasons: Record<string, string> = {
 };
 export const observationLabel = (reason: string) => reasons[reason] ?? 'Dato pendiente de revisión manual.';
 export function operationLabel(row: PreviewRow) {
-  if (['OBSERVADO', 'CONFLICTIVO', 'REQUIERE_ADMIN'].includes(row.clasificacion)) return 'Operación bloqueada';
+  if (academicConflict(row)) return 'Operación bloqueada';
+  if (row.ya_matriculado) return row.propuestas.length ? 'Revisar contacto o celular' : '';
   if (row.propuestas.includes('CREAR_MATRICULA_INICIAL')) return 'Propuesta de matrícula ACTIVA';
   if (row.estado_original.trim().toUpperCase() === 'TRASLADADO') return 'Identidad sin nueva matrícula';
   if (row.propuestas.includes('CREAR_ESTUDIANTE')) return 'Incorporar identidad';

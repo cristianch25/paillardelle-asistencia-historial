@@ -11,29 +11,30 @@ test('preselección: propuestas autorizadas, contacto omitible, sin cambios, con
   const service = createImportPreviewService({ reconcile, analyze: async () => ({ registros: records, observaciones: [] }) });
   const reservation = await service.begin(selection, actor);
   const data = await service.load(reservation, Buffer.from('ficticio'), actor);
-  assert.deepEqual(data.filas_seleccionadas, ['1:13', '1:14']);
+  assert.deepEqual(data.filas_seleccionadas, ['1:13', '1:14', '1:15']);
   assert.ok(data.registros[1].observaciones.some(item => item.ambito === 'apoderado' && item.bloqueante));
   assert.equal(data.registros[1].seleccionable, true); // La matrícula sigue siendo válida.
-  assert.equal(data.registros[2].clasificacion, 'EXISTENTE'); assert.equal(data.registros[2].seleccionable, false);
+  assert.equal(data.registros[2].clasificacion, 'EXISTENTE'); assert.equal(data.registros[2].seleccionable, true);
   assert.equal(data.registros[3].clasificacion, 'CONFLICTIVO'); assert.equal(data.registros[4].clasificacion, 'OBSERVADO');
-  for (const row of data.registros.slice(2)) {
+  for (const row of data.registros.slice(3)) {
     await assert.rejects(service.select(data.id, { filas: [row.id] }, actor), error => error.status === 400);
   }
   await service.select(data.id, { filas: [] }, actor);
   assert.deepEqual((await service.get(data.id, {}, actor)).filas_seleccionadas, []);
   await service.select(data.id, { filas: ['1:14'] }, actor);
   assert.deepEqual((await service.get(data.id, {}, actor)).filas_seleccionadas, ['1:14']);
-  assert.equal(data.confirmacion_habilitada, false); service.discard(data.id);
+  assert.equal(data.confirmacion_habilitada, true); service.discard(data.id);
 });
 
-test('SUBDIRECCION: trasladado nuevo sin matrícula no se preselecciona ni puede marcarse', async () => {
+test('SUBDIRECCION: trasladado nuevo del nivel se preselecciona sin proponer matrícula', async () => {
   const sub = { ...actor, rol: 'SUBDIRECCION', nivel_asignado: 'INICIAL' };
   const reconcile = serviceFixture({ current: sub }).service;
   const service = createImportPreviewService({ reconcile,
     analyze: async () => ({ registros: [record({ estudiante: { estado_matricula: 'TRASLADADO' } })], observaciones: [] }) });
   const reservation = await service.begin(selection, sub), data = await service.load(reservation, Buffer.from('ficticio'), sub);
-  assert.equal(data.registros[0].clasificacion, 'REQUIERE_ADMIN'); assert.deepEqual(data.filas_seleccionadas, []);
-  await assert.rejects(service.select(data.id, { filas: [data.registros[0].id] }, sub), error => error.status === 400);
+  assert.equal(data.registros[0].clasificacion, 'NUEVO'); assert.deepEqual(data.filas_seleccionadas, ['1:13']);
+  assert.ok(!data.registros[0].propuestas.includes('CREAR_MATRICULA_INICIAL'));
+  await service.select(data.id, { filas: [data.registros[0].id] }, sub);
   service.discard(data.id);
 });
 

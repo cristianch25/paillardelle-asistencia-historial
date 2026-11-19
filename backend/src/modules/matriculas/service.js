@@ -22,7 +22,7 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
   async function visibleIds(access, connection, filters = {}) {
     return repository.studentIds({ filters, access, date: getToday() }, connection);
   }
-  async function create(body, actor, joint) {
+  async function create(body, actor, joint, connection) {
     requireActor(actor, true);
     const data = enrollmentData(body, joint);
     try {
@@ -45,7 +45,7 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
         checkExisting(existing) {
           if (existing.length) throw new HttpError(409, 'El estudiante ya tiene matrícula en ese año.');
         },
-      });
+      }, connection);
     } catch (error) { throw enrollmentConflict(error); }
   }
   return {
@@ -62,15 +62,19 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
       }
       return selected;
     },
-    async importContext(ids, yearId, actor) {
+    async importContext(ids, yearId, actor, connection, date = getToday()) {
       requireActor(actor, true);
-      const access = await accessFor(actor, getToday());
-      const visible = actor.rol === 'ADMIN' ? ids : await visibleIds(access);
+      const access = await accessFor(actor, getToday(), connection, Boolean(connection));
+      const visible = actor.rol === 'ADMIN' ? ids : [...new Set([
+        ...await visibleIds(access, connection),
+        ...await repository.studentIds({ filters: {}, access, date }, connection),
+      ])];
       const selected = ids.filter(id => visible.includes(id));
       return { access, visibleIds: visible, enrollments: await repository.inspectForImport(selected, yearId) };
     },
     create: (body, actor) => create(body, actor, false),
     createJoint: (body, actor) => create(body, actor, true),
+    createInTransaction: (body, actor, joint, connection) => create(body, actor, joint, connection),
     async createStandalone(data, actor) {
       requireActor(actor, true);
       if (actor.rol !== 'ADMIN') throw new HttpError(403, 'Usa el alta conjunta con matrícula inicial.');

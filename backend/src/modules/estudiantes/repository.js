@@ -5,7 +5,7 @@ const fields = ['codigo_estudiante', 'tipo_documento', 'numero_documento', 'apel
   'apellido_materno', 'nombres', 'fecha_nacimiento'];
 const columns = ['id', ...fields, 'created_at', 'updated_at'].join(', ');
 function publicRow(row) { return row ? { ...row, id: String(row.id) } : null; }
-export function createStudentsRepository(poolProvider = getPool) {
+export function createStudentsRepository(poolProvider = getPool, lockImport = false) {
   return {
     async matchImportIdentities(records) {
       if (!records.length) return { matches: [], duplicates: [] };
@@ -24,7 +24,7 @@ export function createStudentsRepository(poolProvider = getPool) {
           (e.tipo_documento = i.tipo AND e.numero_documento = i.numero) AS coincide_documento
         FROM incoming i JOIN estudiantes e ON (i.codigo IS NOT NULL AND e.codigo_estudiante = i.codigo)
           OR (i.tipo IS NOT NULL AND i.numero IS NOT NULL AND e.tipo_documento = i.tipo AND e.numero_documento = i.numero)
-        ORDER BY i.source_index, e.id`, [input]);
+        ORDER BY i.source_index, e.id${lockImport ? ' FOR UPDATE' : ''}`, [input]);
       // EXISTS limita el resultado a 2.000 índices incluso si todas las filas se repiten.
       const [duplicates] = await poolProvider().execute(`${incoming} SELECT i.source_index FROM incoming i
         WHERE EXISTS (SELECT 1 FROM incoming j WHERE i.source_index <> j.source_index AND (${same('i', 'j')}))

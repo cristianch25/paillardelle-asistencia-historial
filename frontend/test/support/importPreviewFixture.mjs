@@ -13,6 +13,6 @@ export function importPreviewFixture(page = 1, selected) {
   return { id: 'vista-ficticia', caduca_en: new Date(Date.now() + 1800000).toISOString(), confirmacion_habilitada: false,
     seleccion: { anio_escolar_id: '10', nivel: 'INICIAL', fecha_ingreso: '2026-03-02' }, filas_seleccionadas: selected ?? rows.filter(row => row.seleccionable).map(row => row.id),
     resumen: { total: 25, NUEVO: 24, EXISTENTE: 0, EXISTENTE_CON_PROPUESTA: 0, OBSERVADO: 1, CONFLICTIVO: 0, REQUIERE_ADMIN: 0,
-      matriculas_propuestas: 24, telefonos_diferentes: 0, filas_con_observaciones: 3 },
+      existentes: 0, pendientes: 1, matriculas_propuestas: 24, telefonos_diferentes: 0, filas_con_observaciones: 3 },
     registros: rows.slice((page - 1) * 20, page * 20), pagination: { page, limit: 20, has_more: page === 1 } };
 }

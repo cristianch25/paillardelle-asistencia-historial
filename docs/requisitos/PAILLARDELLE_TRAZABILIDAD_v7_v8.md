@@ -25,6 +25,9 @@ Permisos del flujo sencillo | Aprobación 7B.2 | D08/RN-06/RF-19 y matrices; no 
 SQL y evidencia | Ensayo/aplicación locales autorizados 005/006 | Evolución documentada; fotografías V7 conservadas como históricas; no reejecutar SQL
 Interfaz diaria del REGISTRADOR | 7B.2/7B.3 y ratificaciones expresas recogidas en la transferencia de contexto | U01/U02 conservadas y precisadas; U03–U06 reflejan búsqueda local por nombres/apellidos/código sin distinguir mayúsculas/minúsculas ni tildes, limitada al padrón cargado y conservando modificaciones pendientes, masivo sobre PENDIENTES elegibles de toda la sección incluidos ocultos, advertencia al navegar y «Guardar cambios». Sin botón «Cerrar asistencia» ni diálogo «Corregir asistencia». Otros detalles observados no quedan aprobados automáticamente; no se acredita integración frontend/backend ni validación conjunta con MySQL real.
 Búsqueda global | Implementación/contrato backend posterior a ff3ca53 | Solo ADMIN/SUBDIRECCION; filtro local de REGISTRADOR no amplía facultades
+Excepción documental SIAGIE | Aprobación del 17/11/2026; incorporación puntual a V8 autorizada el 18/11/2026 | F04, RN-12, RF-04 e impacto 24: código fiable, único y sin contradicciones permite omitir documento inválido/incompleto; original temporal para revisión, sin sobrescribir documentos existentes. Las demás validaciones/permisos y el bloqueo de identidades dudosas o contradictorias se conservan. No acredita confirmación persistente ni autoriza implementarla.
+
+Excepción TRASLADADO SIAGIE | Autorización expresa del 18/11/2026 para terminar el importador | D18/F03, RN-20, RF-05 e impacto 24: SUBDIRECCION importa identidad fiable de su nivel sin matrícula activa ni historial ficticio. Auditoría y recibo conservan el nivel para reconocerla en importaciones posteriores; no habilita alta manual independiente ni acceso a ámbitos ajenos.
 
 ## Matriz por identificador original
 
@@ -90,7 +93,7 @@ DECISIONES | D47 → D47 | CONSERVADA CON PRECISIÓN | Conserva consulta diaria 
 DECISIONES | F01 → F01 | CONSERVADA | F01–F10 conservadas íntegras: no se cancela confirmación futura ni se amplían permisos.
 DECISIONES | F02 → F02 | CONSERVADA | F01–F10 conservadas íntegras: no se cancela confirmación futura ni se amplían permisos.
 DECISIONES | F03 → F03 | CONSERVADA | F01–F10 conservadas íntegras: no se cancela confirmación futura ni se amplían permisos.
-DECISIONES | F04 → F04 | CONSERVADA | F01–F10 conservadas íntegras: no se cancela confirmación futura ni se amplían permisos.
+DECISIONES | F04 → F04 | CONSERVADA CON PRECISIÓN POSTERIOR | Excepción documental SIAGIE incorporada el 18/11/2026; código fiable, único y sin contradicciones, original temporal y omisión del documento inválido sin sobrescribir existentes. No amplía permisos ni habilita confirmación por sí sola.
 DECISIONES | F05 → F05 | CONSERVADA | F01–F10 conservadas íntegras: no se cancela confirmación futura ni se amplían permisos.
 DECISIONES | F06 → F06 | CONSERVADA | F01–F10 conservadas íntegras: no se cancela confirmación futura ni se amplían permisos.
 DECISIONES | F07 → F07 | CONSERVADA | F01–F10 conservadas íntegras: no se cancela confirmación futura ni se amplían permisos.
@@ -108,7 +111,7 @@ REGLAS_NEGOCIO | RN-08 → RN-08 | SUSTITUIDA / ACTUALIZADA | Texto ajustado por
 REGLAS_NEGOCIO | RN-09 → RN-09 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REGLAS_NEGOCIO | RN-10 → RN-10 | SUSTITUIDA / ACTUALIZADA | Texto ajustado por 7B.2/7B.3 o evidencia 005/006; ver mismo ID en V8.
 REGLAS_NEGOCIO | RN-11 → RN-11 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
-REGLAS_NEGOCIO | RN-12 → RN-12 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
+REGLAS_NEGOCIO | RN-12 → RN-12 | CONSERVADA CON PRECISIÓN POSTERIOR | Remite a F04 precisada el 18/11/2026 sobre documento inválido/incompleto; conserva identidad fiable, permisos y bloqueo de contradicciones.
 REGLAS_NEGOCIO | RN-13 → RN-13 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REGLAS_NEGOCIO | RN-14 → RN-14 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REGLAS_NEGOCIO | RN-15 → RN-15 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
@@ -147,7 +150,7 @@ REGLAS_NEGOCIO | RN-47 → RN-47 | CONSERVADA CON PRECISIÓN | Conserva consulta
 REQUERIMIENTOS | RF-01 → RF-01 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REQUERIMIENTOS | RF-02 → RF-02 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REQUERIMIENTOS | RF-03 → RF-03 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
-REQUERIMIENTOS | RF-04 → RF-04 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
+REQUERIMIENTOS | RF-04 → RF-04 | CONSERVADA CON PRECISIÓN POSTERIOR | Incorpora F04 precisada el 18/11/2026: original temporal, documento inválido omitido y documentos existentes conservados. No acredita implementación de confirmación durable.
 REQUERIMIENTOS | RF-05 → RF-05 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REQUERIMIENTOS | RF-06 → RF-06 | SUSTITUIDA / ACTUALIZADA | Guardado parcial/selectivo; frontend envía modificaciones efectivas, backend mantiene atomicidad y no-op. Vista diaria REGISTRADOR sin botón de cierre ni diálogo de corrección; sesiones, endpoint y datos históricos de cierre conservados.
 REQUERIMIENTOS | RF-07 → RF-07 | SUSTITUIDA / ACTUALIZADA | Texto ajustado por 7B.2/7B.3 o evidencia 005/006; ver mismo ID en V8.
@@ -201,7 +204,7 @@ IMPACTO | 20 → 20 | CONSERVADA | Contenido compatible conservado; implementaci
 IMPACTO | 21 → 21 | SUSTITUIDA / ACTUALIZADA | Texto ajustado por 7B.2/7B.3 o evidencia 005/006; ver mismo ID en V8.
 IMPACTO | 22 → 22 | SUSTITUIDA / ACTUALIZADA | Texto ajustado por 7B.2/7B.3 o evidencia 005/006; ver mismo ID en V8.
 IMPACTO | 23 → 23 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
-IMPACTO | 24 → 24 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
+IMPACTO | 24 → 24 | CONSERVADA CON PRECISIÓN POSTERIOR | Incorpora el efecto de F04 del 18/11/2026: documento propuesto null compatible con SQL v1, sin migración por esta excepción ni confirmación implícita.
 IMPACTO | 25 → 25 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 IMPACTO | 26 → 26 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 IMPACTO | 27 → 27 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
