@@ -16,29 +16,35 @@ async function auditYear(connection, actorId, action, before, after) {
 }
 
 export function createAniosEscolaresRepository(poolProvider = getPool) {
+  function transition(id, actorId, authorize, decide, from, to, action) {
+    return inTransaction(poolProvider(), async connection => {
+      // Orden común con calendario: actor, año; ningún otro usuario después del año.
+      const [actors] = await connection.execute(
+        'SELECT id, rol, activo FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId],
+      );
+      authorize(actors[0] ?? null);
+      const [current] = await connection.execute(
+        `SELECT ${columns} FROM anios_escolares WHERE id = ? LIMIT 1 FOR UPDATE`, [id],
+      );
+      const before = current[0] ? publicRow(current[0]) : null;
+      decide(before);
+      const [result] = await connection.execute(
+        'UPDATE anios_escolares SET estado = ? WHERE id = ? AND estado = ?', [to, id, from],
+      );
+      if (result.affectedRows !== 1) throw new Error('No se actualizó un único año escolar.');
+      const [updated] = await connection.execute(`SELECT ${columns} FROM anios_escolares WHERE id = ? LIMIT 1`, [id]);
+      if (!updated[0]) throw new Error('No se pudo consultar el año actualizado.');
+      const after = publicRow(updated[0]);
+      await auditYear(connection, actorId, action, before, after);
+      return after;
+    });
+  }
   return {
     open(id, actorId, authorize, decide) {
-      return inTransaction(poolProvider(), async connection => {
-        // Orden común con calendario: actor, año; ningún otro usuario después del año.
-        const [actors] = await connection.execute(
-          'SELECT id, rol, activo FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId],
-        );
-        authorize(actors[0] ?? null);
-        const [current] = await connection.execute(
-          `SELECT ${columns} FROM anios_escolares WHERE id = ? LIMIT 1 FOR UPDATE`, [id],
-        );
-        const before = current[0] ? publicRow(current[0]) : null;
-        decide(before);
-        const [result] = await connection.execute(
-          'UPDATE anios_escolares SET estado = ? WHERE id = ? AND estado = ?', ['ABIERTO', id, 'PLANIFICADO'],
-        );
-        if (result.affectedRows !== 1) throw new Error('No se abrió un único año escolar.');
-        const [updated] = await connection.execute(`SELECT ${columns} FROM anios_escolares WHERE id = ? LIMIT 1`, [id]);
-        if (!updated[0]) throw new Error('No se pudo consultar el año abierto.');
-        const after = publicRow(updated[0]);
-        await auditYear(connection, actorId, 'ABRIR_ANIO_ESCOLAR', before, after);
-        return after;
-      });
+      return transition(id, actorId, authorize, decide, 'PLANIFICADO', 'ABIERTO', 'ABRIR_ANIO_ESCOLAR');
+    },
+    close(id, actorId, authorize, decide) {
+      return transition(id, actorId, authorize, decide, 'ABIERTO', 'CERRADO', 'CERRAR_ANIO_ESCOLAR');
     },
     create(data, actorId, authorize) {
       return inTransaction(poolProvider(), async connection => {

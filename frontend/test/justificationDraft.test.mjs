@@ -112,5 +112,6 @@ test('vista: cuatro estados, casilla después de botones, validación y persisti
   const persisted = structuredClone(data); Object.assign(persisted.padron[3], { justificada: true, motivo_justificacion: 'Aviso' });
   const readonly = renderToStaticMarkup(h(View, { ...props, data: persisted, reasons: {} }));
   assert.match(readonly, /readOnly=""/); assert.match(readonly, /Estado y motivo de solo lectura/);
-  assert.doesNotMatch(renderToStaticMarkup(h(Bar, { count: 1, phase: 'idle' })), /disabled=""|no está disponible/);
+  assert.doesNotMatch(renderToStaticMarkup(h(Bar, { count: 1, phase: 'idle', message: '', success: false,
+    disabled: false, conflicts: 0, onSave() {}, onRefresh() {} })), /disabled=""|no está disponible/);
 });

@@ -10,3 +10,4 @@ export type SchoolYear = {
   updated_at: string;
 };
 export type SchoolYearsResponse = { anios_escolares: SchoolYear[]; pagination: Pagination };
+export type SchoolYearInput = Pick<SchoolYear, 'anio' | 'fecha_inicio' | 'fecha_fin'>;

@@ -1,7 +1,7 @@
 # Organización escolar — etapas 6A, 6B, 6C, 6C-A y 6D-2
 
 Este documento describe los contratos implementados. Las referencias funcionales
-vigentes son [los cuatro TXT v5](../../../../README.md#referencias-funcionales-vigentes);
+vigentes son los cuatro TXT V8 y su matriz V7 → V8, conforme a AGENTS.md;
 v2, la adenda 6C-A y los TXT v4 se conservan como antecedentes. 6D-2 incorpora la
 [API de calendario](calendario-lectivo/README.md), con contratos y mapa propios.
 
@@ -105,7 +105,8 @@ ID BIGINT UNSIGNED como texto, validado sin Number. Sin cuerpo o con `{}`;
 cualquier campo JSON, incluso estado/nivel, devuelve 400. JSON malformado 400,
 cuerpo mayor de 8 KB 413. HTTP 200: `{ anio_escolar: {...} }`, con los siete
 campos públicos de GET y Cache-Control: no-store. Año inexistente: 404;
-ya ABIERTO o CERRADO: 409. No se reabre, cierra, elimina ni edita el año.
+ya ABIERTO o CERRADO: 409. Este endpoint solo abre; el cierre usa el endpoint
+específico descrito más abajo. No se reabre, elimina ni editan las fechas del año.
 
 Condición funcional: año existente en PLANIFICADO. No se añaden requisitos
 de fecha actual, períodos cargados, secciones/asignaciones completas ni año
@@ -143,7 +144,34 @@ auditoría; calendario conservado. Se autorizó por separado el SHUTDOWN y se
 confirmó apagado normal, sin Stop-Process, sin acceso a 3306 y sin cambios en
 backend/.env o servicios existentes. Arnés/resultados locales ignorados por Git
 en backend/tmp/integracion-apertura-preparada/. No reutilizar esa instancia.
-Cierre anual, reapertura y cierre diario permanecen pendientes.
+Ese resultado es histórico. El cierre anual manual se incorpora en la etapa
+aprobada del 19/11/2026; reapertura y procedimientos excepcionales siguen pendientes.
+
+## Cierre anual ADMIN — 19/11/2026
+
+P02, RN-03/RN-05 y RF-03 V8: `PATCH /api/anios-escolares/:id/cerrar`, exclusivo
+de ADMIN activo, sin cuerpo o con `{}`. Devuelve 200 `{ anio_escolar: {...} }`.
+Contrato de ID, JSON, campos públicos, no-store y errores igual que apertura.
+Año inexistente 404; estado distinto de ABIERTO o fecha civil actual en Lima
+menor o igual a fecha_fin: 409. No existe reapertura ni edición de fechas.
+
+El repositorio comparte la transición de apertura/cierre: actor FOR UPDATE,
+revalidación ADMIN activo, año FOR UPDATE, condición de estado/fecha tras esperar,
+UPDATE condicionado y evento CERRAR_ANIO_ESCOLAR con antes/después en la misma
+transacción. Se reutiliza shared/transaction.js sin reintentos automáticos.
+El cierre global no consulta pendientes ni modifica sesiones, marcas, matrículas,
+asignaciones, justificaciones, identidades o cuentas. Asistencia y calendario
+mantienen sus bloqueos del año, rechazos de escritura y consultas históricas.
+Crear/abrir otro año no copia ningún dato académico.
+
+Verificación focalizada: `node --test test/anios-escolares*.test.js`.
+Integración explícita: definir `SIAGIE_MYSQL_DATABASE` como
+`siagie_diag_ficticio_despues_20261118_v2` y ejecutar
+`node --test test/anios-escolares.close.mysql.test.js` desde backend.
+El arnés existente exige host 127.0.0.1, puerto 3311, esquema y UUID aislados;
+inyecta todos los pools, no ejecuta DDL y no se conecta a 3306. Usa datos ficticios
+y conserva sus registros y auditorías para inspección. Crea dos años por ejecución;
+requiere dos números libres entre 2000 y 2025. Sin variable, se omite la integración.
 
 ## Secciones (6C)
 

@@ -59,7 +59,7 @@ test('apertura HTTP: inexistente 404, ya ABIERTO/CERRADO 409 y ninguna auditorí
   assert.equal(fixture.state.audits.length, 0);
 });
 
-test('apertura HTTP: 400 por ID/campos/JSON y 413 por cuerpo excesivo; no hay cierre ni reapertura', async () => {
+test('apertura HTTP: 400 por ID/campos/JSON y 413 por cuerpo excesivo; no hay reapertura', async () => {
   for (const path of ['/0/abrir', '/01/abrir', '/18446744073709551616/abrir']) {
     const response = await request(path); assert.equal(response.status, 400); await response.text();
   }
@@ -68,7 +68,7 @@ test('apertura HTTP: 400 por ID/campos/JSON y 413 por cuerpo excesivo; no hay ci
     const response = await request(undefined, { raw }); assert.equal(response.status, status); await response.text();
   }
   assert.equal(fixture.state.transactions.length, 0);
-  for (const path of ['/1/cerrar', '/1/reabrir']) {
+  for (const path of ['/1/reabrir']) {
     const response = await request(path); assert.equal(response.status, 404); await response.text();
   }
 });

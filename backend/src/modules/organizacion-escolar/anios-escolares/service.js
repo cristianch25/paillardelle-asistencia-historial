@@ -1,8 +1,9 @@
 import { HttpError } from '../../../shared/http-error.js';
 import { validateId, validatePagination } from '../../../shared/query-validation.js';
 import { createAniosEscolaresRepository } from './repository.js';
-import { validateNewYear, validateOpenYear } from './validation.js';
+import { validateNewYear, validateYearTransition } from './validation.js';
 import { unauthorized } from '../../auth/auth.errors.js';
+import { peruDate } from '../../../shared/peru-date.js';
 
 function authorizeAdmin(actor) {
   if (!actor || !(actor.activo === 1 || actor.activo === true)) throw unauthorized();
@@ -27,11 +28,24 @@ function publicYear(row) {
   };
 }
 
-export function createAniosEscolaresService({ repository = createAniosEscolaresRepository() } = {}) {
+export function createAniosEscolaresService({ repository = createAniosEscolaresRepository(), now = () => new Date() } = {}) {
   return {
+    async close(id, body, actorId) {
+      validateId(id);
+      validateYearTransition(body, 'cierre');
+      try {
+        return publicYear(await repository.close(id, actorId, authorizeAdmin, year => {
+          if (!year) throw new HttpError(404, 'Año escolar no encontrado.');
+          if (year.estado !== 'ABIERTO') throw new HttpError(409, 'Solo puede cerrarse un año ABIERTO.');
+          if (peruDate(now()) <= year.fecha_fin) {
+            throw new HttpError(409, 'El cierre solo está permitido después de la fecha de finalización, según la fecha de Lima.');
+          }
+        }));
+      } catch (error) { throw concurrentConflict(error); }
+    },
     async open(id, body, actorId) {
       validateId(id);
-      validateOpenYear(body);
+      validateYearTransition(body, 'apertura');
       try {
         return publicYear(await repository.open(id, actorId, authorizeAdmin, year => {
           if (!year) throw new HttpError(404, 'Año escolar no encontrado.');

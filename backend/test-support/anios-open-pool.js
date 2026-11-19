@@ -45,5 +45,5 @@ export function openingFixture(options = {}) {
   };
   state.pool = pool;
   const repository = createAniosEscolaresRepository(() => pool);
-  return { state, service: createAniosEscolaresService({ repository }), calendar: fixture.service };
+  return { state, service: createAniosEscolaresService({ repository, now: options.now }), calendar: fixture.service };
 }

@@ -58,7 +58,7 @@ DECISIONES | D22 → D22 | CONSERVADA | Contenido compatible conservado; impleme
 DECISIONES | D23 → D23 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 DECISIONES | D24 → D24 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 DECISIONES | P01 → P01 | PENDIENTE (alcance previo conservado) | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
-DECISIONES | P02 → P02 | PARCIALMENTE RESUELTA | Texto ajustado por 7B.2/7B.3 o evidencia 005/006; ver mismo ID en V8.
+DECISIONES | P02 → P02 | PARCIALMENTE RESUELTA | Cierre diario según 7B.2/7B.3. Aprobación posterior 19/11/2026: cierre anual manual exclusivo ADMIN después de fecha_fin en Lima, sin exigir cierre diario ni completar pendientes, con historial íntegro. Reapertura y procedimientos excepcionales pendientes.
 DECISIONES | P03 → P03 | PENDIENTE (alcance previo conservado) | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 DECISIONES | P04 → P04 | PENDIENTE (alcance previo conservado) | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 DECISIONES | P05 → P05 | PENDIENTE (alcance previo conservado) | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
@@ -102,7 +102,7 @@ DECISIONES | F09 → F09 | CONSERVADA | F01–F10 conservadas íntegras: no se c
 DECISIONES | F10 → F10 | CONSERVADA | F01–F10 conservadas íntegras: no se cancela confirmación futura ni se amplían permisos.
 REGLAS_NEGOCIO | RN-01 → RN-01 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REGLAS_NEGOCIO | RN-02 → RN-02 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
-REGLAS_NEGOCIO | RN-03 → RN-03 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
+REGLAS_NEGOCIO | RN-03 → RN-03 | CONSERVADA CON PRECISIÓN POSTERIOR | Año ABIERTO para escrituras ordinarias; cierre anual según P02 aprobado el 19/11/2026. Consulta histórica conservada.
 REGLAS_NEGOCIO | RN-04 → RN-04 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REGLAS_NEGOCIO | RN-05 → RN-05 | SUSTITUIDA / ACTUALIZADA | Guardado parcial/selectivo visible a supervisión, lote atómico y no-op vigente conservados; cierre interno compatible, sin transformar pendientes en faltas.
 REGLAS_NEGOCIO | RN-06 → RN-06 | SUSTITUIDA / ACTUALIZADA | Texto ajustado por 7B.2/7B.3 o evidencia 005/006; ver mismo ID en V8.
@@ -149,7 +149,7 @@ REGLAS_NEGOCIO | RN-46 → RN-46 | SUSTITUIDA / ACTUALIZADA | Texto ajustado por
 REGLAS_NEGOCIO | RN-47 → RN-47 | CONSERVADA CON PRECISIÓN | Conserva consulta diaria y permisos; incorpora decisión aprobada de indicadores diarios en tarjetas «Mis secciones», con datos confirmados del backend y fecha America/Lima. Distingue sesión con registro, ausencia de registro, fecha no lectiva, fuera del año y error; sin ceros ficticios. No acredita implementación de las tarjetas ni sustituye indicadores mensuales pendientes.
 REQUERIMIENTOS | RF-01 → RF-01 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REQUERIMIENTOS | RF-02 → RF-02 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
-REQUERIMIENTOS | RF-03 → RF-03 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
+REQUERIMIENTOS | RF-03 → RF-03 | CONSERVADA CON PRECISIÓN POSTERIOR | Gestión ADMIN de años y cierre manual anual aprobados el 19/11/2026, según P02. Sin arrastre académico, edición general ni reapertura; evidencia de validación en README.md.
 REQUERIMIENTOS | RF-04 → RF-04 | CONSERVADA CON PRECISIÓN POSTERIOR | Incorpora F04 precisada el 18/11/2026: original temporal, documento inválido omitido y documentos existentes conservados. No acredita implementación de confirmación durable.
 REQUERIMIENTOS | RF-05 → RF-05 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REQUERIMIENTOS | RF-06 → RF-06 | SUSTITUIDA / ACTUALIZADA | Guardado parcial/selectivo; frontend envía modificaciones efectivas, backend mantiene atomicidad y no-op. Vista diaria REGISTRADOR sin botón de cierre ni diálogo de corrección; sesiones, endpoint y datos históricos de cierre conservados.
@@ -247,10 +247,14 @@ Anexo U01–U06 | Nuevo: distingue reglas aprobadas y ratificaciones expresas de
 
 Reglas aprobadas conservadas: permisos por módulo, doble vigencia de REGISTRADOR, calendario efectivo, año ABIERTO para escritura, pendientes distintos de faltas, identidad permanente, conservación de históricos, importación manual y contactos fiables, 3 incidencias mensuales, fichas parciales, bitácora anexada y QR futuro acotado.
 
-Funciones pendientes: importador público/vista previa completa/confirmación durable; edición/movimientos/regularización académica y contactos; indicadores mensuales y reportes; continuidad académica completa; auditoría técnica; bitácora y activación; configuración/horarios/QR/PORTERIA; autoridad anual/excepciones. Permisos aprobados no acreditan implementación.
+Funciones pendientes: importador público/vista previa completa/confirmación durable; edición/movimientos/regularización académica y contactos; indicadores mensuales y reportes; continuidad académica completa; auditoría técnica; bitácora y activación; configuración/horarios/QR/PORTERIA; reapertura anual/procedimientos excepcionales. Permisos aprobados no acreditan implementación.
 
 Pendientes de aprobación: el conjunto V8 íntegro y, si se pretende adoptarlos, los demás detalles observados de interfaz no ratificados. «Guardar cambios», masivo sobre PENDIENTES elegibles de toda la sección incluidos ocultos, búsqueda local por nombres/apellidos/código sin distinguir mayúsculas/minúsculas ni tildes, limitada al padrón cargado y conservando modificaciones pendientes y advertencia al navegar ya están ratificados. La edición/retiro de justificaciones y corrección de marcas justificadas permanecen en P10 para una etapa futura autorizada, sin diseño aprobado ni implementación autorizada por este borrador.
 
 ## Adopción propuesta, no ejecutada
 
 Revisar los cuatro V8 y esta matriz; la adopción del conjunto permanece pendiente. Las reglas expresamente ratificadas de U03–U06 no requieren nueva ratificación; los demás detalles observados no se aprueban automáticamente. La actualización puntual de AGENTS.md/README y cualquier commit requieren autorización posterior. Mantener V7 y versiones anteriores como antecedentes. Fuentes/SQL se consolidan mediante sus autorizaciones propias. No continuar C1/C2/C3/C4 ni integrar ramas como parte de esta tarea.
+
+## Gestión ADMIN de años escolares — aprobación posterior 19/11/2026
+
+P02, RN-03/RN-05 y RF-03 V8 precisados en los cuatro TXT: gestión ADMIN, cierre manual anual global y auditado, condición estricta de fecha en Lima, conservación histórica y ausencia de arrastre al cambiar de año. Formulario de creación con solo año y fechas; sin edición posterior, reapertura, DDL ni nuevas dependencias. La aprobación de esta etapa sustituye únicamente los pendientes anuales resueltos, conservando los demás antecedentes. Validación y límites de evidencia en README.md.

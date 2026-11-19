@@ -6,6 +6,43 @@ manual de padrones con revisión, sin sincronización automática.
 
 ## Estado del proyecto
 
+Actualización puntual 19/11/2026 — gestión ADMIN de años escolares: pantalla
+`/anios-escolares`, creación en PLANIFICADO, apertura manual y cierre anual
+ABIERTO → CERRADO exclusivos de ADMIN. Cierre solo después de `fecha_fin` según
+fecha civil de Lima, con confirmación, bloqueo y auditoría transaccional. No exige
+completar pendientes ni cerrar sesiones diarias; conserva íntegros los históricos
+y sus consultas autorizadas. Reapertura y procedimientos excepcionales pendientes.
+Los párrafos siguientes conservan el estado histórico de las primeras etapas.
+
+Crear otro año conserva cuentas e identidades, sin copiar secciones, matrículas,
+asignaciones ni sesiones. Crear las secciones del nuevo año, configurar asignaciones
+e importar su padrón SIAGIE mediante SUBDIRECCION. El formulario solicita solo año,
+fecha de inicio y fecha de finalización, configuradas una vez al crear; matrícula
+individual y días lectivos se definen por separado. Sin nuevas tablas, migraciones
+ni dependencias. Referencias actualizadas: P02, RN-03/RN-05 y RF-03 V8.
+
+Validación de esta etapa: 55 pruebas focalizadas de años aprobadas, incluida la
+integración MySQL; backend 857 pruebas aprobadas y 8 integraciones omitidas
+en la suite general; frontend 241 aprobadas y 1 omitida; cuatro pruebas de
+navegador aprobadas (ADMIN, permisos de otros roles, errores e incertidumbre),
+TypeScript y build correctos. La integración anual se ejecutó por separado en
+MySQL aislado 127.0.0.1:3311 con datos ficticios: cierre con pendientes,
+histórico/justificaciones intactos, escrituras rechazadas, otro año sin arrastre,
+cuentas válidas, auditoría única concurrente y rollback real. No se accedió a 3306,
+no se ejecutó DDL y no se crearon commits ni se hizo push. La instancia aislada,
+inicialmente detenida, se inició para las pruebas y se apagó normalmente al finalizar.
+
+Archivos de implementación afectados: los cinco archivos del backend en
+`organizacion-escolar/anios-escolares/`; API/tipos y los nuevos
+`SchoolYearsPage.tsx`, `SchoolYearForm.tsx`, `SchoolYearConfirmation.tsx` y
+`useSchoolYearManagement.ts` en la funcionalidad frontend de años; registro de
+ruta y navegación. Todos quedan por debajo de 100 líneas. Pruebas nuevas de cierre
+unitarias/HTTP/MySQL y navegador; arnés anual ficticio y adaptación de pruebas
+existentes de apertura, navegación y props de la barra de guardado. Documentación:
+los cinco V8 afectados, este README, README del módulo backend y nuevo README de
+la funcionalidad frontend. No se modificó el código de asistencia, calendario,
+importación, usuarios ni matrículas.
+
 Último commit confirmado: `b0639eb` (`feat: implementar apertura del anio escolar`).
 El bloque de estudiantes, matrícula inicial y padrón por fecha se encuentra en el
 árbol de trabajo, pendiente de commit; no se ha accedido a MySQL principal.
@@ -25,7 +62,7 @@ El bloque inicial de asignaciones añade 24 pruebas y la apertura anual otras 16
 | Autenticación | Login bcrypt, JWT Bearer, perfil y usuario activo consultado en cada petición | Recuperación de contraseña, refresh/logout y despliegue HTTPS |
 | Usuarios y asignaciones | Administración de usuarios; consulta de asignaciones por ámbito y alta exclusiva de ADMIN con auditoría | Edición/finalización de asignaciones; no hay eliminación física |
 | Supervisión | Niveles adicionales explícitos de SUBDIRECCION, administrados por ADMIN | Sin permisos dinámicos; PORTERIA aprobado para una etapa futura |
-| Años escolares | Listado/detalle para tres roles; creación en PLANIFICADO y apertura global exclusivas de ADMIN | Edición general, cierre y reapertura |
+| Años escolares | Listado/detalle para tres roles; pantalla ADMIN, creación en PLANIFICADO, apertura y cierre anual global exclusivos de ADMIN | Edición general, reapertura y procedimientos excepcionales |
 | Secciones | Listado/detalle por ámbito; creación ADMIN/SUBDIRECCION en año PLANIFICADO o ABIERTO | Edición y desactivación |
 | Auditoría | Escritura transaccional de operaciones administrativas implementadas | API de consulta e historial de asistencia |
 | Calendario | Períodos, excepciones, lectividad efectiva y bloqueos atómicos por nivel; integración mínima verificada en MySQL 8.4.13 aislado | Frontend |
@@ -142,9 +179,9 @@ Decisiones aprobadas en 6D-0 y confirmadas al iniciar 6D-1:
 - Cambios auditados. Contratos API de 6D-0 aprobados como base revisable por subetapa;
   consultar el [análisis v5](docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v5.txt).
 
-Cierre diario de asistencia, cierre del año y logout son procesos distintos. Su
-definición operativa pendiente no se implementará dentro de calendario. El fin
-de clases no cierra automáticamente el año administrativo.
+Cierre diario de asistencia, cierre del año y logout son procesos distintos.
+El cierre anual manual se aprobó el 19/11/2026 según P02 V8; no se implementa
+dentro de calendario. El fin de clases no cierra automáticamente el año administrativo.
 
 ## QR y PORTERIA: aprobados, sin implementación
 
@@ -183,10 +220,13 @@ convertirá pendientes o días futuros en faltas. Son requisitos futuros, no fun
 ya disponibles. La inactividad operativa puede resolverse por matrícula; no se
 presupone un nuevo estado global del estudiante ni una tabla de alertas.
 
-Siguen pendientes P01–P09 de decisiones v5: formato de ficha, cierre/reapertura y
+Como antecedente de 6D, se enumeraron P01–P09 de decisiones v5: formato de ficha, cierre/reapertura y
 procedimientos excepcionales, conservación/recuperación, fechas efectivas/contactos,
 activación de bitácora, horarios y facultades específicas de ADMIN/Secretaría,
 conflictos manual/QR y relación PORTERIA–puede_escanear_qr. Definir consulta de auditoría
 y operadores de emisión/revocación/exportación QR antes de implementarlos.
 6D-2 no ejecuta SQL de migración ni implementa otras etapas. Los commits y las
 siguientes etapas requieren autorización del usuario.
+El cierre anual ordinario quedó resuelto posteriormente el 19/11/2026 en P02 V8;
+reapertura y procedimientos excepcionales permanecen pendientes. Las restantes
+referencias de este apartado conservan su contexto histórico y no sustituyen V8.

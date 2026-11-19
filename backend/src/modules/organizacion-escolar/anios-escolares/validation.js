@@ -1,9 +1,9 @@
 import { HttpError } from '../../../shared/http-error.js';
 import { validDate } from '../../../shared/date-validation.js';
 
-export function validateOpenYear(body) {
+export function validateYearTransition(body, operation) {
   if (body !== undefined && (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length)) {
-    throw new HttpError(400, 'La apertura no admite campos: omite el cuerpo o envía un objeto vacío.');
+    throw new HttpError(400, `La operación de ${operation} no admite campos: omite el cuerpo o envía un objeto vacío.`);
   }
 }
 
