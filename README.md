@@ -6,6 +6,15 @@ manual de padrones con revisión, sin sincronización automática.
 
 ## Estado del proyecto
 
+Actualización puntual 19/11/2026 — ficha mensual PDF: `/reportes` permite a los
+tres roles académicos descargar una ficha A4 vertical por sección/mes con hasta
+30 estudiantes y todos los días del mes. Endpoint único
+`GET /api/reportes/asistencia-mensual.pdf`, autorización propia de reportes,
+instantánea READ ONLY y PDFKit 0.20.2 autorizado como única dependencia directa
+nueva. Generación en memoria, sin escrituras académicas ni PDFs permanentes.
+Referencia visual reconstruida con escudo existente, tabla semanal y leyenda
+temporal aprobada `. F J T TJ`. [Contrato y límites](backend/src/modules/reportes/README.md).
+
 Actualización puntual 19/11/2026 — gestión ADMIN de años escolares: pantalla
 `/anios-escolares`, creación en PLANIFICADO, apertura manual y cierre anual
 ABIERTO → CERRADO exclusivos de ADMIN. Cierre solo después de `fecha_fin` según

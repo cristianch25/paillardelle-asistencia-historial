@@ -31,7 +31,7 @@ test('ADMIN y SUBDIRECCION conservan Asistencias; REGISTRADOR tiene entrada prop
   assert.deepEqual(navigation.navigationFor('SUBDIRECCION').filter(item => item.path.startsWith('/asistencias'))
     .map(item => [item.path, item.label]), [['/asistencias/supervision', 'Asistencias']]);
   assert.deepEqual(navigation.navigationFor('REGISTRADOR').map(item => [item.path, item.label]),
-    [['/inicio', 'Inicio'], ['/secciones', 'Mis secciones'], ['/asistencias', 'Asistencias']]);
+    [['/inicio', 'Inicio'], ['/secciones', 'Mis secciones'], ['/asistencias', 'Asistencias'], ['/reportes', 'Ficha mensual PDF']]);
 });
 test('composición unificada ADMIN/SUBDIRECCION y antigua Gestión redirigida, sin acceso REGISTRADOR', () => {
   assert.match(render(Page), />Asistencias</); assert.match(render(Page), /Buscar estudiante/);

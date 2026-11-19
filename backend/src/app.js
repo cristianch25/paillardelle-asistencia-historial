@@ -17,9 +17,10 @@ import { createEnrollmentService } from './modules/matriculas/service.js';
 import { createEnrollmentRoutes } from './modules/matriculas/routes.js';
 import { createAttendanceRoutes } from './modules/asistencias/routes.js';
 import { createImportPreviewRoutes } from './modules/importaciones/routes.js';
+import { createReportsRoutes } from './modules/reportes/routes.js';
 
 export function createApp({ authService = createAuthService(), usuariosService, aniosEscolaresService,
-  seccionesService, calendarService, assignmentsService, studentsService, matriculasService, attendanceService, importPreviewService } = {}) {
+  seccionesService, calendarService, assignmentsService, studentsService, matriculasService, attendanceService, importPreviewService, reportsService } = {}) {
   const app = express();
   app.use('/api/health', healthRoutes);
   app.use('/api/auth', createAuthRoutes(authService));
@@ -42,6 +43,7 @@ export function createApp({ authService = createAuthService(), usuariosService, 
   app.use('/api/calendario-lectivo', calendar.calendar);
   app.use('/api/asistencias', createAttendanceRoutes(authService, attendanceService));
   app.use('/api/importaciones', createImportPreviewRoutes(authService, importPreviewService));
+  app.use('/api/reportes', createReportsRoutes(authService, reportsService));
   app.use(errorHandler);
   return app;
 }

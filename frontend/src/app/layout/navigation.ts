@@ -20,6 +20,7 @@ const navigation: readonly NavigationItem[] = [
   { label: 'Secciones', registradorLabel: 'Mis secciones', path: '/secciones', icon: School, roles: ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'] },
   { label: 'Asistencias', path: '/asistencias', icon: ClipboardList, roles: ['REGISTRADOR'] },
   { label: 'Asistencias', path: '/asistencias/supervision', icon: ClipboardList, roles: ['ADMIN', 'SUBDIRECCION'] },
+  { label: 'Ficha mensual PDF', path: '/reportes', icon: ClipboardList, roles: ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'] },
 ];
 
 export function navigationFor(role: UserRole) {

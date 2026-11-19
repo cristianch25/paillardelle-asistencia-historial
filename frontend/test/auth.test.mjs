@@ -57,7 +57,7 @@ test('cada rol dispone de Inicio y Secciones; no se anuncian módulos pendientes
         ...(role !== 'REGISTRADOR' ? [{ path: '/calendario', label: 'Calendario escolar' }] : []),
         { path: '/secciones', label: role === 'REGISTRADOR' ? 'Mis secciones' : 'Secciones' },
         ...(role !== 'REGISTRADOR' ? [{ path: '/asistencias/supervision', label: 'Asistencias' }]
-          : [{ path: '/asistencias', label: 'Asistencias' }])]);
+          : [{ path: '/asistencias', label: 'Asistencias' }]), { path: '/reportes', label: 'Ficha mensual PDF' }]);
     assert.equal(typeof navigation.roleLabels[role], 'string');
   }
 });
