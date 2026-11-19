@@ -1,14 +1,11 @@
 import Button from '../../shared/components/Button';
 import ErrorState from '../../shared/components/ErrorState';
 import LoadingState from '../../shared/components/LoadingState';
-import type { SectionSelection } from '../organizacion-escolar/secciones/secciones.types';
 import type { CalendarDay } from '../organizacion-escolar/calendario-lectivo/calendario.api';
-import { useAttendanceCalendar } from './useAttendanceCalendar';
+import type { useAttendanceCalendar } from './useAttendanceCalendar';
 import { CalendarDays } from 'lucide-react';
-import { peruToday } from '../../shared/dates/civilDate';
 
-export default function AttendanceCalendarInfo({ selection, fecha }: { selection: SectionSelection; fecha: string }) {
-  const calendar = useAttendanceCalendar(selection, fecha);
+export default function AttendanceCalendarInfo({ calendar, fecha }: { calendar: ReturnType<typeof useAttendanceCalendar>; fecha: string }) {
   const day = calendar.data?.dias.find(item => item.fecha === fecha);
   if (day?.es_lectivo && day.origen !== 'EXCEPCION') return null;
   return (
@@ -28,8 +25,8 @@ export function CalendarDayInfo({ day }: { day: CalendarDay }) {
     <div role="status" className="space-y-1 text-sm text-slate-600">
       <p className="flex items-start gap-2"><CalendarDays aria-hidden="true" className="size-4 shrink-0" />
         <span>{day.es_lectivo ? 'Clases habilitadas en el calendario'
-          : day.fecha === peruToday() ? 'Hoy no hay clases' : 'No hay clases en esta fecha'}{day.descripcion ? ` · ${day.descripcion}` : ''}</span></p>
-      {!day.es_lectivo && <p>No se puede iniciar asistencia. Si ya existe una sesión, puedes consultarla.</p>}
+          : 'Hoy no hay clases. La asistencia está deshabilitada para esta fecha'}</span></p>
+      {day.es_lectivo && day.descripcion && <p>{day.descripcion}</p>}
     </div>
   );
 }

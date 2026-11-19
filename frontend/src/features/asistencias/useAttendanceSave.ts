@@ -1,6 +1,7 @@
 import { useEffect, useRef, type Dispatch } from 'react';
-import { getAttendance, saveAttendance } from './asistencias.api';
-import { attendancePatch, assertAttendanceResponse, assertAttendanceSaved } from './attendanceReconciliation';
+import { getAttendance, openAttendance, saveAttendance } from './asistencias.api';
+import { attendancePatch, assertAttendanceResponse, assertAttendanceSaved, reconcileAttendance } from './attendanceReconciliation';
+import { getAttendanceWorkspace } from './attendanceWorkspace';
 import { attendanceFailureStatus, attendanceRejection } from './attendanceSaveError';
 import type { AttendanceEditor, EditorAction } from './attendanceEditorState';
 
@@ -24,7 +25,8 @@ export function useAttendanceSave(editor: AttendanceEditor, dispatch: Dispatch<E
     if (!base || operation.current !== token) return;
     dispatch({ type: 'phase', epoch, phase: intent.current === 'access' ? 'checking-access' : 'refreshing', message: reason });
     try {
-      const data = await getAttendance(base.sesion.id);
+      const data = base.sesion.id ? await getAttendance(base.sesion.id)
+        : await getAttendanceWorkspace(base.sesion.anio_escolar_id, base.sesion.seccion_id, base.sesion.fecha);
       if (operation.current !== token) return;
       assertAttendanceResponse(base, data);
       dispatch({ type: 'refreshed', epoch, data, message: intent.current === 'access'
@@ -50,9 +52,22 @@ export function useAttendanceSave(editor: AttendanceEditor, dispatch: Dispatch<E
     const token = {}; operation.current = token; intent.current = 'save';
     dispatch({ type: 'phase', epoch: editor.epoch, phase: 'saving', message: 'Guardando cambios…' });
     try {
-      const data = await saveAttendance(editor.base.sesion.id, body);
+      let base = editor.base;
+      if (!base.sesion.id) {
+        const opened = await openAttendance(base.sesion.seccion_id, base.sesion.fecha);
+        if (operation.current !== token) return;
+        const aligned = reconcileAttendance(base, editor.changes, opened, editor.reasons);
+        dispatch({ type: 'refreshed', epoch: editor.epoch, data: opened, message: 'Revisa las marcas recuperadas antes de continuar.' });
+        if (aligned.conflicts.length) return;
+        base = opened; body = attendancePatch(base, aligned.changes, aligned.reasons);
+        if (!body.cambios.length) {
+          dispatch({ type: 'saved', epoch: editor.epoch, data: opened, message: 'Las marcas ya estaban registradas.' }); return;
+        }
+        dispatch({ type: 'phase', epoch: editor.epoch, phase: 'saving', message: 'Guardando cambios…' });
+      }
+      const data = await saveAttendance(base.sesion.id, body);
       if (operation.current !== token) return;
-      assertAttendanceSaved(editor.base, data, body);
+      assertAttendanceSaved(base, data, body);
       dispatch({ type: 'saved', epoch: editor.epoch, data, message: 'Cambios guardados correctamente.' });
     } catch (error) {
       if (operation.current !== token) return;

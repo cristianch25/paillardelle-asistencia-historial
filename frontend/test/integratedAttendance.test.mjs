@@ -25,12 +25,13 @@ function render(Component, role = 'ADMIN') {
   return renderToStaticMarkup(h(MemoryRouter, null, h(Auth.Provider, { value: { session: session(role) } },
     h(Routes, null, h(Route, { element: h(Workspace) }, h(Route, { path: '/', element: h(Component) }))))));
 }
-test('ADMIN y SUBDIRECCION tienen una entrada Asistencias; REGISTRADOR ninguna', () => {
+test('ADMIN y SUBDIRECCION conservan Asistencias; REGISTRADOR tiene entrada propia', () => {
   assert.deepEqual(navigation.navigationFor('ADMIN').filter(item => item.path.startsWith('/asistencias'))
     .map(item => [item.path, item.label]), [['/asistencias/supervision', 'Asistencias']]);
   assert.deepEqual(navigation.navigationFor('SUBDIRECCION').filter(item => item.path.startsWith('/asistencias'))
     .map(item => [item.path, item.label]), [['/asistencias/supervision', 'Asistencias']]);
-  assert.equal(navigation.navigationFor('REGISTRADOR').filter(item => item.path.startsWith('/asistencias')).length, 0);
+  assert.deepEqual(navigation.navigationFor('REGISTRADOR').map(item => [item.path, item.label]),
+    [['/inicio', 'Inicio'], ['/secciones', 'Mis secciones'], ['/asistencias', 'Asistencias']]);
 });
 test('composición unificada ADMIN/SUBDIRECCION y antigua Gestión redirigida, sin acceso REGISTRADOR', () => {
   assert.match(render(Page), />Asistencias</); assert.match(render(Page), /Buscar estudiante/);

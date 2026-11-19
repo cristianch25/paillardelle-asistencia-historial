@@ -12,27 +12,38 @@ import SeccionesList from './SeccionesList';
 import { useSecciones } from './useSecciones';
 import { useSectionAttendanceSummaries } from '../../asistencias/useSectionAttendanceSummaries';
 import SectionAttendanceSummary from '../../asistencias/SectionAttendanceSummary';
+import { useAuth } from '../../auth/AuthContext';
+import { validCivilDate } from '../../../shared/dates/civilDate';
+import AssignedStudentSearch from '../../asistencias/AssignedStudentSearch';
+import { formatRegistrarSectionName } from './sectionPresentation';
 
-export default function MisSeccionesPage() {
+export default function MisSeccionesPage({ attendanceMode = false }: { attendanceMode?: boolean }) {
   const { page, setPage } = useSectionListLocation();
   const sections = useSecciones(null, { nivel: '', grado: '', activo: '' }, page);
   const years = useSchoolYears();
   const selection = useSectionSelection();
   const navigate = useNavigate();
   const location = useLocation();
-  const attendance = useSectionAttendanceSummaries(sections.data?.secciones ?? [], years.years, !years.loading && !years.error);
+  const { session } = useAuth();
+  const { attendanceDate: date, setAttendanceDate: setDate } = selection;
+  const attendance = useSectionAttendanceSummaries(sections.data?.secciones ?? [], years.years, !years.loading && !years.error,
+    attendanceMode ? date : undefined);
   async function openSection(section: Section, destination: 'asistencia' | 'estudiantes') {
     const year = years.years.find(item => item.id === section.anio_escolar_id);
     if (year && await selection.select({ section, year })) {
-      await navigate(`/secciones/${destination}${location.search}`);
+      await navigate(`${attendanceMode ? '/asistencias/diaria' : `/secciones/${destination}`}${location.search}`, { state: { fecha: date } });
     }
   }
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Mis secciones</h1>
-        <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">Consulta las secciones que tienes asignadas.</p>
+        <h1 className="text-3xl font-bold tracking-tight">{attendanceMode ? 'Asistencias' : 'Mis secciones'}</h1>
+        <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">{attendanceMode
+          ? 'Selecciona una sección asignada para registrar o consultar su asistencia.'
+          : 'Consulta las secciones que tienes asignadas.'}</p>
       </div>
+      {attendanceMode && <AssignedStudentSearch key={`${session?.user.id}:${session?.expiresAt}`} years={years.years}
+        date={date} onDateChange={setDate} onSaved={attendance.retry} />}
       {selection.checking && <LoadingState message="Comprobando la sección…" />}
       {selection.error && <ErrorState message={selection.error} />}
       {sections.loading && <LoadingState message="Cargando mis secciones…" />}
@@ -44,13 +55,15 @@ export default function MisSeccionesPage() {
         <Button variant="secondary" onClick={years.retry}>Reintentar carga de años</Button></div>}
       {sections.data && <div className="space-y-6">
         {sections.data.secciones.length ? <SeccionesList sections={sections.data.secciones} years={years.years}
-          checking={selection.checking || years.loading || Boolean(years.error)}
-          renderSummary={section => <SectionAttendanceSummary date={attendance.date}
+          formatName={attendanceMode ? formatRegistrarSectionName : undefined}
+          compact showAttendance={attendanceMode} showStudents={!attendanceMode}
+          checking={selection.checking || years.loading || Boolean(years.error) || (attendanceMode && !validCivilDate(date))}
+          renderSummary={section => <SectionAttendanceSummary compact date={attendance.date}
             summary={years.error ? { status: 'error' } : attendance.summaries[section.id]} />}
           onOpen={(section, destination) => void openSection(section, destination)} />
           : <EmptyState message="No hay secciones disponibles en esta página para tu cuenta." />}
         <Pagination pagination={sections.data.pagination} onPageChange={setPage} />
-        {sections.data.secciones.length > 0 && <Button variant="secondary" onClick={attendance.retry}>Actualizar resúmenes</Button>}
+        {!attendanceMode && sections.data.secciones.length > 0 && <Button variant="secondary" onClick={attendance.retry}>Actualizar resúmenes</Button>}
       </div>}
     </div>
   );

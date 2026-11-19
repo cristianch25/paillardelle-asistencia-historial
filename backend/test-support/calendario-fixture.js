@@ -33,14 +33,16 @@ export function calendarFixture(options = {}) {
     async getConnection() {
       if (state.failAt === 'acquire') throw state.error;
       const events = []; state.transactions.push(events);
-      const unlocks = []; let local, pendingAudits = [], touchedPeriods = new Set(), touchedExceptions = new Set();
+      const unlocks = [], heldLocks = new Set(); let local, pendingAudits = [], touchedPeriods = new Set(), touchedExceptions = new Set();
       let lastInsertedId = '0';
       function step(name) { events.push(name); if (state.failAt === name) throw state.error; }
       async function lock(key) {
+        if (heldLocks.has(key)) return;
         const previous = locks.get(key) ?? Promise.resolve();
         locks.set(key, new Promise(resolve => unlocks.push(resolve))); await previous;
+        heldLocks.add(key);
       }
-      function finish() { unlocks.splice(0).forEach(unlock => unlock()); }
+      function finish() { unlocks.splice(0).forEach(unlock => unlock()); heldLocks.clear(); }
       function snapshot() { local ??= structuredClone({ periods: state.periods, exceptions: state.exceptions }); }
       return {
         async beginTransaction() { step('begin'); },

@@ -9,8 +9,9 @@ test('7B.3: guardado sin cierre y masivo solo de pendientes',
     const { evaluate, wait, click, rows, button } = ui;
     try {
       for (const state of ['ABIERTA', 'CERRADA']) await t.test(`${state}: masivo local y guardado parcial`, async () => {
-        await ui.prepare(); await ui.setDate('2026-11-12');
+        await ui.prepare();
         await evaluate(`navigationTest.sessionState = '${state}'; Object.assign(navigationTest.server.padron[3], { justificada: true, motivo_justificacion: 'Aviso' })`);
+        await ui.setDate('2026-11-12');
         await click('Abrir asistencia'); await wait(`${rows}.length === 4`);
         assert.doesNotMatch(await evaluate('document.body.textContent'), /Cerrar asistencia|Corregir asistencia/);
         assert.equal(await evaluate(`document.querySelectorAll('[aria-label="Guardado de asistencia"] button').length`), 1);

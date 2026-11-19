@@ -116,12 +116,11 @@ test('7B.0D: padrón administrativo y personal por fecha, integridad y aislamien
         await open('1'); await wait('sectionStudentsTest.pending.length === 1');
         await ui.signIn('REGISTRADOR'); const before = await evaluate(`${calls}.length`);
         await evaluate('sectionStudentsTest.pending.shift()()');
-        await click('Ver estudiantes'); await wait('Boolean(document.querySelector("input[type=date]"))');
+        await click('Ver estudiantes'); await wait('location.pathname === "/secciones/estudiantes"');
         assert.equal(await evaluate(`Boolean(${staff})`), false);
         assert.equal(await evaluate(`${calls}.length`), before);
-        await ui.change('document.querySelector("input[type=date]")', '2026-11-12');
-        await wait('sectionStudentsTest.calls.filter(c => c.url.endsWith("/padron")).at(-1).params.fecha === "2026-11-12"');
-        assert.ok(await evaluate('Boolean(document.querySelector(\'a[href^="/secciones/asistencia"]\'))'));
+        assert.equal(await evaluate('Boolean(document.querySelector("input[type=date]"))'), false);
+        assert.equal(await evaluate('Boolean(document.querySelector(\'a[href^="/asistencias/diaria"]\'))'), false);
         assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Lucía|Personal asignado/);
       });
       assert.equal(await evaluate('sectionStudentsTest.calls.every(c => c.method === "get")'), true);

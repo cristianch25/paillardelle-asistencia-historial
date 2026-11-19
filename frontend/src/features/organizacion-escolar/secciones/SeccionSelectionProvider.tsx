@@ -5,9 +5,15 @@ import { findAccessibleSection } from './secciones.api';
 import { SeccionSelectionContext } from './SeccionSelectionContext';
 import type { SectionSelection } from './secciones.types';
 import { useNavigationProtection } from '../../../shared/navigation/NavigationProtectionContext';
+import { useAuth } from '../../auth/AuthContext';
+import { peruToday } from '../../../shared/dates/civilDate';
 
 export default function SeccionSelectionProvider({ children }: { children: ReactNode }) {
   const { request } = useNavigationProtection();
+  const accountId = useAuth().session?.user.id ?? null;
+  const [workDate, setWorkDate] = useState(() => ({ accountId, date: peruToday() }));
+  if (workDate.accountId !== accountId) setWorkDate({ accountId, date: peruToday() });
+  const setAttendanceDate = useCallback((date: string) => setWorkDate({ accountId, date }), [accountId]);
   const [selected, setSelected] = useState<SectionSelection | null>(null);
   const [checking, setChecking] = useState(false);
   const [unverified, setUnverified] = useState(false);
@@ -71,7 +77,8 @@ export default function SeccionSelectionProvider({ children }: { children: React
     };
   }, [revalidate, invalidateRequests]);
   return (
-    <SeccionSelectionContext.Provider value={{ selected, checking, unverified, error, select, revalidate, clear }}>
+    <SeccionSelectionContext.Provider value={{ selected, checking, unverified, error, select, revalidate, clear,
+      attendanceDate: workDate.date, setAttendanceDate }}>
       {children}
     </SeccionSelectionContext.Provider>
   );

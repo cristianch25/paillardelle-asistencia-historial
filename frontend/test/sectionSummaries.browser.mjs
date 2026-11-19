@@ -18,15 +18,16 @@ test('Mis secciones: resúmenes agrupados, paginación, permisos y aislamiento',
         assert.equal(await evaluate(`${cards}.length`), 20);
         assert.equal(await evaluate('sectionSummaryTest.calls.length'), 2);
         assert.ok(await evaluate('sectionSummaryTest.calls.every(c => c.limit === 100 && !c.seccion_id && c.anio_escolar_id === "1")'));
-        assert.match(await evaluate(`${cards}[0].textContent`), /Presentes20.*Tardanzas2.*Faltas3.*Sin marcar5.*Total de estudiantes30/);
+        assert.match(await evaluate(`${cards}[0].textContent`), /Presentes20.*Tardanzas2.*Faltas3.*Sin marcar5/);
         assert.match(await evaluate(`${cards}[1].textContent`), /Asistencia aún no registrada/);
         assert.equal(await evaluate(`${cards}[1].querySelectorAll('[aria-label="Asistencia de hoy"] dd').length`), 0);
-        assert.match(await evaluate(`${cards}[2].textContent`), /Fecha no lectiva.*Asistencia aún no registrada/);
-        assert.match(await evaluate(`${cards}[3].textContent`), /Fecha no lectiva.*Presentes20/);
+        assert.match(await evaluate(`${cards}[2].textContent`), /Asistencia aún no registrada/);
+        assert.match(await evaluate(`${cards}[3].textContent`), /Presentes20/);
         assert.match(await evaluate(`${cards}[4].textContent`), /fuera del intervalo/);
-        assert.ok(await evaluate(`${cards}.every(c => c.textContent.includes('Asistencia diaria') && c.textContent.includes('Ver estudiantes'))`));
+        assert.ok(await evaluate(`${cards}.every(c => !c.textContent.includes('Asistencia diaria') && c.textContent.includes('Ver estudiantes'))`));
         const date = await evaluate('sectionSummaryTest.calls[0].fecha');
-        assert.match(await evaluate(`${cards}[0].textContent`), new RegExp(date.split('-').reverse().join('/')));
+        assert.doesNotMatch(await evaluate(`${cards}[0].textContent`), new RegExp(date.split('-').reverse().join('/')));
+        assert.doesNotMatch(await evaluate(`${cards}[0].textContent`), /Año escolar|Estado:|Fecha no lectiva|Total de estudiantes/);
       });
       await t.test('cambio de página descarta consultas tardías sin alterar paginación de tarjetas', async () => {
         await evaluate('sectionSummaryTest.hold = true'); await click('Actualizar resúmenes');

@@ -34,10 +34,11 @@ before(async () => {
 });
 after(async () => { await vite?.close(); });
 
-function markup(Component = Page, { role = 'ADMIN', selected = selection, checking = false, state } = {}) {
+function markup(Component = Page, { role = 'ADMIN', selected = selection, checking = false, state, workDate } = {}) {
   return renderToStaticMarkup(h(MemoryRouter, { initialEntries: [{ pathname: '/secciones/asistencia', search: '?page=3', state }] },
     h(Auth.Provider, { value: { session: { user: { rol: role } } } },
-      h(Selection.Provider, { value: { selected, checking, error: '', revalidate: async () => {}, clear() {} } }, h(Component)))));
+      h(Selection.Provider, { value: { selected, checking, error: '', attendanceDate: workDate ?? state?.fecha ?? '2026-11-13',
+        revalidate: async () => {}, clear() {} } }, h(Component)))));
 }
 
 test('pantalla inicia sin POST y ofrece una apertura explícita a los tres roles; no bloquea recuperación por año cerrado/sección inactiva', async () => {
@@ -45,17 +46,37 @@ test('pantalla inicia sin POST y ofrece una apertura explícita a los tres roles
   http.httpClient.defaults.adapter = async config => { calls++; return response(config, data); };
   for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {
     const html = markup(Page, { role, state: { fecha: '2026-11-13' } });
-    assert.match(html, /<h1[^>]*>Asistencia diaria/);
-    assert.match(html, /value="2026-11-13"/);
+    assert.match(html, role === 'REGISTRADOR' ? /<h1[^>]*>4 años CREATIVOS/ : /<h1[^>]*>Asistencia diaria/);
+    if (role === 'REGISTRADOR') assert.doesNotMatch(html, /Asistencia del|type="date"/);
+    else assert.match(html, /value="2026-11-13"/);
     const button = html.match(/<button[^>]*>Abrir asistencia<\/button>/)?.[0];
-    assert.ok(button);
-    assert.doesNotMatch(button, /\sdisabled(?:=|[\s>])/);
-    assert.ok(html.includes(role === 'REGISTRADOR' ? 'Volver a mis secciones' : 'Volver a secciones'));
+    if (role === 'REGISTRADOR') { assert.equal(button, undefined); assert.doesNotMatch(html, /Detalles|Detalle de sección/); }
+    else { assert.ok(button); assert.doesNotMatch(button, /\sdisabled(?:=|[\s>])/); }
+    assert.match(html, role === 'REGISTRADOR' ? /Volver<\/a>/ : /Volver a secciones/);
     assert.doesNotMatch(html, /<select|Guardar|Cerrar asistencia|Corregir|Justificar| min=| max=/);
   }
   await setImmediate();
   assert.equal(calls, 0, 'renderizar no inicia la apertura');
   assert.match(markup(Selected), /href="\/secciones\/asistencia\?page=3"[^>]*>Asistencia diaria/);
+});
+
+test('REGISTRADOR usa la fecha compartida y ADMIN/SUBDIRECCION conservan su selector local', () => {
+  const state = { fecha: '2026-11-13' }, workDate = '2026-10-01';
+  const html = markup(Page, { role: 'REGISTRADOR', state, workDate });
+  assert.doesNotMatch(html, /Asistencia del|type="date"|13\/11\/2026/);
+  for (const role of ['ADMIN', 'SUBDIRECCION']) {
+    assert.match(markup(Page, { role, state, workDate }), /type="date"[^>]*value="2026-11-13"/);
+  }
+});
+
+test('filas compactas conservan controles, buscador y masivo sin perfil ni instrucciones repetidas', () => {
+  const render = compact => renderToStaticMarkup(h(Auth.Provider, { value: { session: { user: { rol: 'REGISTRADOR', id: '5' } } } },
+    h(View, { data, editable: true, compact })));
+  const compact = render(true);
+  assert.match(compact, /Buscar estudiante|Marcar todos como presentes/);
+  assert.equal((compact.match(/aria-pressed=/g) ?? []).length, 4);
+  assert.doesNotMatch(compact, /Ver perfil|Las marcas se guardan solo|Se aplica a los estudiantes/);
+  assert.match(render(false), /Ver perfil|Las marcas se guardan solo/);
 });
 
 test('sin selección o durante revalidación no expone la sesión ni ofrece apertura', () => {
@@ -104,8 +125,8 @@ test('día no lectivo informa sin afirmar inexistencia de sesión; recuperación
   const html = renderToStaticMarkup(h(CalendarDayInfo, { day: {
     fecha: '2026-11-14', es_lectivo: false, origen: 'EXCEPCION', descripcion: 'Feriado',
   } }));
-  assert.match(html, /No hay clases en esta fecha/); assert.match(html, /Feriado/);
-  assert.match(html, /Si ya existe una sesión, puedes consultarla/);
+  assert.match(html, /Hoy no hay clases. La asistencia está deshabilitada para esta fecha/);
+  assert.doesNotMatch(html, /Feriado|Si ya existe una sesión/);
   assert.doesNotMatch(html, /<button|disabled/);
   assert.match(markup(), />Abrir asistencia<\/button>/);
 });

@@ -2,7 +2,6 @@ import { HttpError } from '../../../shared/http-error.js';
 import { validateId } from '../../../shared/query-validation.js';
 import { validatePeriod, validateInterval } from './validation.js';
 import { assertYear, calendarWrite } from './access.js';
-import { effectiveDay } from './resolution.js';
 
 export function createPeriodOperations(repository, writer, authorize) {
   async function findPeriod(id, actor) {
@@ -38,14 +37,6 @@ export function createPeriodOperations(repository, writer, authorize) {
         validateInterval(after.fecha_inicio, after.fecha_fin);
         assertYear(context.year, after.fecha_inicio, after.fecha_fin, true);
         assertNoOverlap(context.periods.filter(row => row.id !== id), after);
-        if (after.fecha_inicio !== before.fecha_inicio || after.fecha_fin !== before.fecha_fin) {
-          const next = context.periods.map(row => row.id === id ? after : row);
-          const dates = await context.attendanceDates(before.fecha_inicio, before.fecha_fin);
-          if (dates.some(date => effectiveDay(date, context.periods, context.exceptions).es_lectivo
-            && !effectiveDay(date, next, context.exceptions).es_lectivo)) {
-            throw new HttpError(409, 'El cambio dejaría no lectiva una fecha con asistencias.');
-          }
-        }
         return { period: { before, after } };
       }));
     },

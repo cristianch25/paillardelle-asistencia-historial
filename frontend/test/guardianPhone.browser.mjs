@@ -17,11 +17,11 @@ test('Celular: edición, vista previa, confirmación, no-op, conflicto y borrado
     await evaluate(`${editor}.querySelector('[aria-label="Editar celular"]').click()`); await input(value);
   }
   try {
-    await ui.navigate('/login'); await wait('Boolean(window.profileTest)'); await ui.login(); await ui.setRoute('/secciones');
+    await ui.navigate('/login'); await wait('Boolean(window.profileTest)'); await ui.login(); await ui.setRoute('/asistencias');
     await wait(`Boolean(document.querySelector('button[aria-label^="Asistencia diaria de 4"]'))`);
     await evaluate(`document.querySelector('button[aria-label^="Asistencia diaria de 4"]').click()`);
     await evaluate(`(() => { const e = document.querySelector('input[type=date]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(e, '2026-11-13'); e.dispatchEvent(new Event('change', { bubbles: true })); })()`);
-    await click('Abrir asistencia'); await wait(`${rows}.length === 4`);
+    await wait(`${rows}.length === 4`);
     await evaluate(`Array.from(${rows}[0].querySelectorAll('button')).find(b => b.textContent === 'Tardanza').click()`);
     await evaluate(`Array.from(${rows}[0].querySelectorAll('button')).find(b => b.textContent === 'Ver perfil').click()`); await wait(`Boolean(${editor})`);
     await t.test('Cancelar e inválidos no escriben; prefijo se normaliza en vista previa compartida', async () => {

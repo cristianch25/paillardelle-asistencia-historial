@@ -5,9 +5,10 @@ import type { SchoolYear } from '../organizacion-escolar/anios-escolares/aniosEs
 import { peruToday } from '../../shared/dates/civilDate';
 import { getSectionAttendanceSummaries, type SectionAttendanceSummaries } from './sectionAttendanceSummaries.api';
 
-export function useSectionAttendanceSummaries(sections: Section[], years: SchoolYear[], ready = true) {
+export function useSectionAttendanceSummaries(sections: Section[], years: SchoolYear[], ready = true, referenceDate?: string) {
   const { session } = useAuth();
-  const [date, setDate] = useState(peruToday);
+  const [today, setDate] = useState(peruToday);
+  const date = referenceDate ?? today;
   const [revision, setRevision] = useState(0);
   const [result, setResult] = useState({ key: '', summaries: {} as SectionAttendanceSummaries });
   const scope = JSON.stringify([session?.user.id, session?.user.rol, session?.user.nivel_asignado, session?.expiresAt]);

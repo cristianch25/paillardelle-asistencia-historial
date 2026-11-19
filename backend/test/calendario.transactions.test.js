@@ -4,7 +4,7 @@ import { calendarFixture, admin, periodBody, scope } from '../test-support/calen
 
 const block = { ...scope, fecha_inicio: '2026-03-02', fecha_fin: '2026-03-04', descripcion: 'Suspensión' };
 
-test('calendario SQL: parámetros, columnas explícitas y orden actor/año/filas/asistencias/auditoría', async () => {
+test('calendario SQL: parámetros, columnas explícitas y orden actor/año/filas/auditoría', async () => {
   const { service, state } = calendarFixture();
   const row = await service.createPeriod(periodBody, admin);
   const calls = state.transactions[0].filter(item => item.sql);
@@ -19,10 +19,7 @@ test('calendario SQL: parámetros, columnas explícitas y orden actor/año/filas
   assert.equal(calls.some(item => /SELECT \*|password_hash/.test(item.sql)), false);
   assert.deepEqual(state.transactions[0].slice(-2), ['commit', 'release']);
   await service.blockRange(block, admin);
-  const attendance = state.transactions.at(-1).find(item => item.sql?.includes('FROM asistencias a'));
-  assert.deepEqual(attendance.params, ['1', 'PRIMARIA', block.fecha_inicio, block.fecha_fin]);
-  assert.match(attendance.sql, /ms.matricula_id = a.matricula_id/);
-  assert.match(attendance.sql, /ORDER BY a.id FOR UPDATE$/);
+  assert.equal(state.transactions.at(-1).some(item => /FROM (asistencias|sesiones_asistencia)/.test(item.sql ?? '')), false);
 });
 
 test('calendario: dos actores creando primeros períodos solapados quedan serializados por el año', async () => {
@@ -80,12 +77,13 @@ test('calendario: revalida adicionales, cierre concurrente y asistencias inserta
   state.beforeYear = async () => {
     state.year.estado = 'ABIERTO'; state.attendance.push({ ...scope, fecha: '2026-03-04' });
   };
-  await assert.rejects(service.blockRange(block, admin), { status: 409 });
-  assert.equal(state.exceptions.length, 0); assert.equal(state.audits.length, 0);
+  await service.blockRange(block, admin);
+  assert.equal(state.exceptions.length, 3); assert.equal(state.audits.length, 3);
+  assert.equal(state.attendance.length, 1);
 });
 
 test('calendario: fallos de cada fase revierten también rangos parciales y conservan el error principal', async () => {
-  for (const failAt of ['acquire', 'begin', 'actor', 'year', 'select', 'attendance', 'insert', 'audit']) {
+  for (const failAt of ['acquire', 'begin', 'actor', 'year', 'select', 'insert', 'audit']) {
     const { service, state } = calendarFixture({ failAt });
     await assert.rejects(service.blockRange(block, admin), error => error === state.error);
     assert.equal(state.exceptions.length, 0); assert.equal(state.audits.length, 0);

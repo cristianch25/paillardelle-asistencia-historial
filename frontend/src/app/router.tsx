@@ -12,6 +12,7 @@ import SupervisionPage from '../features/asistencias/supervision/SupervisionPage
 import SupervisionWorkspace from '../features/asistencias/supervision/SupervisionWorkspace';
 import SupervisionDetailPage from '../features/asistencias/supervision/SupervisionDetailPage';
 import AttendanceManagementPage from '../features/asistencias/gestion/AttendanceManagementPage';
+import RegistradorAttendancePage from '../features/asistencias/RegistradorAttendancePage';
 
 export const router = createBrowserRouter(createRoutesFromElements(
   <Route element={<NavigationShell />}>
@@ -20,6 +21,7 @@ export const router = createBrowserRouter(createRoutesFromElements(
       <Route element={<AppLayout />}>
         <Route path="/usuarios" lazy={async () => ({ Component: (await import('../features/usuarios/UsersPage')).default })} />
         <Route path="/estadisticas" lazy={async () => ({ Component: (await import('../features/estadisticas/StatisticsPage')).default })} />
+        <Route path="/calendario" lazy={async () => ({ Component: (await import('../features/organizacion-escolar/calendario-lectivo/SchoolCalendarPage')).default })} />
         <Route path="/secciones/importar" lazy={async () => ({ Component: (await import('../features/importaciones/ImportPadronPage')).default })} />
         <Route path="/asistencias/supervision" element={<SupervisionWorkspace />}>
           <Route index element={<SupervisionPage />} />
@@ -32,6 +34,8 @@ export const router = createBrowserRouter(createRoutesFromElements(
       <Route element={<SeccionSelectionProvider><AppLayout /></SeccionSelectionProvider>}>
         <Route path="/inicio" element={<HomePage />} />
         <Route path="/secciones" element={<SeccionesPage />} />
+        <Route path="/asistencias" element={<RegistradorAttendancePage />} />
+        <Route path="/asistencias/diaria" element={<RegistradorAttendancePage daily />} />
         <Route path="/secciones/estudiantes" element={<EstudiantesSeccionPage />} />
         <Route path="/secciones/asistencia" element={<AsistenciaDiariaPage />} />
       </Route>

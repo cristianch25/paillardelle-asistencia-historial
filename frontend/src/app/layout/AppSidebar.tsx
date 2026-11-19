@@ -27,7 +27,7 @@ export default function AppSidebar({ onClose }: AppSidebarProps) {
       </div>
       <nav aria-label="Navegación principal" className="flex-1 overflow-y-auto px-3">
         {navigationFor(session.user.rol).map(({ path, label, icon: Icon }) => (
-          <NavLink key={path} to={path} end={path !== '/secciones' && !(session.user.rol === 'ADMIN' && path === '/asistencias/supervision')} onClick={onClose}
+          <NavLink key={path} to={path} end={path !== '/secciones' && path !== '/asistencias' && !(session.user.rol === 'ADMIN' && path === '/asistencias/supervision')} onClick={onClose}
             className={({ isActive }) => `mb-1 flex min-h-12 items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:text-base ${isActive ? 'bg-sidebar-active text-white' : 'text-sidebar-muted hover:bg-sidebar-active hover:text-white'}`}>
             <Icon aria-hidden="true" className="size-5 shrink-0" />{label}
           </NavLink>

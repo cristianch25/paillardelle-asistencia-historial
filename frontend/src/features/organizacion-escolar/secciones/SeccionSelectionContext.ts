@@ -9,6 +9,8 @@ type SelectionContext = {
   select: (selection: SectionSelection) => Promise<boolean>;
   revalidate: () => Promise<void>;
   clear: () => void;
+  attendanceDate: string;
+  setAttendanceDate: (date: string) => void;
 };
 export const SeccionSelectionContext = createContext<SelectionContext | null>(null);
 export function useSectionSelection() {

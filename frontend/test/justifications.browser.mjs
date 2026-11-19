@@ -111,7 +111,7 @@ test('7B.2C: integración de justificaciones en el PATCH existente',
         assert.match(await evaluate(`${bar}.textContent`), /0 cambios sin guardar/);
       });
       await t.test('sesión CERRADA: justificar no cambia estado, no reabre y no envía motivo de corrección', async () => {
-        await ui.prepare(); await ui.setDate('2026-11-12'); await evaluate('navigationTest.sessionState = "CERRADA"');
+        await ui.prepare(); await evaluate('navigationTest.sessionState = "CERRADA"'); await ui.setDate('2026-11-12');
         await click('Abrir asistencia'); await wait(`${rows}.length === 4`);
         assert.equal(await evaluate('document.querySelectorAll("button[aria-pressed]").length'), 16);
         await toggle(3); await fill(3, 'Aviso tras cierre'); await ui.save();

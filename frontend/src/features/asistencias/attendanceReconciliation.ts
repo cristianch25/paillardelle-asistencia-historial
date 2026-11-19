@@ -1,5 +1,6 @@
 import { attendanceDraftKey, justificationError, type AttendanceChanges } from './attendanceDraft';
 import type { AttendanceDetail, AttendancePatch } from './asistencias.types';
+import { alignAttendancePreview } from './attendancePreview';
 
 export function attendancePatch(base: AttendanceDetail, changes: AttendanceChanges, reasons: Record<string, string> = {}): AttendancePatch {
   return { version: base.sesion.version, cambios: base.padron
@@ -17,6 +18,7 @@ export function attendancePatch(base: AttendanceDetail, changes: AttendanceChang
 }
 
 export function assertAttendanceResponse(before: AttendanceDetail, current: AttendanceDetail) {
+  before = alignAttendancePreview(before, current).before;
   if (attendanceDraftKey('scope', before) !== attendanceDraftKey('scope', current)
     || before.padron.length !== current.padron.length
     || new Set(current.padron.map(row => row.asistencia_id)).size !== current.padron.length
@@ -40,6 +42,7 @@ export function assertAttendanceSaved(before: AttendanceDetail, current: Attenda
 
 export function reconcileAttendance(before: AttendanceDetail, changes: AttendanceChanges, current: AttendanceDetail,
   reasons: Record<string, string> = {}) {
+  ({ before, changes, reasons } = alignAttendancePreview(before, current, changes, reasons));
   assertAttendanceResponse(before, current);
   const remaining: Record<string, AttendanceDetail['padron'][number]['estado']> = {}, conflicts: string[] = [], updated: string[] = [];
   const previous = new Map(before.padron.map(row => [row.asistencia_id, row]));

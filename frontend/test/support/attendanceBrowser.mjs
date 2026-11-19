@@ -12,14 +12,13 @@ export async function attendanceBrowser() {
       : `Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === ${JSON.stringify(label)})`;
     const rows = `Array.from(document.querySelectorAll('ul[aria-label="Estudiantes y marcas actuales"] > li'))`;
     const wait = (expression, label = expression) => waitFor(() => evaluate(expression), label);
-    const click = label => evaluate(`${button(label)}.click()`);
+    const click = label => label === 'Abrir asistencia' ? wait(`${rows}.length === 4`) : evaluate(`${button(label)}.click()`);
     await command('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true });
     await command('Page.navigate', { url: `${vite.resolvedUrls.local[0]}test/support/attendance.html` });
-    await wait(`Boolean(${button('Abrir asistencia')})`);
+    await wait(`${rows}.length === 4`);
     async function reset(setup = '') {
       await evaluate(`attendanceTest.reset(); ${setup}; attendanceTest.render()`);
-      await wait(`${rows}.length === 0`); await click('Abrir asistencia');
-      await wait(`${rows}.length === 4`);
+      await wait(`${rows}.length === 4 && attendanceTest.calls.some(call => call.method === 'get' && call.url.includes('/sesiones/'))`);
     }
     async function choose(index, label) {
       await evaluate(`Array.from(${rows}[${index}].querySelectorAll('button')).find(b => b.textContent.trim() === ${JSON.stringify(label)}).click()`);

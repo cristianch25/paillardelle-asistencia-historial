@@ -15,12 +15,12 @@ test('buscador diario: filtro visual y borrador global de 30 estudiantes',
     const patches = () => evaluate('navigationTest.calls.filter(c => c.method === "patch")');
     try {
       await t.test('una fila entre 30: escribir no hace HTTP; guardar incluye la fila oculta', async () => {
-        await ui.prepare(); await ui.setDate('2026-11-12');
+        await ui.prepare();
         await evaluate(`navigationTest.server.padron = Array.from({ length: 30 }, (_, i) => ({
           ...structuredClone(navigationTest.server.padron[2]), asistencia_id: String(100 + i),
           estudiante: { ...navigationTest.server.padron[2].estudiante, apellido_paterno: 'Pérez ' + i, codigo_estudiante: 'COD-' + i }
         })); navigationTest.summary()`);
-        await click('Abrir asistencia'); await wait(`${rows}.length === 30`);
+        await ui.setDate('2026-11-12'); await wait(`${rows}.length === 30`);
         const calls = await evaluate('navigationTest.calls.length');
         for (const value of ['C', 'CO', 'COD-15', 'perez 15', 'MARIA 15']) await search(value);
         await wait(`${rows}.length === 1`);
@@ -35,8 +35,9 @@ test('buscador diario: filtro visual y borrador global de 30 estudiantes',
         assert.match(await evaluate(`${rows}[15].textContent`), /Pérez 15/);
       });
       await t.test('masivo global conserva faltas/tardanzas/protegidas aunque el buscador las oculte', async () => {
-        await ui.prepare(); await ui.setDate('2026-11-12');
+        await ui.prepare();
         await evaluate(`Object.assign(navigationTest.server.padron[3], { justificada: true, motivo_justificacion: 'Aviso' })`);
+        await ui.setDate('2026-11-12');
         await click('Abrir asistencia'); await wait(`${rows}.length === 4`);
         await search('perez 2'); await wait(`${rows}.length === 1`);
         await click('Marcar todos como presentes'); assert.equal((await patches()).length, 0);

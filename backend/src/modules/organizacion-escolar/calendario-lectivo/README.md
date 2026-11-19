@@ -1,6 +1,26 @@
 # Calendario lectivo — 6D-2
 
-Implementa v5 D05/D06/D25–D28, RN-15/RN-26–RN-28 y RF-03/RF-09.
+## Extensión compatible para excepciones de varios niveles — 18/11/2026
+
+El PUT existente de excepción diaria admite opcionalmente `niveles`, con uno a
+tres niveles institucionales distintos e incluyendo el nivel de la ruta. No se
+añaden rutas, tablas, migraciones ni permisos. Sin ese campo conserva exactamente
+la respuesta `{ excepcion }`; con él devuelve `{ excepciones }` con el conjunto.
+El escritor revalida al actor y todos los niveles bajo bloqueo antes de bloquear
+el año. Prepara y valida los planes completos antes de escribir; un conflicto
+en cualquier nivel revierte el conjunto y sus auditorías. La existencia de
+sesiones o marcas no impide declarar días no lectivos, según la precisión
+aprobada de D06/RN-15/RF-03 V8 del 18/11/2026. Los rangos y períodos conservan
+su contrato individual.
+
+Pruebas: calendario.global.test.js y calendario.global.mysql.test.js (A–G),
+exclusivamente sobre la instancia ficticia 3311 con el fixture aislado existente.
+El fixture ahora falla cerrado si una dependencia intenta usar el pool general;
+supervisión y todas las consultas de la prueba se inyectan al pool comprobado.
+Se verifica bloqueo de apertura para REGISTRADOR, guardado de recuperación,
+ámbitos, ausencia de cambios parciales y preservación exacta de históricos.
+
+Referencias vigentes: V8 D05/D06/D25–D28, RN-15/RN-26–RN-28 y RF-03/RF-09.
 Usa el esquema v1 + 002 + 003 existente; no ejecuta migraciones ni seeds.
 
 Todos los endpoints requieren JWT Bearer y usuario activo. ADMIN administra
@@ -46,22 +66,26 @@ de períodos y el resto no. Recuperaciones fuera de períodos no crean períodos
 
 Las consultas admiten años PLANIFICADO, ABIERTO y CERRADO. Las escrituras solo
 PLANIFICADO/ABIERTO, incluidas fechas pasadas. Solapamientos inclusivos por
-año/nivel, año CERRADO, bloqueos con asistencias y rangos con recuperación
-habilitada devuelven 409 sin cambios parciales. Un recorte/desplazamiento de
-período verifica lectividad antes/después sobre fechas con asistencias; una
-recuperación explícita puede conservarla fuera del nuevo intervalo.
+año/nivel, año CERRADO y rangos con recuperación habilitada devuelven 409 sin
+cambios parciales. Las excepciones y recortes/desplazamientos pueden dejar no
+lectivas fechas con sesiones o marcas. Solo se modifica el calendario y se
+añade su auditoría: sesiones, padrones, marcas, justificaciones, versiones e
+históricos anteriores permanecen intactos. Asistencia revalida lectividad para
+crear sesiones, guardar marcas y cerrar; consultar o recuperar una sesión
+existente no la modifica. Rehabilitar la fecha reutiliza la sesión original.
+PENDIENTE no cuenta como falta/tardanza ni genera incidencias de seguimiento.
 
 Un bloqueo por rango conserva excepciones ya no lectivas y su motivo; un PUT
-individual puede cambiar expresamente una excepción si respeta las asistencias.
+individual puede cambiar expresamente una excepción conservando las asistencias.
 Operaciones sin cambios no escriben ni generan auditoría redundante.
 
 Escrituras: transacción compartida, actor FOR UPDATE y revalidación de actividad,
-rol y niveles, luego año FOR UPDATE, períodos/excepciones y asistencias afectadas
+rol y niveles, luego año FOR UPDATE y períodos/excepciones
 mediante lecturas actuales. Nunca se adquieren otros usuarios después del año.
 La fila del año serializa también altas sin filas previas. Cambios y auditorías
 antes/después se confirman juntos. Las consultas de calendario/listados mantienen
 FOR SHARE sobre el año para evitar mezclar versiones durante la lectura.
-El futuro escritor de asistencia debe participar en el mismo protocolo del año.
+El escritor de asistencia participa en el mismo protocolo del año.
 La protección no cubre escritores externos que omitan ese protocolo.
 
 Se reutiliza `shared/transaction.js`: COMMIT fallido descarta siempre la conexión,
@@ -85,8 +109,8 @@ Se reutilizan el servicio de usuarios y la validación de fechas compartida con 
 
 Tablas: periodos_lectivos y calendario_lectivo (lectura/escritura),
 auditoria_administrativa (anexado), anios_escolares, usuarios,
-usuario_niveles_adicionales, asignaciones, secciones, matricula_secciones y
-asistencias (solo lectura/bloqueos). No modifica asistencias ni historial.
+usuario_niveles_adicionales, asignaciones y secciones (solo lectura).
+No consulta ni modifica asistencias, sesiones, padrones ni historial al escribir calendario.
 
 Desde `backend/`: `npm.cmd test`. Los seis `test/calendario.*.test.js` usan
 HTTP local y conexiones simuladas, sin MySQL real. Para consulta manual con

@@ -92,19 +92,17 @@ test('7B.0B: catálogo administrativo, búsqueda completa, acciones directas y a
         await evaluate(`${rows}[0].querySelector('button').click()`); await wait('location.pathname === "/secciones/estudiantes"');
         assert.doesNotMatch(await evaluate('document.body.textContent'), /Asistencia diaria/);
       });
-      await t.test('REGISTRADOR conserva interfaz, formato, acciones y paginación anteriores', async () => {
+      await t.test('REGISTRADOR tiene tarjetas simplificadas y conserva formato, consulta y paginación', async () => {
         await ui.signIn('REGISTRADOR');
         assert.equal(await evaluate(`Boolean(${search})`), false);
         assert.equal(await evaluate('document.querySelectorAll("select").length'), 0);
         assert.match(await evaluate('document.body.textContent'), /Mis secciones.*5.º E/);
         assert.equal(await evaluate(`${calls}.at(-1).params.limit`), 20);
         assert.equal(await evaluate(`${calls}.at(-1).params.anio_escolar_id === undefined`), true);
-        assert.ok(await evaluate(`${rows}[0].querySelectorAll('button').length === 2`));
+        assert.ok(await evaluate(`${rows}[0].querySelectorAll('button').length === 1`));
         await click('Ver estudiantes'); await wait('location.pathname === "/secciones/estudiantes"');
-        await wait(`Boolean(document.querySelector('a[href^="/secciones/asistencia"]'))`);
-        await evaluate(`document.querySelector('a[href^="/secciones/asistencia"]').click()`);
-        await wait('location.pathname === "/secciones/asistencia"');
-        await wait('Boolean(document.querySelector("button[aria-describedby=opening-hint]"))');
+        assert.equal(await evaluate('Boolean(document.querySelector("input[type=date]"))'), false);
+        assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Asistencia diaria|Año escolar|Detalle de sección/);
       });
       assert.equal(await evaluate('sectionSearchTest.calls.every(c => c.method === "get")'), true);
     } finally { await ui.close(); }

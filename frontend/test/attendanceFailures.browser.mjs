@@ -17,7 +17,7 @@ test('6B.2B: rechazos, revisión, incertidumbre y permisos',
           await wait(`document.body.textContent.includes(${JSON.stringify(status === 400 ? 'servidor rechazó' : 'supera el tamaño')})`);
           assert.equal(await ui.dirty(), 2); assert.equal(await evaluate('attendanceTest.server.sesion.version'), 7);
           assert.equal((await ui.patches())[0].body.cambios.length, 2);
-          assert.equal(await evaluate('attendanceTest.calls.filter(c => c.method === "get" && c.url.includes("sesiones")).length'), 0);
+          assert.equal(await evaluate('attendanceTest.calls.filter(c => c.method === "get" && c.url.includes("sesiones")).length'), 2);
         }
       });
       await t.test('cambio en otra fila conserva selección y exige nuevo guardado explícito', async () => {

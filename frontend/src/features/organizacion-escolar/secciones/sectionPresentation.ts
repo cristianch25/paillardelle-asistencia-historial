@@ -21,3 +21,7 @@ export function formatSectionName(section: Pick<Section, 'nivel' | 'grado' | 'le
 export function formatAdministrativeSectionName(section: Pick<Section, 'nivel' | 'grado' | 'letra'>): string {
   return section.nivel === 'INICIAL' ? formatSectionName(section) : `${section.grado} ${section.letra}`;
 }
+
+export function formatRegistrarSectionName(section: Pick<Section, 'nivel' | 'grado' | 'letra'>): string {
+  return `${section.grado}${section.nivel === 'INICIAL' ? ' años' : ''} ${section.letra}`;
+}

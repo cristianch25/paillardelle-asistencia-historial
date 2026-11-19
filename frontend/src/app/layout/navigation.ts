@@ -1,4 +1,4 @@
-import { House, School, ClipboardList, Users, ChartColumn, type LucideIcon } from 'lucide-react';
+import { House, School, ClipboardList, Users, ChartColumn, CalendarDays, type LucideIcon } from 'lucide-react';
 import type { UserRole } from '../../features/auth/auth.types';
 
 type NavigationItem = {
@@ -15,7 +15,9 @@ const navigation: readonly NavigationItem[] = [
   { label: 'Inicio', path: '/inicio', icon: House, roles: ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'] },
   { label: 'Usuarios', path: '/usuarios', icon: Users, roles: ['ADMIN'] },
   { label: 'Estadísticas', path: '/estadisticas', icon: ChartColumn, roles: ['ADMIN', 'SUBDIRECCION'] },
+  { label: 'Calendario escolar', path: '/calendario', icon: CalendarDays, roles: ['ADMIN', 'SUBDIRECCION'] },
   { label: 'Secciones', registradorLabel: 'Mis secciones', path: '/secciones', icon: School, roles: ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'] },
+  { label: 'Asistencias', path: '/asistencias', icon: ClipboardList, roles: ['REGISTRADOR'] },
   { label: 'Asistencias', path: '/asistencias/supervision', icon: ClipboardList, roles: ['ADMIN', 'SUBDIRECCION'] },
 ];
 

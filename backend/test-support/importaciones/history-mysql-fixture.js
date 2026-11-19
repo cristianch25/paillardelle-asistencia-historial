@@ -25,6 +25,9 @@ import { errorHandler } from '../../src/middlewares/error-handler.js';
 
 export async function historyMysqlFixture(database) {
   assert.equal(database, 'siagie_diag_ficticio_despues_20261118_v2');
+  // Fallar cerrado si una dependencia de prueba intenta usar accidentalmente el pool general.
+  // Ese pool rechaza este nombre de esquema; las conexiones válidas usan los guardas de abajo.
+  Object.assign(process.env, { DB_HOST: '127.0.0.1', DB_PORT: '3311', DB_NAME: database });
   const raw = mysql.createPool({ host: '127.0.0.1', port: 3311, database, user: 'root', password: '',
     supportBigNumbers: true, bigNumberStrings: true, dateStrings: true, charset: 'utf8mb4' });
   const pool = { async getConnection() {

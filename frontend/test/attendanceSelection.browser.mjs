@@ -20,9 +20,9 @@ test('6B.2C: cambiar y limpiar sección protegen el borrador; revalidar permisos
       assert.equal(await evaluate(`Boolean(${dialog})`), false); assert.equal(await ui.dirty(), 1);
       await evaluate(`void attendanceTest.selectSection(${JSON.stringify(next)})`);
       await wait(`Boolean(${dialog})`); await click('Salir sin guardar');
-      await wait(`${rows}.length === 0 && document.body.textContent.includes('GENIALES')`);
-      assert.equal(await evaluate('document.querySelector("button[aria-describedby=opening-hint]").textContent.trim()'), 'Abrir asistencia');
-      assert.equal(await evaluate('attendanceTest.calls.filter(c => c.method === "post").length'), 1);
+      await wait(`${rows}.length === 4 && document.body.textContent.includes('GENIALES')`);
+      assert.equal(await evaluate('Boolean(document.querySelector("button[aria-describedby=opening-hint]"))'), false);
+      assert.equal(await evaluate('attendanceTest.calls.filter(c => c.method === "post").length'), 0);
       await evaluate(`void attendanceTest.selectSection(${JSON.stringify(selection)})`);
       await wait('document.body.textContent.includes("CREATIVOS")'); await click('Abrir asistencia'); await wait(`${rows}.length === 4`);
       await ui.choose(0, 'Falta'); await evaluate('attendanceTest.clearSection()');

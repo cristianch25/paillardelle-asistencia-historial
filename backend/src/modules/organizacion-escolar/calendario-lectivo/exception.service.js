@@ -11,12 +11,9 @@ export function createExceptionOperations(writer, authorize) {
       const rows = await calendarWrite(() => writer.change(data, actor.id, authorize, async context => {
         assertYear(context.year, data.fecha, data.fecha, true);
         const before = context.exceptions.find(row => row.fecha === data.fecha) ?? null;
-        if (!data.es_lectivo && (await context.attendanceDates(data.fecha, data.fecha)).length) {
-          throw new HttpError(409, 'No se puede bloquear una fecha con asistencias.');
-        }
-        return { exceptions: [{ before, after: data }] };
+        return { exceptions: [{ before, after: { ...data, nivel: context.nivel ?? data.nivel } }] };
       }));
-      return rows[0];
+      return data.niveles ? rows : rows[0];
     },
     async blockRange(body, actor) {
       const data = validateBlock(body);
@@ -27,9 +24,6 @@ export function createExceptionOperations(writer, authorize) {
         const dates = datesInRange(data.fecha_inicio, data.fecha_fin);
         if (dates.some(date => existing.get(date)?.es_lectivo)) {
           throw new HttpError(409, 'El rango contiene una recuperación explícita habilitada.');
-        }
-        if ((await context.attendanceDates(data.fecha_inicio, data.fecha_fin)).length) {
-          throw new HttpError(409, 'El rango contiene fechas con asistencias.');
         }
         return { exceptions: dates.map(fecha => {
           const before = existing.get(fecha) ?? null;

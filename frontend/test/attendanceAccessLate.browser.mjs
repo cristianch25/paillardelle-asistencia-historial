@@ -7,7 +7,7 @@ import { hasEdge, edgePath } from './support/edgeBrowser.mjs';
 test('6B.4B: un GET de autorización tardío no cruza fecha, sección ni cuenta',
   { skip: !hasEdge && `Configurar EDGE_PATH (${edgePath})`, timeout: 90000 }, async t => {
     const ui = await attendanceBrowser();
-    const { evaluate, wait, click, rows } = ui;
+    const { evaluate, wait, rows } = ui;
     async function hold() {
       await ui.reset('attendanceTest.holdRead = true');
       await evaluate('window.dispatchEvent(new Event("focus"))'); await wait('Boolean(attendanceTest.releaseRead)');
@@ -23,33 +23,31 @@ test('6B.4B: un GET de autorización tardío no cruza fecha, sección ni cuenta'
     try {
       await t.test('nueva fecha no recibe el padrón ni el mensaje del GET anterior', async () => {
         await hold();
-        await evaluate(`const input = document.querySelector('input[type=date]');
+        await evaluate(`${fresh}; attendanceTest.server.sesion.fecha = "2026-11-12";
+          const input = document.querySelector('input[type=date]');
           Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '2026-11-12');
           input.dispatchEvent(new Event('change', { bubbles: true }));`);
-        await wait(`${rows}.length === 0`);
-        await evaluate(`${fresh}; attendanceTest.server.sesion.fecha = "2026-11-12"`);
-        await click('Abrir asistencia'); await wait(`${rows}.length === 4`); await releaseAndCheck();
+        await wait(`${rows}.length === 4 && ${rows}[0].textContent.includes('Tardanza')`); await releaseAndCheck();
         assert.equal(await evaluate('document.querySelector("input[type=date]").value'), '2026-11-12');
         await evaluate(`const original = document.querySelector('input[type=date]');
           Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(original, '2026-11-13');
           original.dispatchEvent(new Event('change', { bubbles: true }));`);
-        await wait(`${rows}.length === 0`);
+        await wait(`${rows}.length === 4 && document.querySelector('input[type=date]').value === '2026-11-13'`);
       });
       await t.test('nueva sección no recibe la respuesta de la sección anterior', async () => {
         await hold();
         const next = { ...selection, section: { ...selection.section, id: '3', grado: 5, letra: 'GENIALES' } };
-        await evaluate(`attendanceTest.extraSections = [${JSON.stringify(next.section)}]; void attendanceTest.selectSection(${JSON.stringify(next)})`);
-        await wait(`${rows}.length === 0 && document.body.textContent.includes('GENIALES')`);
-        await evaluate(`${fresh}; attendanceTest.server.sesion.seccion_id = "3"`);
-        await click('Abrir asistencia'); await wait(`${rows}.length === 4`); await releaseAndCheck();
-        assert.match(await evaluate('document.querySelector("h2").textContent'), /GENIALES/);
+        await evaluate(`${fresh}; attendanceTest.server.sesion.seccion_id = "3";
+          attendanceTest.extraSections = [${JSON.stringify(next.section)}]; void attendanceTest.selectSection(${JSON.stringify(next)})`);
+        await wait(`${rows}.length === 4 && document.body.textContent.includes('GENIALES')`); await releaseAndCheck();
+        assert.match(await evaluate('document.querySelector("h1").textContent'), /GENIALES/);
         await evaluate(`void attendanceTest.selectSection(${JSON.stringify(selection)})`);
-        await wait(`document.querySelector('h2')?.textContent.includes('CREATIVOS')`);
+        await wait(`document.querySelector('h1')?.textContent.includes('CREATIVOS') && ${rows}.length === 4`);
       });
       await t.test('cambio de cuenta invalida el GET pendiente', async () => {
         await hold();
         await evaluate(`${fresh}; attendanceTest.account = String(Number(attendanceTest.account) + 1); attendanceTest.render()`);
-        await wait(`${rows}.length === 0`); await click('Abrir asistencia'); await wait(`${rows}.length === 4`);
+        await wait(`${rows}.length === 4 && ${rows}[0].textContent.includes('Tardanza')`);
         await releaseAndCheck();
       });
     } finally { await ui.close(); }

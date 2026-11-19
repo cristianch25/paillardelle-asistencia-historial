@@ -100,3 +100,12 @@ test('buscador local conserva orden, acepta código/tildes y muestra contador gl
   assert.match(html, /Mostrando 0 de 4 estudiantes · 3 cambios sin guardar/);
   assert.match(html, /toda la sección, incluidos los ocultos/); assert.doesNotMatch(html, /Resumen de asistencia/);
 });
+
+test('tarjeta compacta conserva los cuatro conteos recibidos sin fecha ni lectividad', () => {
+  const summary = { status: 'ready', item: item('1', { es_lectivo: false }) };
+  const html = renderToStaticMarkup(h(Summary, { date, summary, compact: true }));
+  assert.equal((html.match(/<dd/g) ?? []).length, 4);
+  for (const label of ['Presentes', 'Tardanzas', 'Faltas', 'Sin marcar']) assert.ok(html.includes(label));
+  assert.doesNotMatch(html, /Asistencia del|Fecha no lectiva|Total de estudiantes/);
+  assert.deepEqual(summary.item.resumen, data.resumen);
+});

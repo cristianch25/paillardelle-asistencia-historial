@@ -5,6 +5,8 @@ import type { SectionSelection } from '../organizacion-escolar/secciones/seccion
 import { openAttendance } from './asistencias.api';
 import { attendanceOpeningError } from './asistenciaError';
 import type { AttendanceOpening } from './asistencias.types';
+import { getAttendanceWorkspace } from './attendanceWorkspace';
+import { apiErrorMessage } from '../../shared/api/apiError';
 
 type Outcome = { data: AttendanceOpening | null; error: string };
 
@@ -24,10 +26,11 @@ export function attendanceScopeKey(accountId: string | null, selection: SectionS
 }
 
 export function useAsistenciaSession(accountId: string | null, selection: SectionSelection | null,
-  fecha: string, checking = false) {
+  fecha: string, checking = false, automatic = false) {
   const key = attendanceScopeKey(accountId, selection, fecha);
+  const [readRevision, setReadRevision] = useState(0);
   // Los datos completados usan una clave estable; las solicitudes, una generación separada.
-  const generation = useMemo(() => ({ key, checking }), [key, checking]);
+  const generation = useMemo(() => ({ key, checking, readRevision }), [key, checking, readRevision]);
   const [result, setResult] = useState<Outcome & { key: string | null; operation: object | null }>({
     key, operation: null, data: null, error: '',
   });
@@ -38,6 +41,20 @@ export function useAsistenciaSession(accountId: string | null, selection: Sectio
     pending.current?.();
     pending.current = null;
   }, [generation]);
+  useEffect(() => {
+    if (!automatic || !key || !selection || checking || !validCivilDate(fecha) || (result.key === key && result.data)) return;
+    let current = true;
+    void Promise.resolve().then(() => {
+      if (!current) return null;
+      setResult({ key, operation: generation, data: null, error: '' });
+      return getAttendanceWorkspace(selection.year.id, selection.section.id, fecha);
+    }).then(data => {
+      if (current) setResult({ key, operation: null, data, error: '' });
+    }).catch((failure: unknown) => {
+      if (current && !axios.isCancel(failure)) setResult({ key, operation: null, data: null, error: apiErrorMessage(failure) });
+    });
+    return () => { current = false; };
+  }, [automatic, key, selection, checking, fecha, generation, result.key, result.data]);
   function open() {
     if (!key || !selection || checking || !validCivilDate(fecha) || pending.current) return;
     setResult({ key, operation: generation, data: null, error: '' });
@@ -51,5 +68,6 @@ export function useAsistenciaSession(accountId: string | null, selection: Sectio
     error: !checking && key && result.key === key ? result.error : '',
     pending: !checking && Boolean(key) && result.key === key && result.operation === generation,
     open,
+    retry: () => setReadRevision(value => value + 1),
   };
 }

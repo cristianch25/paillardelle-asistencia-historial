@@ -1,5 +1,40 @@
 # Secciones — consulta administrativa 7B.0B / 7B.0D
 
+## Mejora móvil de REGISTRADOR — 19/11/2026
+
+La etapa móvil posterior sustituye la presentación de REGISTRADOR descrita
+abajo: estudiantes muestra directamente lista y perfiles, sin fecha editable,
+tarjeta de sección/año ni enlace Asistencia diaria. Asistencias incorpora
+búsqueda por nombres entre secciones autorizadas, ficha rápida y consulta
+automática del salón sin crear sesiones hasta Guardar. Ambos tipos de tarjetas
+resaltan los mismos cuatro indicadores confirmados. No cambia las vistas
+administrativas, permisos, estadísticas ni alertas. Consultar archivos, flujo
+de concurrencia y pruebas en [asistencias](../../asistencias/README.md).
+
+## Separación de consulta y asistencia de REGISTRADOR — 18/11/2026
+
+La autorización de esta etapa sustituye solo la presentación anterior de
+REGISTRADOR: menú Inicio, Mis secciones y Asistencias. Mis secciones conserva
+nivel, grado/nombre, cuatro conteos confirmados y Ver estudiantes. Oculta año,
+estado, fecha, lectividad, total y acceso diario en las tarjetas. No modifica
+las consultas ni el cálculo de resúmenes; datos ausentes siguen sin ceros ficticios.
+
+`RegistradorAttendancePage` reutiliza `MisSeccionesPage` en modo asistencia en
+`/asistencias`; selecciona con las mismas API de secciones autorizadas y la
+revalidación existente. `/asistencias/diaria` reutiliza `AsistenciaDiariaPage`,
+con protección de borrador y retorno a Asistencias. El enlace desde estudiantes
+usa esa ruta; `/secciones/asistencia` permanece disponible por compatibilidad.
+Las nuevas rutas solo admiten REGISTRADOR. ADMIN/SUBDIRECCION conservan sus
+menús, tarjetas y pantallas administrativas.
+
+La pantalla diaria oculta marcas, justificación editable, acciones masivas y
+guardado en días no lectivos, conservando consulta de sesiones y justificaciones
+previas. Muestra solo el aviso aprobado de asistencia deshabilitada. Fechas
+futuras deshabilitan apertura/guardado; el backend ya las rechaza para los tres
+roles (V8 D37/RN-38/RF-18). No se modifica su implementación, permisos, datos,
+estadísticas ni seguimiento. Pruebas en adaptadores, navegador y MySQL aislado
+3311 cuando corresponde; sin migraciones ni dependencias nuevas.
+
 ## Gestión autorizada — 18/11/2026
 
 La vista administrativa permite crear con POST /api/secciones y editar,

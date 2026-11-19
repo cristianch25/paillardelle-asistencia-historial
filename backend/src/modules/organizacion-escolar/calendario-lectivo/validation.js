@@ -56,9 +56,13 @@ export function validateCalendarQuery(query, kind) {
   return kind === 'effective' ? result : { ...result, ...validatePagination(query) };
 }
 export function validateException(params, body) {
-  object(body, ['es_lectivo', 'descripcion']);
+  object(body, ['es_lectivo', 'descripcion', 'niveles']);
   if (typeof body.es_lectivo !== 'boolean') invalid('es_lectivo debe ser un booleano JSON.');
+  if (body.niveles !== undefined && (!Array.isArray(body.niveles) || !body.niveles.length || body.niveles.length > 3
+    || new Set(body.niveles).size !== body.niveles.length || body.niveles.some(level => !educationLevels.includes(level))
+    || !body.niveles.includes(params.nivel))) invalid('Selecciona niveles válidos y sin repeticiones.');
   return { ...scope(params), fecha: validateDate(params.fecha),
+    ...(body.niveles === undefined ? {} : { niveles: educationLevels.filter(level => body.niveles.includes(level)) }),
     es_lectivo: body.es_lectivo, descripcion: description(body.descripcion) };
 }
 export function validateBlock(body) {

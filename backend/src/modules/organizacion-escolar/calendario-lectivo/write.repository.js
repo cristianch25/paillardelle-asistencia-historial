@@ -2,7 +2,6 @@ import { getPool } from '../../../config/database.js';
 import { inTransaction } from '../../../shared/transaction.js';
 import { readInsertedId } from '../../../shared/inserted-id.js';
 import { readCalendar, periodColumns, exceptionColumns, periodRow, exceptionRow } from './repository.js';
-import { createAttendanceImpactService } from '../../asistencias/impact.service.js';
 
 async function audit(connection, actorId, entity, action, before, after) {
   await connection.execute(
@@ -63,24 +62,20 @@ export function createCalendarWriter(poolProvider = getPool) {
           'SELECT id, rol, activo, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId],
         );
         // Actor y adicionales antes del año. No adquirir otros usuarios después.
-        await authorize(actors[0] ?? null, scope.nivel, true, connection);
+        const levels = scope.niveles ?? [scope.nivel];
+        for (const level of levels) await authorize(actors[0] ?? null, level, true, connection);
         // La fila común del año serializa incluso el primer período/excepción.
-        const context = await readCalendar(connection, scope, true);
-        context.attendanceDates = async (start, end) => {
-          const [rows] = await connection.execute(
-            `SELECT a.id, a.fecha FROM asistencias a
-             JOIN matricula_secciones ms ON ms.id = a.matricula_seccion_id AND ms.matricula_id = a.matricula_id
-             JOIN secciones s ON s.id = ms.seccion_id AND s.anio_escolar_id = ms.anio_escolar_id
-             WHERE s.anio_escolar_id = ? AND s.nivel = ? AND a.fecha BETWEEN ? AND ? ORDER BY a.id FOR UPDATE`,
-            [scope.anio_escolar_id, scope.nivel, start, end],
-          );
-          const sessions = await createAttendanceImpactService().dates(connection, scope.anio_escolar_id, scope.nivel, start, end);
-          return [...new Set([...rows.map(row => row.fecha), ...sessions])];
-        };
-        const plan = await decide(context);
-        if (plan.period) return savePeriod(connection, actorId, plan.period);
+        const plans = [];
+        for (const level of levels) {
+          const currentScope = { ...scope, nivel: level };
+          const context = await readCalendar(connection, currentScope, true);
+          context.nivel = level;
+          plans.push(await decide(context));
+        }
+        // Ninguna escritura hasta validar todos los niveles; auditorías y cambios son atómicos.
+        if (plans[0].period) return savePeriod(connection, actorId, plans[0].period);
         const rows = [];
-        for (const change of plan.exceptions) rows.push(await saveException(connection, actorId, change));
+        for (const plan of plans) for (const change of plan.exceptions) rows.push(await saveException(connection, actorId, change));
         return rows;
       });
     },

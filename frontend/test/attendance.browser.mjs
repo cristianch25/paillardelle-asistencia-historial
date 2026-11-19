@@ -14,7 +14,7 @@ test('6B.2A en navegador: edición, confirmación, foco, solo lectura y tamaños
       const { evaluate, command } = browser;
       const button = label => label === 'Abrir asistencia' ? `document.querySelector('button[aria-describedby="opening-hint"]')`
         : `Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === ${JSON.stringify(label)})`;
-      const click = label => evaluate(`${button(label)}.click()`);
+      const click = label => label === 'Abrir asistencia' ? ready() : evaluate(`${button(label)}.click()`);
       const rows = `Array.from(document.querySelectorAll('ul[aria-label="Estudiantes y marcas actuales"] > li'))`;
       const choose = async (index, label) => {
         await evaluate(`Array.from(${rows}[${index}].querySelectorAll('button')).find(b => b.textContent.trim() === ${JSON.stringify(label)}).click()`);
@@ -22,7 +22,7 @@ test('6B.2A en navegador: edición, confirmación, foco, solo lectura y tamaños
       };
       const values = () => evaluate(`${rows}.map(row => row.querySelector('button[aria-pressed="true"]')?.textContent.trim())`);
       const dirty = () => evaluate(`${rows}.filter(row => row.textContent.includes('Sin guardar')).length`);
-      const ready = () => waitFor(() => evaluate(`Boolean(${button('Abrir asistencia')})`), 'selección disponible');
+      const ready = () => waitFor(() => evaluate(`${rows}.length === 4`), 'lista disponible sin apertura');
       await command('Emulation.setDeviceMetricsOverride', { width: 320, height: 800, deviceScaleFactor: 1, mobile: true });
       await command('Page.navigate', { url: `${vite.resolvedUrls.local[0]}test/support/attendance.html` });
       await ready(); await click('Abrir asistencia');
@@ -53,13 +53,13 @@ test('6B.2A en navegador: edición, confirmación, foco, solo lectura y tamaños
         await waitFor(() => evaluate('Boolean(attendanceTest.release) && document.body.textContent.includes("Comprobando la sección")'), 'revalidación');
         assert.equal(await evaluate(`${rows}.length`), 0);
         await evaluate('attendanceTest.holdSections = false; attendanceTest.release()');
-        await waitFor(() => evaluate(`${rows}.length === 4`), 'recuperar vista');
+        await waitFor(() => evaluate(`${rows}.length === 4 && ${rows}[0].textContent.includes('Sin guardar')`), 'recuperar vista y borrador');
         assert.equal((await values())[0], 'Falta'); assert.equal(await dirty(), 1);
         assert.equal(await evaluate('attendanceTest.calls.filter(call => call.method === "post").length'), openings);
       });
       await t.test('advertencias al volver/fecha y beforeunload; cancelar conserva marcas', async () => {
         await evaluate('attendanceTest.confirmAnswer = false');
-        await click('Volver a mis secciones');
+        await click('Volver a asistencias');
         await waitFor(() => evaluate('Boolean(document.querySelector("dialog[open]"))'), 'confirmación al volver');
         await click('Continuar registrando');
         assert.equal(await evaluate(`Boolean(${button('Abrir asistencia')})`), false);
@@ -104,7 +104,7 @@ test('6B.2A en navegador: edición, confirmación, foco, solo lectura y tamaños
         await waitFor(() => evaluate(`Boolean(${rows}[0]?.querySelector('button')) && ${rows}.length === 4`), 'sesión abierta');
         await choose(0, 'Tardanza');
         await evaluate('attendanceTest.account = "6"; attendanceTest.render()');
-        await waitFor(() => evaluate(`${rows}.length === 0`), 'cambio de cuenta');
+        await waitFor(() => evaluate(`${rows}.length === 4 && !${rows}[0].textContent.includes('Sin guardar')`), 'cambio de cuenta');
         await click('Abrir asistencia');
         await waitFor(() => evaluate(`${rows}.length === 4`), 'nueva cuenta');
         assert.equal((await values())[0], 'Sin marcar'); assert.equal(await dirty(), 0);

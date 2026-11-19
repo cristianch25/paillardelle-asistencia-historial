@@ -16,6 +16,9 @@ import { createStudentIdentitiesService, createStudentsService } from '../src/mo
 import { createStudentsRepository } from '../src/modules/estudiantes/repository.js';
 import { createAttendanceService } from '../src/modules/asistencias/service.js';
 import { createAttendanceContext } from '../src/modules/asistencias/context.repository.js';
+import { createAttendanceListRepository } from '../src/modules/asistencias/list.repository.js';
+import { createAttendanceStatisticsRepository } from '../src/modules/asistencias/statistics.repository.js';
+import { createMonthlyFollowupRepository } from '../src/modules/asistencias/followup.repository.js';
 import { createAttendanceWriter } from '../src/modules/asistencias/write.repository.js';
 import { createAdministrativeAuditService } from '../src/modules/auditoria/service.js';
 import { createAdministrativeAuditRepository } from '../src/modules/auditoria/repository.js';
@@ -25,7 +28,7 @@ import { createAniosEscolaresService } from '../src/modules/organizacion-escolar
 import { createAniosEscolaresRepository } from '../src/modules/organizacion-escolar/anios-escolares/repository.js';
 
 // Composición del backend real sobre una única instancia aislada, sin modificar .env.
-export function attendanceMysqlApp(pool) {
+export function attendanceMysqlApp(pool, options = {}) {
   const provider = () => pool;
   const users = createUsuariosService({ repository: createUsuariosRepository(provider),
     supervision: createSupervisionService({ repository: createSupervisionRepository(provider) }) });
@@ -56,8 +59,10 @@ export function attendanceMysqlApp(pool) {
     } });
   } };
   const attendance = createAttendanceService({ repository: createAttendanceContext(() => txPool),
-    users, sections, calendar, enrollments, writer: faultWriter, audit });
-  const app = createApp({ authService: createAuthService({ repository: createAuthRepository(provider) }),
+    users, sections, calendar, enrollments, writer: faultWriter, audit,
+    listRepository: createAttendanceListRepository(provider), statisticsRepository: createAttendanceStatisticsRepository(provider),
+    followupRepository: createMonthlyFollowupRepository(provider) });
+  const app = createApp({ authService: options.authService ?? createAuthService({ repository: createAuthRepository(provider) }),
     aniosEscolaresService: createAniosEscolaresService({ repository: createAniosEscolaresRepository(provider) }),
     assignmentsService: createAssignmentsService({ repository: createAssignmentsRepository(provider), usuariosService: users, seccionesService: sections }),
     usuariosService: users, seccionesService: sections, calendarService: calendar, matriculasService: enrollments,

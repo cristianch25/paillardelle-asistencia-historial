@@ -30,12 +30,14 @@ test('excepciones: PUT idempotente, actualiza motivo con auditoría antes/despu�
   assert.equal(state.audits.some(audit => audit.join(' ').includes('NO_AUDITAR')), false);
 });
 
-test('excepciones: bloquear un día con asistencia produce 409 sin cambiar recuperación ni motivo', async () => {
+test('excepciones: bloquear un día con asistencia conserva los registros anteriores', async () => {
   const { service, state } = calendarFixture();
   const row = await service.putException(params('2026-03-03'), recovery, admin);
   state.attendance.push({ ...scope, fecha: row.fecha });
-  await assert.rejects(service.putException(params(row.fecha), { es_lectivo: false, descripcion: 'Suspender' }, admin), { status: 409 });
-  assert.equal(state.exceptions[0].es_lectivo, true); assert.equal(state.audits.length, 1);
+  const before = structuredClone(state.attendance);
+  await service.putException(params(row.fecha), { es_lectivo: false, descripcion: 'Suspender' }, admin);
+  assert.equal(state.exceptions[0].es_lectivo, false); assert.equal(state.audits.length, 2);
+  assert.deepEqual(state.attendance, before);
 });
 
 test('rangos: atómicos, preservan bloqueos/motivos y no escriben en asistencias', async () => {
@@ -50,16 +52,13 @@ test('rangos: atómicos, preservan bloqueos/motivos y no escriben en asistencias
     /^(INSERT INTO|UPDATE|DELETE FROM) (asistencias|historial_asistencias)\b/.test(item.sql)), false);
 });
 
-test('rangos: recuperación intermedia o asistencia en última fecha impiden todo cambio', async () => {
-  for (const type of ['recovery', 'attendance']) {
+test('rangos: recuperación intermedia impide todo cambio', async () => {
     const { service, state } = calendarFixture();
-    if (type === 'recovery') await service.putException(params('2026-03-03'), recovery, admin);
-    else state.attendance.push({ ...scope, fecha: '2026-03-04' });
+    await service.putException(params('2026-03-03'), recovery, admin);
     const before = structuredClone({ exceptions: state.exceptions, audits: state.audits });
     await assert.rejects(service.blockRange(block, admin), { status: 409 });
     assert.deepEqual({ exceptions: state.exceptions, audits: state.audits }, before);
     assert.equal(state.transactions.at(-1).includes('insert'), false);
-  }
 });
 
 test('calendario: consulta coherente, precedencia de excepciones y estados históricos permitidos', async () => {
@@ -108,4 +107,12 @@ test('rangos: límite inclusivo de 366 días y aislamiento de asistencias de otr
   const rows = await service.blockRange({ ...block, fecha_inicio: '2028-01-01', fecha_fin: '2028-12-31' }, admin);
   assert.equal(rows.length, 366); assert.equal(state.audits.length, 366);
   assert.equal(rows.at(-1).fecha, '2028-12-31');
+});
+
+test('rangos: sesiones o marcas no impiden bloquear ni se alteran', async () => {
+  const { service, state } = calendarFixture();
+  state.attendance.push({ ...scope, fecha: '2026-03-04' });
+  const before = structuredClone(state.attendance);
+  assert.equal((await service.blockRange(block, admin)).length, 3);
+  assert.deepEqual(state.attendance, before);
 });

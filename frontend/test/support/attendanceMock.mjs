@@ -2,8 +2,9 @@ import { AxiosError } from 'axios';
 import { data, selection } from './attendanceFixture.mjs';
 
 export function attendanceMock() {
+  const servedContexts = new Set(); let context = null;
   const controls = { calls: [], prompts: [], confirmAnswer: true, holdSections: false, allow: true, release: null,
-    sessionState: 'ABIERTA', sessionCreated: false, account: '5', server: structuredClone(data), extraSections: [], sectionStatus: null, saveStatus: null, readStatus: null,
+    sessionState: 'ABIERTA', sessionCreated: false, openStatus: null, account: '5', server: structuredClone(data), extraSections: [], sectionStatus: null, saveStatus: null, readStatus: null,
     calendar: { es_lectivo: true, origen: 'REGLA_SEMANAL', descripcion: null },
     closeStatus: null, applyCloseBeforeError: false, holdClose: false, releaseClose: null,
     applyBeforeError: false, holdPatch: false, releasePatch: null, holdRead: false, releaseRead: null, sessionAllowed: true };
@@ -12,12 +13,12 @@ export function attendanceMock() {
     controls.server.resumen = { total: controls.server.padron.length, presentes: count('PRESENTE'),
       tardanzas: count('TARDANZA'), faltas: count('FALTA'), pendientes: count('PENDIENTE') };
   }
-  controls.reset = () => Object.assign(controls, { calls: [], server: structuredClone(data), extraSections: [],
-    account: String(Number(controls.account ?? '5') + 1), sessionState: 'ABIERTA', sessionCreated: false, confirmAnswer: true,
+  controls.reset = () => { servedContexts.clear(); return Object.assign(controls, { calls: [], server: structuredClone(data), extraSections: [],
+    account: String(Number(controls.account ?? '5') + 1), sessionState: 'ABIERTA', sessionCreated: false, openStatus: null, confirmAnswer: true,
     calendar: { es_lectivo: true, origen: 'REGLA_SEMANAL', descripcion: null },
     closeStatus: null, applyCloseBeforeError: false, holdClose: false, releaseClose: null,
     holdSections: false, allow: true, sectionStatus: null, saveStatus: null, readStatus: null, applyBeforeError: false,
-    holdPatch: false, holdRead: false, releasePatch: null, releaseRead: null, sessionAllowed: true });
+    holdPatch: false, holdRead: false, releasePatch: null, releaseRead: null, sessionAllowed: true }); };
   controls.summary = summary;
   controls.externalMark = (index, state) => {
     Object.assign(controls.server.padron[index], { estado: state, version: controls.server.padron[index].version + 1 });
@@ -64,12 +65,14 @@ export function attendanceMock() {
           estudiante: { ...row.estudiante, tipo_documento: null, numero_documento: null, fecha_nacimiento: null,
             created_at: '2026-03-02 12:00:00', updated_at: '2026-03-02 12:00:00' } })) };
     } else if (config.url === '/asistencias/sesiones' && config.method === 'get') {
+      if (config.params.seccion_id) context = { section: config.params.seccion_id, date: config.params.fecha };
       const sections = controls.allow ? [selection.section, ...controls.extraSections] : [];
       result = { anio_escolar_id: config.params.anio_escolar_id, fecha: config.params.fecha,
         secciones: sections.map(seccion => ({ seccion: structuredClone(seccion), es_lectivo: controls.calendar.es_lectivo,
           situacion: controls.sessionState, sesion_id: controls.server.sesion.id, resumen: structuredClone(controls.server.resumen) })),
         pagination: { page: config.params.page, limit: config.params.limit, has_more: false } };
     } else if (config.url.startsWith('/asistencias/sesiones')) {
+      if (config.url === '/asistencias/sesiones' && config.method === 'post' && controls.openStatus) fail(controls.openStatus);
       if (!controls.sessionAllowed) fail(404);
       if (config.url.endsWith('/cierre') && config.method === 'post') {
         if (controls.holdClose) await new Promise(resolve => { controls.releaseClose = resolve; });
@@ -87,12 +90,18 @@ export function attendanceMock() {
         if (controls.saveStatus) fail(['network', 'timeout'].includes(controls.saveStatus) ? undefined : controls.saveStatus,
           controls.saveStatus === 'timeout' ? 'ECONNABORTED' : '');
       } else if (config.method === 'get') {
-        result = { ...structuredClone(controls.server), sesion: { ...controls.server.sesion, estado: controls.sessionState } };
-        if (controls.holdRead) await new Promise(resolve => { controls.releaseRead = resolve; });
-        if (controls.readStatus) fail(['network', 'timeout'].includes(controls.readStatus) ? undefined : controls.readStatus,
+        const scope = JSON.stringify([controls.account, context]);
+        const initial = !servedContexts.has(scope);
+        servedContexts.add(scope);
+        result = { ...structuredClone(controls.server), sesion: { ...controls.server.sesion, estado: controls.sessionState,
+          ...(context ? { seccion_id: context.section, fecha: context.date } : {}) } };
+        // Los fallos configurados por las pruebas históricas se aplican a la revalidación, después de la carga inicial.
+        if (!initial && controls.holdRead) await new Promise(resolve => { controls.releaseRead = resolve; });
+        if (!initial && controls.readStatus) fail(['network', 'timeout'].includes(controls.readStatus) ? undefined : controls.readStatus,
           controls.readStatus === 'timeout' ? 'ECONNABORTED' : '');
       }
-      result ??= { ...structuredClone(controls.server), sesion: { ...controls.server.sesion, estado: controls.sessionState },
+      result ??= { ...structuredClone(controls.server), sesion: { ...controls.server.sesion, estado: controls.sessionState,
+        ...(context ? { seccion_id: context.section, fecha: context.date } : {}) },
         ...(config.method === 'post' && !config.url.endsWith('/cierre') ? { creada: controls.sessionCreated } : {}),
         ...(config.url.endsWith('/cierre') ? { advertencias: controls.server.resumen.pendientes
           ? [{ codigo: 'PENDIENTES_AL_CERRAR', cantidad: controls.server.resumen.pendientes }] : [] } : {}) };

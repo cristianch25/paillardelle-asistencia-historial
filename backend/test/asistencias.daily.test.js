@@ -8,6 +8,19 @@ function save(f, actor, cambios) {
 const change = (f, id, estado, extras = {}) => ({ asistencia_id: id,
   version: f.state.rows.find(row => row.id === id).version, estado, ...extras });
 
+test('fechas futuras: los tres roles no pueden crear sesiones ni guardar marcas', async () => {
+  for (const actor of ['1', '2', '3']) {
+    const f = attendanceFixture();
+    await assert.rejects(f.open('2026-11-16', actor), { status: 409 });
+    assert.equal(f.state.session, null); assert.equal(f.state.audits.length, 0);
+    await f.open('2026-11-13', actor);
+    f.state.session.fecha = '2026-11-16';
+    const before = structuredClone(f.state);
+    await assert.rejects(save(f, actor, [change(f, '1', 'PRESENTE')]), { status: 409 });
+    assert.deepEqual(f.state, before);
+  }
+});
+
 for (const actor of ['1', '2', '3']) {
   for (const closed of [false, true]) {
     test(`diario: actor ${actor}, ${closed ? 'CERRADA' : 'ABIERTA'}, correcciones sin motivo e historial`, async () => {

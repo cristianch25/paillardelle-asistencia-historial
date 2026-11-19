@@ -50,15 +50,16 @@ test('períodos: PATCH valida el intervalo final, impide cambiar año/nivel y ad
   await assert.rejects(service.updatePeriod(row.id, { fecha_fin: other.fecha_inicio }, admin), { status: 409 });
 });
 
-test('períodos: recortar/desplazar no puede dejar no lectivas asistencias de ningún estado', async () => {
+test('períodos: recortar/desplazar conserva asistencias aunque la fecha deje de ser lectiva', async () => {
   for (const patch of [{ fecha_inicio: '2026-03-04' }, { fecha_fin: '2026-03-02' },
     { fecha_inicio: '2026-07-01', fecha_fin: '2026-08-01' }]) {
     const { service, state } = calendarFixture();
     const row = await service.createPeriod(periodBody, admin);
     state.attendance.push({ ...scope, fecha: '2026-03-03', estado: 'FALTA' });
-    await assert.rejects(service.updatePeriod(row.id, patch, admin), { status: 409 });
-    assert.equal(state.periods[0].fecha_inicio, periodBody.fecha_inicio);
-    assert.equal(state.audits.length, 1);
+    const before = structuredClone(state.attendance);
+    await service.updatePeriod(row.id, patch, admin);
+    assert.deepEqual(state.attendance, before);
+    assert.equal(state.audits.length, 2);
   }
 });
 

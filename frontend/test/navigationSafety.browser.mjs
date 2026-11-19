@@ -33,7 +33,7 @@ test('6B.2C: guardado en curso, pérdida de acceso y beforeunload nativo',
         await wait('Boolean(navigationTest.releaseRead)'); await ui.menu('/inicio'); await ui.guard();
         assert.equal(await evaluate(`${ui.button('Salir sin guardar')}.disabled`), true);
         await evaluate('navigationTest.releaseRead()'); await wait('document.body.textContent.includes("Lista consultada")');
-        assert.equal(await evaluate('location.pathname'), '/secciones/asistencia');
+        assert.equal(await evaluate('location.pathname'), '/asistencias/diaria');
         assert.equal(await evaluate(`${ui.button('Salir sin guardar')}.disabled`), false);
         assert.doesNotMatch(await evaluate('document.body.textContent'), /Cambios guardados correctamente/);
         assert.equal(await evaluate('navigationTest.calls.filter(c => c.method === "patch").length'), 1);
@@ -60,7 +60,8 @@ test('6B.2C: guardado en curso, pérdida de acceso y beforeunload nativo',
         await wait(`${rows}.length === 0 && Boolean(${ui.button('Volver a comprobar selección')})`);
         await ui.menu('/inicio'); await ui.guard(); await ui.cancel();
         await evaluate('navigationTest.sectionStatus = null'); await click('Volver a comprobar selección');
-        await wait(`${rows}.length === 4`); assert.equal(await ui.dirty(), 1);
+        await wait(`${rows}.length === 4 && ${rows}.some(row => row.textContent.includes('Sin guardar'))`);
+        assert.equal(await ui.dirty(), 1);
       });
       await t.test('F5, cierre y salida del documento usan aviso nativo; confirmar F5 descarta borrador y restaura autenticación', async () => {
         await ui.prepare();
@@ -77,7 +78,7 @@ test('6B.2C: guardado en curso, pérdida de acceso y beforeunload nativo',
         await waitFor(() => events.length > count, 'confirmar F5');
         await command('Page.handleJavaScriptDialog', { accept: true }); await reload;
         await wait('Boolean(document.querySelector("#main-content")) && document.body.textContent.includes("Selecciona una sección")');
-        assert.equal(await evaluate('location.pathname'), '/secciones/asistencia');
+        assert.equal(await evaluate('location.pathname'), '/asistencias/diaria');
         assert.equal(await evaluate(`${rows}.length`), 0);
         assert.deepEqual(await evaluate('Object.keys(JSON.parse(sessionStorage.getItem("paillardelle.auth"))).sort()'), ['expiresAt', 'token']);
         assert.equal(await evaluate('navigationTest.calls.filter(c => c.method === "patch").length'), 0);

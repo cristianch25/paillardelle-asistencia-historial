@@ -13,9 +13,9 @@ for (const cargo of ['DOCENTE', 'AUXILIAR']) test(`Perfil compacto de ${cargo}: 
   }
   try {
     await ui.navigate('/login'); await wait('Boolean(window.profileTest)'); await evaluate(`profileTest.cargo = ${JSON.stringify(cargo)}`); await ui.login();
-    await ui.setRoute('/secciones'); await wait(`Boolean(document.querySelector('button[aria-label^="Asistencia diaria de 4"]'))`);
+    await ui.setRoute('/asistencias'); await wait(`Boolean(document.querySelector('button[aria-label^="Asistencia diaria de 4"]'))`);
     await evaluate(`document.querySelector('button[aria-label^="Asistencia diaria de 4"]').click()`);
-    await change('document.querySelector("input[type=date]")', '2026-11-13'); await click('Abrir asistencia'); await wait(`${rows}.length === 4`);
+    await change('document.querySelector("input[type=date]")', '2026-11-13'); await wait(`${rows}.length === 4`);
     await t.test('perfil compacto y X preservan cambios sin guardar, fecha y salón', async () => {
       await evaluate(`Array.from(${rows}[0].querySelectorAll('button')).find(b => b.textContent.trim() === 'Tardanza').click()`);
       await wait(`${rows}[0].textContent.includes('Sin guardar')`);
@@ -31,7 +31,7 @@ for (const cargo of ['DOCENTE', 'AUXILIAR']) test(`Perfil compacto de ${cargo}: 
       assert.match(await evaluate(`${rows}[0].textContent`), /Sin guardar/);
       assert.equal(await evaluate(`${rows}[0].querySelector('[aria-pressed=true]').textContent`), 'Tardanza');
       assert.equal(await evaluate('navigationTest.calls.filter(c => c.method === "patch").length'), patches);
-      assert.equal(await evaluate('location.pathname'), '/secciones/asistencia');
+      assert.equal(await evaluate('location.pathname'), '/asistencias/diaria');
     });
     await t.test('320/390 px sin desplazamiento horizontal y con controles táctiles', async () => {
       await evaluate(`Array.from(${rows}[0].querySelectorAll('button')).find(b => b.textContent === 'Ver perfil').click()`); await wait(`Boolean(${view})`);

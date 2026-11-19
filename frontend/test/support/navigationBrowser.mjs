@@ -25,13 +25,14 @@ export async function navigationBrowser() {
     }
     await evaluate('navigationTest.reset(); authTest.offset = 0; authTest.meStatus = null');
     await ui.login();
-    await evaluate(`document.querySelector('aside a[href="/secciones"]').click()`);
+    await evaluate(`document.querySelector('aside a[href="/asistencias"]').click()`);
     await wait(`Boolean(document.querySelector('button[aria-label^="Asistencia diaria de 4"]'))`);
     await evaluate(`document.querySelector('button[aria-label^="Asistencia diaria de 4"]').click()`);
-    await wait('location.pathname === "/secciones/asistencia"');
-    await setDate('2026-11-13'); await click('Abrir asistencia'); await wait(`${rows}.length === 4`);
+    await wait('location.pathname === "/asistencias/diaria"');
+    await setDate('2026-11-13'); await wait(`${rows}.length === 4`);
   }
   return { ...ui, dialog, rows, choose, prepare, setDate,
+    click: label => label === 'Abrir asistencia' ? wait(`${rows}.length >= 1`) : click(label),
     guard: () => wait(`Boolean(${dialog})`),
     dirty: () => evaluate(`${rows}.filter(row => row.textContent.includes('Sin guardar')).length`),
     cancel: async () => {

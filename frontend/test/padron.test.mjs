@@ -90,9 +90,8 @@ test('tres roles ven fecha y regreso según rol con filtros/página', () => {
   for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {
     const html = markup(Page, { role });
     assert.match(html, /Estudiantes de la sección/);
-    assert.match(html, role === 'REGISTRADOR' ? /Fecha de consulta/ : /Padrón al/);
-    assert.match(html, /4 años · CREATIVOS/);
-    assert.match(html, /Año escolar 2026/);
+    if (role === 'REGISTRADOR') assert.doesNotMatch(html, /Fecha de consulta|Año escolar|Detalle de sección|Asistencia diaria/);
+    else { assert.match(html, /Padrón al/); assert.match(html, /4 años · CREATIVOS/); assert.match(html, /Año escolar 2026/); }
     assert.ok(html.includes(role === 'REGISTRADOR' ? 'Volver a mis secciones' : 'Volver a secciones'));
     assert.match(html, /<button[^>]*class="[^"]*bg-white[^"]*"[^>]*><svg[^>]*aria-hidden="true"/);
     assert.match(html, /lucide-arrow-left/);
@@ -120,11 +119,10 @@ test('menú mantiene secciones activo en rutas hijas por segmento, para los tres
 test('padrón conserva consulta y acceso a asistencia exclusivamente para REGISTRADOR', () => {
   for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {
     const html = markup(Page, { role });
-    if (role === 'REGISTRADOR') assert.match(html, /Fecha de consulta|type="date"/);
+    if (role === 'REGISTRADOR') assert.doesNotMatch(html, /Fecha de consulta|type="date"/);
     else { assert.doesNotMatch(html, /type="date"/); assert.match(html, /Personal asignado|Padrón al/); }
-    const link = /href="\/secciones\/asistencia\?page=3&amp;nivel=INICIAL"/;
-    if (role === 'REGISTRADOR') assert.match(html, link);
-    else assert.doesNotMatch(html, /Asistencia diaria|href="\/secciones\/asistencia/);
+    const link = /href="\/asistencias\/diaria\?page=3&amp;nivel=INICIAL"/;
+    assert.doesNotMatch(html, link); assert.doesNotMatch(html, /Asistencia diaria/);
     assert.match(html, /Estudiantes de la sección/);
   }
 });
@@ -139,10 +137,9 @@ test('roles y tres niveles conservan sus formatos y controles en años pasados, 
           section: { ...section, nivel, grado, letra },
           year: { ...selected.year, anio, fecha_inicio: `${anio}-01-01`, fecha_fin: `${anio}-12-31` },
         } });
-        assert.ok(html.includes(expected), `${role}/${nivel}/${anio}`);
+        if (role !== 'REGISTRADOR') assert.ok(html.includes(expected), `${role}/${nivel}/${anio}`);
         if (role === 'REGISTRADOR') {
-          assert.match(html, /type="date"/);
-          assert.match(html, /Asistencia diaria/);
+          assert.doesNotMatch(html, /type="date"|Asistencia diaria|Año escolar|Detalle de sección/);
           assert.doesNotMatch(html, /Personal asignado|Padrón al/);
         } else {
           assert.doesNotMatch(html, /type="date"|Asistencia diaria/);

@@ -12,7 +12,8 @@ export function createCalendarController(service) {
     async effectiveCalendar(req, res) { res.json(await service.effectiveCalendar(req.query, req.authUser)); },
     async listExceptions(req, res) { res.json(await service.listExceptions(req.query, req.authUser)); },
     async putException(req, res) {
-      res.json({ excepcion: await service.putException(req.params, req.body, req.authUser) });
+      const result = await service.putException(req.params, req.body, req.authUser);
+      res.json(Array.isArray(result) ? { excepciones: result } : { excepcion: result });
     },
     async blockRange(req, res) { res.json({ excepciones: await service.blockRange(req.body, req.authUser) }); },
   };

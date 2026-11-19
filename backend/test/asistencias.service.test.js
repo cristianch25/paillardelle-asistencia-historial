@@ -77,11 +77,13 @@ test('asistencia: validación estricta de ID, estados, versiones, duplicados y m
   }
   assert.throws(() => changes({ version: 1, cambios: [change, change] }), { status: 400 });
 });
-test('calendario: protege una sesión sin marcas ante excepción y recorte de período', async () => {
+test('calendario: conserva una sesión sin marcas al bloquear o recortar el período', async () => {
   const f = calendarFixture({ sessions: [{ ...scope, fecha: '2026-11-13' }] });
-  await assert.rejects(f.service.putException({ ...scope, fecha: '2026-11-13' }, { es_lectivo: false, descripcion: 'Prueba' }, admin), { status: 409 });
+  const before = structuredClone(f.state.sessions);
+  await f.service.putException({ ...scope, fecha: '2026-11-13' }, { es_lectivo: false, descripcion: 'Prueba' }, admin);
   const period = await f.service.createPeriod(periodBody, admin);
-  await assert.rejects(f.service.updatePeriod(period.id, { fecha_fin: '2026-11-12' }, admin), { status: 409 });
+  await f.service.updatePeriod(period.id, { fecha_fin: '2026-11-12' }, admin);
+  assert.deepEqual(f.state.sessions, before);
 });
 test('matrícula: alta retroactiva rechazada por impacto sin abrir otra transacción', async () => {
   const connection = {}, data = { seccion_id: '1' };
