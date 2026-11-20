@@ -60,6 +60,15 @@ after(async () => {
   await vite?.close();
 });
 
+test('movimientos muestran el conflicto 409 del backend y conservan errores genéricos para otros fallos', () => {
+  const mensaje = 'No se puede realizar el movimiento: la sección de destino tiene sesiones de asistencia desde la fecha efectiva indicada.';
+  const fallo = status => ({ isAxiosError: true, response: { status, data: { error: mensaje } } });
+  assert.equal(api.movementFailure(fallo(409)), mensaje);
+  assert.equal(api.movementFailure(fallo(403)), 'No tienes permiso para realizar esta acción.');
+  assert.doesNotMatch(api.movementFailure(fallo(500)), /sección de destino/);
+  assert.doesNotMatch(api.movementFailure({ isAxiosError: true }), /sección de destino/);
+});
+
 test('API changeStudentSection envía POST /matriculas/:id/cambio-seccion con payload esperado', async () => {
   const http = await vite.ssrLoadModule('/src/shared/api/httpClient.ts');
   let capturedUrl = '', capturedBody = null;

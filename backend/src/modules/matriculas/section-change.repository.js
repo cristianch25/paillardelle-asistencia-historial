@@ -75,6 +75,8 @@ export function changeSection(pool, enrollmentId, data, actorId, hooks) {
       throw new HttpError(409, 'No se puede cambiar de sección: existen asistencias registradas desde la fecha efectiva en adelante.');
     }
 
+    await hooks.validateDestination(connection, String(before.anio_escolar_id));
+
     const previous = previousDate(data.fecha_efectiva);
     const [resClose] = await connection.execute(
       'UPDATE matricula_secciones SET fecha_fin = ? WHERE id = ? AND fecha_fin IS NULL',

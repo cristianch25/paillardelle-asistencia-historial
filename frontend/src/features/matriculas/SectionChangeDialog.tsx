@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import axios from 'axios';
 import Button from '../../shared/components/Button';
 import { formatCivilDate, peruToday, validCivilDate } from '../../shared/dates/civilDate';
 import { apiErrorMessage } from '../../shared/api/apiError';
 import { useUnsavedChanges } from '../../shared/navigation/useUnsavedChanges';
-import { changeStudentSection } from './matriculas.api';
+import { changeStudentSection, movementFailure } from './matriculas.api';
 import { getSections } from '../organizacion-escolar/secciones/secciones.api';
 import { formatSectionName } from '../organizacion-escolar/secciones/sectionPresentation';
 import type { Section } from '../organizacion-escolar/secciones/secciones.types';
@@ -67,8 +66,7 @@ export default function SectionChangeDialog({
       await changeStudentSection(entry.id, selectedDestId, fechaEfectiva);
       onSuccess(); onClose();
     } catch (err: unknown) {
-      setError((axios.isAxiosError(err) && typeof err.response?.data?.message === 'string')
-        ? err.response.data.message : apiErrorMessage(err));
+      setError(movementFailure(err));
     } finally { setBusy(false); running.current = false; }
   }
 

@@ -74,6 +74,8 @@ export function reingresoEnrollment(pool, enrollmentId, data, actorId, hooks) {
       throw new HttpError(409, 'No se puede reingresar: existen asistencias registradas desde la fecha de reingreso en adelante.');
     }
 
+    await hooks.validateDestination(connection, String(before.anio_escolar_id));
+
     const [resMat] = await connection.execute(
       'UPDATE matriculas SET estado = ?, fecha_retiro = NULL WHERE id = ? AND estado = ? AND fecha_retiro = ?',
       ['ACTIVA', enrollmentId, 'RETIRADA', before.fecha_retiro]);

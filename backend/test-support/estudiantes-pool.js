@@ -23,7 +23,7 @@ export function studentsFixture() {
   sections: new Map(['PRIMARIA', 'SECUNDARIA', 'INICIAL'].map((nivel, i) => [String(11 + i), {
     id: String(11 + i), anio_escolar_id: '1', nivel, grado: 4, letra: 'A', activo: 1, turno: null }])),
   additional: new Map([['2', ['INICIAL']]]), assignments: [], students: [], matriculas: [], links: [], audits: [], attendances: [],
-  transactions: [], calls: [], nextId: 9007199254740993n, fail: null, beforeActor: null };
+  sessions: [], transactions: [], calls: [], nextId: 9007199254740993n, fail: null, beforeActor: null };
   const locks = new Map();
   async function lock(tx, key) {
     if (tx.keys.has(key)) return;
@@ -52,7 +52,13 @@ export function studentsFixture() {
       async execute(raw, p = []) {
         const sql = raw.replace(/\s+/g, ' ').trim(); state.calls.push({ sql, params: p, tx });
         if (typeof state.fail === 'function') state.fail(sql);
-        if (sql.includes('FROM sesiones_asistencia')) return [[]];
+        if (sql.includes('FROM sesiones_asistencia')) {
+          if (!sql.includes('WHERE seccion_id = ? AND anio_escolar_id = ? AND fecha >= ?')) {
+            throw new Error(`SQL de impacto sin simular: ${sql}`);
+          }
+          return [state.sessions.filter(s => s.seccion_id === p[0]
+            && s.anio_escolar_id === p[1] && s.fecha >= p[2])];
+        }
         if (sql.includes('FROM usuarios u LEFT JOIN')) {
           const user = state.users.get(p[0]);
           return [user ? (state.additional.get(p[0])?.length ? state.additional.get(p[0]) : [null])

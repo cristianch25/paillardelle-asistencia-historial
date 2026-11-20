@@ -136,6 +136,8 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
         return await repository.changeSection(id, data, actor.id, {
           authorize: (current, connection) => accessFor(current, today, connection, true),
           sectionContext: (sectionId, connection) => seccionesService.assignmentContext(sectionId, connection),
+          validateDestination: (connection, yearId) => attendanceImpact.assertSectionEntry(connection,
+            { seccion_id: data.seccion_id, anio_escolar_id: yearId, fecha_inicio: data.fecha_efectiva }),
         });
       } catch (error) { throw enrollmentConflict(error); }
     },
@@ -158,6 +160,8 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
       try {
         return await repository.reingreso(id, data, actor.id, {
           authorize: (current, connection) => accessFor(current, today, connection, true),
+          validateDestination: (connection, yearId) => attendanceImpact.assertSectionEntry(connection,
+            { seccion_id: data.seccion_id, anio_escolar_id: yearId, fecha_inicio: data.fecha_reingreso }),
         });
       } catch (error) { throw enrollmentConflict(error); }
     },

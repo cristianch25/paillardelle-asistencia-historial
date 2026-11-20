@@ -1,4 +1,12 @@
 import { httpClient } from '../../shared/api/httpClient';
+import axios from 'axios';
+import { apiErrorMessage } from '../../shared/api/apiError';
+
+export function movementFailure(error: unknown): string {
+  if (axios.isAxiosError(error) && error.response?.status === 409
+    && typeof error.response.data?.error === 'string') return error.response.data.error;
+  return apiErrorMessage(error);
+}
 
 export type WithdrawEnrollmentResponse = {
   id: string;
