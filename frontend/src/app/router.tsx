@@ -20,6 +20,7 @@ export const router = createBrowserRouter(createRoutesFromElements(
     <Route element={<ProtectedRoute />}>
       <Route element={<AppLayout />}>
         <Route path="/usuarios" lazy={async () => ({ Component: (await import('../features/usuarios/UsersPage')).default })} />
+        <Route path="/auditoria" lazy={async () => ({ Component: (await import('../features/auditoria/AuditPage')).default })} />
         <Route path="/anios-escolares" lazy={async () => ({ Component: (await import('../features/organizacion-escolar/anios-escolares/SchoolYearsPage')).default })} />
         <Route path="/reportes" lazy={async () => ({ Component: (await import('../features/reportes/MonthlyReportPage')).default })} />
         <Route path="/estadisticas" lazy={async () => ({ Component: (await import('../features/estadisticas/StatisticsPage')).default })} />

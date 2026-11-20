@@ -18,13 +18,15 @@ import { createEnrollmentRoutes } from './modules/matriculas/routes.js';
 import { createAttendanceRoutes } from './modules/asistencias/routes.js';
 import { createImportPreviewRoutes } from './modules/importaciones/routes.js';
 import { createReportsRoutes } from './modules/reportes/routes.js';
+import { createAuditRoutes } from './modules/auditoria/routes.js';
 
 export function createApp({ authService = createAuthService(), usuariosService, aniosEscolaresService,
-  seccionesService, calendarService, assignmentsService, studentsService, matriculasService, attendanceService, importPreviewService, reportsService } = {}) {
+  seccionesService, calendarService, assignmentsService, studentsService, matriculasService, attendanceService, importPreviewService, reportsService, auditService } = {}) {
   const app = express();
   app.use('/api/health', healthRoutes);
   app.use('/api/auth', createAuthRoutes(authService));
   app.use('/api/usuarios', createUsuariosRoutes(authService, usuariosService));
+  app.use('/api/auditoria', createAuditRoutes(authService, auditService));
   app.use('/api/anios-escolares', createAniosEscolaresRoutes(authService, aniosEscolaresService));
   const sections = seccionesService ?? createSeccionesService();
   const enrollments = matriculasService ?? createEnrollmentService({
