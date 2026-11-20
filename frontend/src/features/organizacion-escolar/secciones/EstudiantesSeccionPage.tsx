@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
@@ -12,6 +12,8 @@ import { formatCivilDate, peruToday, validCivilDate } from '../../../shared/date
 import { usePadron } from './usePadron';
 import EstudiantesList from './EstudiantesList';
 import SectionStaff from './SectionStaff';
+import StudentProfileButton from '../../estudiantes/perfil/StudentProfileButton';
+import { getRetiredStudents, type RetiredStudentEntry } from '../../matriculas/matriculas.api';
 import { padronReferenceDate } from './padronReferenceDate';
 
 export default function EstudiantesSeccionPage() {
@@ -27,6 +29,7 @@ function StudentsSection() {
   const location = useLocation();
   const navigate = useNavigate();
   const [editableDate] = useState(() => peruToday());
+  const [retired, setRetired] = useState<RetiredStudentEntry[]>([]);
   const { selected, checking, error, revalidate } = selection;
   const administrative = session?.user.rol === 'ADMIN' || session?.user.rol === 'SUBDIRECCION';
   const fecha = administrative ? (selected ? padronReferenceDate(selected.year) : '') : editableDate;
@@ -35,6 +38,20 @@ function StudentsSection() {
   const backLabel = session?.user.rol === 'REGISTRADOR' ? 'mis secciones' : 'secciones';
   const section = padron.data?.seccion ?? selected?.section;
   const back = `/secciones${location.search}`;
+
+  const loadRetired = useCallback(() => {
+    if (!administrative || !selected?.section?.id) return;
+    void getRetiredStudents(selected.section.id).then(setRetired).catch(() => setRetired([]));
+  }, [administrative, selected?.section?.id]);
+
+  useEffect(() => {
+    loadRetired();
+  }, [loadRetired]);
+
+  const handleRefresh = () => {
+    padron.retry();
+    loadRetired();
+  };
   return (
     <div className="space-y-6">
       <Button variant="secondary" onClick={() => navigate(back)}>
@@ -64,8 +81,28 @@ function StudentsSection() {
               section={padron.data.seccion ?? selected.section}
               yearId={selected.year.id}
               date={fecha}
-              onRefresh={padron.retry}
+              onRefresh={handleRefresh}
             />
+          )}
+          {administrative && retired.length > 0 && (
+            <details className="rounded-xl border border-slate-200 bg-white p-4">
+              <summary className="cursor-pointer font-semibold text-slate-800">
+                Estudiantes retirados ({retired.length})
+              </summary>
+              <ul className="mt-3 divide-y divide-slate-100">
+                {retired.map(entry => (
+                  <li key={entry.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        {[entry.estudiante.apellido_paterno, entry.estudiante.apellido_materno, entry.estudiante.nombres].filter(Boolean).join(' ')}
+                      </p>
+                      <p className="text-sm text-slate-500">Retirado el {formatCivilDate(entry.fecha_retiro)}</p>
+                    </div>
+                    <StudentProfileButton studentId={entry.estudiante_id} yearId={selected.year.id} month={entry.fecha_retiro.slice(0, 7)} />
+                  </li>
+                ))}
+              </ul>
+            </details>
           )}
         </>
       )}

@@ -8,12 +8,12 @@ export function createStudentProfileRepository(poolProvider) {
     read, year,
     identity: (connection, id) => identities.find(id, connection),
     async bindings(connection, id) {
-      const [rows] = await connection.execute(`SELECT m.anio_escolar_id, m.estado, m.fecha_ingreso, m.fecha_retiro,
+      const [rows] = await connection.execute(`SELECT m.id AS matricula_id, m.anio_escolar_id, m.estado, m.fecha_ingreso, m.fecha_retiro,
         ms.fecha_inicio, ms.fecha_fin, s.id, s.nivel, s.grado, s.letra, y.fecha_inicio AS anio_inicio, y.fecha_fin AS anio_fin
         FROM matriculas m JOIN matricula_secciones ms ON ms.matricula_id = m.id AND ms.anio_escolar_id = m.anio_escolar_id
         JOIN secciones s ON s.id = ms.seccion_id AND s.anio_escolar_id = ms.anio_escolar_id
         JOIN anios_escolares y ON y.id = m.anio_escolar_id WHERE m.estudiante_id = ? ORDER BY ms.fecha_inicio, s.id`, [id]);
-      return rows.map(row => ({ ...row, id: String(row.id), anio_escolar_id: String(row.anio_escolar_id) }));
+      return rows.map(row => ({ ...row, id: String(row.id), matricula_id: String(row.matricula_id), anio_escolar_id: String(row.anio_escolar_id) }));
     },
     async contact(connection, id) {
       const [rows] = await connection.execute(`SELECT c.nombres_apellidos, c.telefono FROM estudiante_contactos ec

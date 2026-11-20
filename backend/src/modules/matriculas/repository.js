@@ -4,6 +4,8 @@ import { readInsertedId } from '../../shared/inserted-id.js';
 import { createEnrollmentQueries } from './query.repository.js';
 import { withdrawEnrollment } from './withdraw.repository.js';
 import { changeSection } from './section-change.repository.js';
+import { reingresoEnrollment } from './reingreso.repository.js';
+import { listRetiredStudents } from './retired.repository.js';
 
 async function actor(connection, id) {
   const [rows] = await connection.execute(
@@ -59,6 +61,12 @@ export function createEnrollmentRepository(poolProvider = getPool) {
     },
     changeSection(id, data, actorId, hooks) {
       return changeSection(poolProvider(), id, data, actorId, hooks);
+    },
+    reingreso(id, data, actorId, hooks) {
+      return reingresoEnrollment(poolProvider(), id, data, actorId, hooks);
+    },
+    listRetired(sectionId, yearId, connection = poolProvider()) {
+      return listRetiredStudents(connection, sectionId, yearId);
     },
   };
 }

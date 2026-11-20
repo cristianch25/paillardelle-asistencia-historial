@@ -5,6 +5,7 @@ export type ProfileSection = { id: string; nivel: EducationLevel; grado: number;
 export type StudentProfile = {
   estudiante: { id: string; nombres: string; apellido_paterno: string; apellido_materno: string | null; codigo_estudiante: string | null };
   contexto: { anio_escolar_id: string; mes: string; fecha_desde: string; fecha_hasta: string;
+    matricula_id?: string | null; matricula_estado?: string | null; fecha_retiro?: string | null;
     seccion_actual: ProfileSection | null; secciones: (ProfileSection & { fecha_inicio: string; fecha_fin: string | null })[] };
   apoderado_visible: boolean;
   apoderado: { nombres_apellidos: string; telefono: string | null } | null;

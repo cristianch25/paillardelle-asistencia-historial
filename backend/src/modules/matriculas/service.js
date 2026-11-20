@@ -2,7 +2,7 @@ import { HttpError } from '../../shared/http-error.js';
 import { peruDate } from '../../shared/peru-date.js';
 import { validateId } from '../../shared/query-validation.js';
 import { createEnrollmentRepository } from './repository.js';
-import { listQuery, enrollmentData, padronQuery, withdrawData, sectionChangeData } from './validation.js';
+import { listQuery, enrollmentData, padronQuery, withdrawData, sectionChangeData, reingresoData } from './validation.js';
 import { requireActor, enrollmentContext, enrollmentConflict, withdrawContext, validateWithdrawal } from './access.js';
 import { createAttendanceImpactService } from '../asistencias/impact.service.js';
 
@@ -136,6 +136,28 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
         return await repository.changeSection(id, data, actor.id, {
           authorize: (current, connection) => accessFor(current, today, connection, true),
           sectionContext: (sectionId, connection) => seccionesService.assignmentContext(sectionId, connection),
+        });
+      } catch (error) { throw enrollmentConflict(error); }
+    },
+    async retiredList(sectionId, actor) {
+      validateId(sectionId);
+      requireActor(actor, false);
+      if (!['ADMIN', 'SUBDIRECCION'].includes(actor.rol)) throw new HttpError(403, 'Solo ADMIN y SUBDIRECCION pueden consultar estudiantes retirados.');
+      const section = await seccionesService.findById(sectionId, actor), access = await accessFor(actor, getToday());
+      if (access.levels && !access.levels.includes(section.nivel)) throw new HttpError(404, 'Sección no encontrada.');
+      const rows = await repository.listRetired(sectionId, section.anio_escolar_id);
+      const students = await identitiesService.readIdentities(rows.map(row => row.estudiante_id));
+      const byId = new Map(students.map(student => [student.id, student]));
+      return { seccion_id: sectionId, retirados: rows.map(row => ({ ...row, estudiante: byId.get(row.estudiante_id) })) };
+    },
+    async reingreso(id, body, actor) {
+      validateId(id);
+      requireActor(actor, true);
+      const data = reingresoData(body), today = getToday();
+      if (data.fecha_reingreso > today) throw new HttpError(400, 'La fecha de reingreso no puede ser futura.');
+      try {
+        return await repository.reingreso(id, data, actor.id, {
+          authorize: (current, connection) => accessFor(current, today, connection, true),
         });
       } catch (error) { throw enrollmentConflict(error); }
     },

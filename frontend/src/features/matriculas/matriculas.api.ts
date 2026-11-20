@@ -20,6 +20,36 @@ export type SectionChangeResponse = {
   fecha_efectiva: string;
 };
 
+export type RetiredStudentEntry = {
+  id: string;
+  estudiante_id: string;
+  anio_escolar_id: string;
+  fecha_ingreso: string;
+  fecha_retiro: string;
+  estado: 'RETIRADA';
+  matricula_seccion_id: string;
+  seccion_id: string;
+  fecha_inicio: string;
+  fecha_fin: string;
+  estudiante: {
+    id: string;
+    codigo_estudiante: string | null;
+    apellido_paterno: string;
+    apellido_materno: string | null;
+    nombres: string;
+  };
+};
+
+export type ReingresoResponse = {
+  id: string;
+  estudiante_id: string;
+  anio_escolar_id: string;
+  estado: 'ACTIVA';
+  seccion_id: string;
+  matricula_seccion_id: string;
+  fecha_reingreso: string;
+};
+
 export async function withdrawEnrollment(
   id: string,
   fechaRetiro: string,
@@ -40,6 +70,25 @@ export async function changeStudentSection(
   const { data } = await httpClient.post<SectionChangeResponse>(`/matriculas/${id}/cambio-seccion`, {
     seccion_id: seccionId,
     fecha_efectiva: fechaEfectiva,
+  });
+  return data;
+}
+
+export async function getRetiredStudents(sectionId: string): Promise<RetiredStudentEntry[]> {
+  const { data } = await httpClient.get<{ seccion_id: string; retirados: RetiredStudentEntry[] }>(
+    `/secciones/${sectionId}/retirados`
+  );
+  return data.retirados;
+}
+
+export async function reingresoStudent(
+  matriculaId: string,
+  seccionId: string,
+  fechaReingreso: string,
+): Promise<ReingresoResponse> {
+  const { data } = await httpClient.post<ReingresoResponse>(`/matriculas/${matriculaId}/reingreso`, {
+    seccion_id: seccionId,
+    fecha_reingreso: fechaReingreso,
   });
   return data;
 }

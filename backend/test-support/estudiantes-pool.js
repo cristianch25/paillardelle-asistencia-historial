@@ -136,11 +136,29 @@ export function studentsFixture() {
         if (sql.includes('FROM matricula_secciones WHERE matricula_id = ?')) {
           return [all('links').filter(l => l.matricula_id === p[0] && l.fecha_fin === null)];
         }
+        if (sql.includes('FROM matricula_secciones ms JOIN secciones s')) {
+          const links = all('links').filter(l => l.matricula_id === p[0]);
+          const rows = links.map(l => {
+            const s = state.sections.get(l.seccion_id);
+            return { id: l.id, seccion_id: l.seccion_id, fecha_inicio: l.fecha_inicio, fecha_fin: l.fecha_fin,
+              nivel: s?.nivel, grado: s?.grado };
+          }).sort((a, b) => BigInt(b.id) < BigInt(a.id) ? -1 : 1);
+          return [rows];
+        }
         if (sql.includes('FROM asistencias WHERE matricula_id = ?')) {
           const op = sql.includes('fecha >= ?') ? (a, d) => a.fecha >= d : (a, d) => a.fecha > d;
           return [(state.attendances ?? []).filter(a => a.matricula_id === p[0] && op(a, p[1]))];
         }
         if (sql.startsWith('UPDATE matriculas SET')) {
+          if (sql.includes('fecha_retiro = NULL')) {
+            const target = all('matriculas').find(m => m.id === p[1]);
+            if (target && target.estado === p[2] && target.fecha_retiro === p[3]) {
+              target.estado = p[0];
+              target.fecha_retiro = null;
+              return [{ affectedRows: 1 }];
+            }
+            return [{ affectedRows: 0 }];
+          }
           const target = all('matriculas').find(m => m.id === p[2]);
           if (target && target.fecha_retiro === p[3]) {
             target.estado = p[0];
@@ -156,6 +174,18 @@ export function studentsFixture() {
             return [{ affectedRows: 1 }];
           }
           return [{ affectedRows: 0 }];
+        }
+        if (sql.includes('ms.fecha_fin = m.fecha_retiro')) {
+          const rows = all('matriculas')
+            .filter(m => m.anio_escolar_id === p[1] && m.estado === 'RETIRADA')
+            .flatMap(m => {
+              const link = all('links').find(l => l.matricula_id === m.id && l.fecha_fin === m.fecha_retiro && l.seccion_id === p[0]);
+              if (!link) return [];
+              return [{ id: m.id, estudiante_id: m.estudiante_id, anio_escolar_id: m.anio_escolar_id,
+                fecha_ingreso: m.fecha_ingreso, fecha_retiro: m.fecha_retiro, estado: m.estado,
+                matricula_seccion_id: link.id, seccion_id: link.seccion_id, fecha_inicio: link.fecha_inicio, fecha_fin: link.fecha_fin }];
+            });
+          return [rows];
         }
         if (sql.includes('FROM matriculas m JOIN')) return [readEnrollmentRows(sql, p, {
           ...state, matriculas: all('matriculas'), links: all('links') })];

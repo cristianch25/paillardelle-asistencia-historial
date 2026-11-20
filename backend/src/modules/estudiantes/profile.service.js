@@ -37,9 +37,14 @@ export function createStudentProfileService({ repository = createStudentProfileR
         const currentVisible = currentBindings.filter(row => !levels || levels.includes(row.nivel));
         if (currentVisible.length > 1) throw new HttpError(409, 'La sección actual requiere revisión.');
         const apoderado_visible = current.rol === 'ADMIN' || currentVisible.length > 0;
+        const enrollment = visible[0] ?? null;
         return { estudiante: { id: String(student.id), nombres: student.nombres, apellido_paterno: student.apellido_paterno,
           apellido_materno: student.apellido_materno, codigo_estudiante: student.codigo_estudiante },
-        contexto: { ...data, ...dates, seccion_actual: section(currentVisible[0]),
+        contexto: { ...data, ...dates,
+          matricula_id: enrollment ? enrollment.matricula_id : null,
+          matricula_estado: enrollment ? enrollment.estado : null,
+          fecha_retiro: enrollment ? enrollment.fecha_retiro : null,
+          seccion_actual: section(currentVisible[0]),
           secciones: visible.filter(row => [...days.keys()].some(date => effectiveBinding(row, date)))
             .map(row => ({ ...section(row), fecha_inicio: row.fecha_inicio, fecha_fin: row.fecha_fin })) },
         apoderado_visible, apoderado: apoderado_visible ? await repository.contact(connection, id) : null,

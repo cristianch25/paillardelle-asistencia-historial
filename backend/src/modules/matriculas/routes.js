@@ -16,6 +16,8 @@ export function createEnrollmentRoutes(authService, service) {
   router.post('/alta-inicial', writer, json({ limit: '8kb' }), controller.joint);
   router.patch('/:id/retiro', writer, json({ limit: '2kb' }), controller.withdraw);
   router.post('/:id/cambio-seccion', writer, json({ limit: '2kb' }), controller.changeSection);
+  router.post('/:id/reingreso', writer, json({ limit: '2kb' }), controller.reingreso);
   padron.get('/:id/padron', noStore, authenticate(authService), controller.padron);
+  padron.get('/:id/retirados', noStore, authenticate(authService), writer, controller.retiredList);
   return { router, padron };
 }

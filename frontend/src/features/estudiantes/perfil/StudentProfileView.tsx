@@ -1,7 +1,11 @@
+import { useContext, useState } from 'react';
 import type { StudentProfile } from './profile.types';
 import { educationLevelLabels, formatSectionName } from '../../organizacion-escolar/secciones/sectionPresentation';
 import { formatCivilDate } from '../../../shared/dates/civilDate';
+import { AuthContext } from '../../auth/AuthContext';
+import Button from '../../../shared/components/Button';
 import GuardianPhoneEditor from './GuardianPhoneEditor';
+import ReingresoDialog from '../../matriculas/ReingresoDialog';
 
 const labels = { PRESENTE: 'Presente', TARDANZA: 'Tardanza', FALTA: 'Falta', PENDIENTE: 'Pendiente',
   SIN_SESION: 'Sin sesión', SIN_ASISTENCIA: 'Sin marca individual', FUERA_DE_VIGENCIA: 'Fuera de vigencia o sin contexto autorizado' };
@@ -9,6 +13,12 @@ const name = (section: NonNullable<StudentProfile['contexto']['seccion_actual']>
 export default function StudentProfileView({ data, compact = false, onBusyChange, onReload }: {
   data: StudentProfile; compact?: boolean; onBusyChange?: (busy: boolean) => void; onReload?: () => void;
 }) {
+  const auth = useContext(AuthContext);
+  const [showReingreso, setShowReingreso] = useState(false);
+  const canReingresar = auth?.session?.user.rol === 'ADMIN' || auth?.session?.user.rol === 'SUBDIRECCION';
+  const isRetired = data.contexto.matricula_estado === 'RETIRADA' && Boolean(data.contexto.matricula_id);
+  const lastSection = data.contexto.secciones.at(-1);
+
   const phone = data.apoderado && data.apoderado_visible ? <GuardianPhoneEditor key={`${data.estudiante.id}:${data.apoderado.telefono}`}
     studentId={data.estudiante.id} phone={data.apoderado.telefono} onBusyChange={onBusyChange} onReload={onReload} /> : null;
   if (compact) return <div aria-label="Datos del perfil individual" className="min-w-0 space-y-4 break-words">
@@ -33,6 +43,21 @@ export default function StudentProfileView({ data, compact = false, onBusyChange
       <ul className="text-sm">{data.contexto.secciones.map((section, index) => <li key={`${section.id}-${index}`}>
         {name(section)} · desde {formatCivilDate(section.fecha_inicio)}{section.fecha_fin ? ` hasta ${formatCivilDate(section.fecha_fin)}` : ''}</li>)}</ul>
     </section>
+    {isRetired && lastSection && (
+      <section className="rounded-lg bg-amber-50 p-4 border border-amber-200 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-semibold text-amber-900">Estudiante con matrícula RETIRADA</p>
+          {data.contexto.fecha_retiro && (
+            <p className="text-sm text-amber-700">Retirado el {formatCivilDate(data.contexto.fecha_retiro)}</p>
+          )}
+        </div>
+        {canReingresar && (
+          <Button variant="primary" onClick={() => setShowReingreso(true)}>
+            Reingresar estudiante
+          </Button>
+        )}
+      </section>
+    )}
     <section className="rounded-lg bg-slate-50 p-3">
       <h3 className="font-semibold">Apoderado actual</h3>
       {!data.apoderado_visible ? <p className="text-sm">Sin permiso para consultar el apoderado actual.</p>
@@ -58,5 +83,20 @@ export default function StudentProfileView({ data, compact = false, onBusyChange
         <td className="max-w-xs break-words p-2">{day.justificada ? day.motivo_justificacion || 'Justificada' : '—'}</td>
       </tr>)}</tbody>
     </table></div>
+    {showReingreso && isRetired && lastSection && (
+      <ReingresoDialog
+        studentName={[data.estudiante.apellido_paterno, data.estudiante.apellido_materno, data.estudiante.nombres].filter(Boolean).join(' ')}
+        matriculaId={data.contexto.matricula_id!}
+        anioEscolarId={data.contexto.anio_escolar_id}
+        nivel={lastSection.nivel}
+        grado={lastSection.grado}
+        fechaRetiro={data.contexto.fecha_retiro || lastSection.fecha_fin || ''}
+        onClose={() => setShowReingreso(false)}
+        onSuccess={() => {
+          setShowReingreso(false);
+          onReload?.();
+        }}
+      />
+    )}
   </div>;
 }

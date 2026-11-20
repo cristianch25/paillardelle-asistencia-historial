@@ -54,3 +54,12 @@ export function sectionChangeData(body) {
   }
   return { seccion_id, fecha_efectiva: body.fecha_efectiva };
 }
+
+export function reingresoData(body) {
+  object(body, ['seccion_id', 'fecha_reingreso']);
+  const seccion_id = validateId(body?.seccion_id);
+  if (!validDate(body?.fecha_reingreso)) {
+    throw new HttpError(400, 'fecha_reingreso inválida: se requiere YYYY-MM-DD válida.');
+  }
+  return { seccion_id, fecha_reingreso: body.fecha_reingreso };
+}
