@@ -16,5 +16,6 @@ export function createAttendanceRoutes(authService, service = createAttendanceSe
   router.get('/sesiones/:id/resumen', controller.summary);
   router.patch('/sesiones/:id/registros', json({ limit: '512kb' }), controller.save);
   router.post('/sesiones/:id/cierre', json({ limit: '8kb' }), controller.close);
+  router.get('/:asistenciaId/historial', controller.history);
   return router;
 }

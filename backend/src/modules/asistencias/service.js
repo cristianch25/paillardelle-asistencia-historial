@@ -15,6 +15,7 @@ import { createAttendanceListService } from './list.service.js';
 import { createAttendanceSearchService } from './search.service.js';
 import { createAttendanceStatisticsService } from './statistics.service.js';
 import { createMonthlyFollowupService } from './followup.service.js';
+import { createAttendanceHistoryService } from './history.service.js';
 
 export function createAttendanceService(options = {}) {
   const users = options.users ?? createUsuariosService();
@@ -59,6 +60,7 @@ export function createAttendanceService(options = {}) {
     ...createMonthlyFollowupService({ repository: options.followupRepository, users }),
     ...createAttendanceListService({ repository: options.listRepository, users, calendar, getToday: today }),
     ...createAttendanceSearchService({ repository: options.searchRepository, enrollments, users, getToday: today }),
+    ...createAttendanceHistoryService({ repository: options.historyRepository }),
     async open(body, actor) {
       const location = opening(body);
       return run(location, actor, async context => {

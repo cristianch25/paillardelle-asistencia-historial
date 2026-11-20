@@ -12,5 +12,6 @@ export function createAttendanceController(service) {
     async summary(req, res) { res.json(await service.find(req.params.id, req.query, req.authUser, true)); },
     async save(req, res) { res.json(await service.save(req.params.id, req.body, req.authUser)); },
     async close(req, res) { res.json(await service.close(req.params.id, req.body, req.authUser)); },
+    async history(req, res) { res.json(await service.history(req.params.asistenciaId, req.authUser)); },
   };
 }
