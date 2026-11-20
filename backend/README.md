@@ -8,6 +8,21 @@ puerto temporal sin iniciar el servidor habitual al importar la aplicación.
 
 ## Estado y referencias vigentes
 
+SUPERUSUARIO, etapa 1 aprobada el 20/11/2026: solo documentación y
+[007 preparada, NO aplicada](../docs/database/migrations/README.md).
+El backend no implementa todavía el rol; 007 solo amplía el ENUM de roles.
+La [matriz normativa V8](../docs/requisitos/PAILLARDELLE_TRAZABILIDAD_v7_v8.md#matriz-normativa-de-gestión-de-cuentas)
+separa gestión técnica de ADMIN y gestión institucional de SUBDIRECCION/REGISTRADOR,
+sin acceso académico técnico ni creación web de SUPERUSUARIO. Las reglas de
+contraseñas/estados ADMIN se implementarán después; no atribuirlas al código actual.
+El cambio obligatorio de contraseña temporal ADMIN en primer acceso, su indicador
+persistente siguen sin implementar. La revocación inmediata de JWT queda fuera
+de esta implementación: tras cambiar o restablecer una contraseña, los JWT
+anteriores pueden conservar su validez hasta vencer, sujetos a la actividad
+y permisos actuales de la cuenta. El alta
+local deberá registrar su origen real, no un ADMIN ficticio. Logs/backups fuera
+de esta etapa. No ejecutar 007, herramientas ni cambios de cuentas por este README.
+
 Código de referencia: `a131fec`, posterior a 6C-A; incluye revalidación del ADMIN
 bajo bloqueo en el alta de usuarios. Última suite confirmada para ese commit:
 171 pruebas exitosas. 6D-1 completó el esquema local de períodos; 6D-2 añade las
@@ -17,9 +32,10 @@ El bloque inicial de asignaciones añade 24 pruebas y la apertura anual otras 16
 256 pruebas previas. El bloque de estudiantes, matrícula inicial y padrón añade
 47 pruebas: suite actual de 303 exitosas. Último commit confirmado: `b0639eb`;
 este bloque permanece pendiente de commit y usa conexiones simuladas en pruebas.
-Las referencias funcionales vigentes son los cuatro TXT v5 enlazados en el
+Las referencias funcionales vigentes son los cuatro TXT V8 y su trazabilidad, con
+las precisiones aprobadas de SUPERUSUARIO etapa 1, enlazados en el
 [README principal](../README.md#referencias-funcionales-vigentes). V2 y la adenda
-6C-A y los cuatro TXT v4 son antecedentes históricos; no conceden permisos contrarios a v5 ni
+6C-A y los TXT V4–V7 son antecedentes históricos; no conceden permisos contrarios a V8 ni
 acreditan implementación de asistencia, justificaciones o bitácora.
 
 ## Iniciar y detener
@@ -320,7 +336,7 @@ Los cambios de justificaciones/bitácora siguen pendientes de diseño y migraci�
 ## QR y PORTERIA (futuros)
 
 Los contratos y el ENUM actuales admiten ADMIN/SUBDIRECCION/REGISTRADOR. PORTERIA
-es un cuarto rol aprobado, todavía sin soporte: login, escaneo y resultados propios
+es un rol futuro aprobado, todavía sin soporte: login, escaneo y resultados propios
 con datos mínimos en el acceso principal compartido de los tres niveles. Sin
 asistencia manual, justificaciones, administración de horarios, emisión/revocación
 de credenciales, listados generales ni reportes.

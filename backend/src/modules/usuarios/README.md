@@ -1,9 +1,41 @@
 # Módulo de usuarios
 
+## Decisión posterior: SUPERUSUARIO etapa 1 — 20/11/2026
+
+La [matriz V8 aprobada](../../../../docs/requisitos/PAILLARDELLE_TRAZABILIDAD_v7_v8.md#matriz-normativa-de-gestión-de-cuentas)
+es el objetivo de la futura implementación, no el contrato ejecutable actual.
+Solo SUPERUSUARIO creará ADMIN, restablecerá sus contraseñas y activará/desactivará
+ADMIN, preservando al menos uno activo. También podrá consultar esas cuentas.
+ADMIN conserva consulta institucional y gestión de SUBDIRECCION/REGISTRADOR,
+sin crear/promocionar ni modificar ADMIN o administrar sus contraseñas/estados,
+ni administrar SUPERUSUARIO. Ningún rol creará/promoverá SUPERUSUARIO desde web;
+el rol técnico no administrará SUBDIRECCION/REGISTRADOR ni heredará acceso académico.
+Se conserva el perfil/cambio propio autenticado. Otras ediciones ADMIN por
+SUPERUSUARIO no están autorizadas en esta etapa.
+
+La [007](../../../../docs/database/migrations/007_superusuario.sql) está
+**PREPARADA, NO APLICADA**; añade únicamente SUPERUSUARIO al ENUM,
+sin agregar columnas, crear cuentas, cambiar datos originales ni incorporar PORTERIA. El código
+actual aún permite a ADMIN operaciones que la nueva regla deberá restringir.
+No ampliar requireAdmin a todos los módulos para habilitar el rol técnico.
+
+ADMIN con contraseña temporal por alta/restablecimiento deberá cambiarla en el
+primer acceso antes de funciones institucionales, validado en servidor; estado
+y flujo pendientes, no implementados por 007. Tras cambiar o restablecer una
+contraseña, los JWT anteriores pueden conservar su validez hasta vencer, sujetos
+a la actividad y permisos actuales de la cuenta. No se implementará revocación
+inmediata en esta implementación. El alta local técnica
+registrará origen real e identidad sin inventar un ADMIN; el actor compatible
+con la FK de auditoría requiere definición antes de implementar. Sin secretos en
+argumentos/archivos/logs/auditoría. Cuenta y auditoría atómicas; último ADMIN activo
+protegido ante concurrencia. Logs técnicos/backups fuera de alcance. Etapa 2 y SQL
+requieren autorizaciones posteriores. Los contratos siguientes describen el
+código existente y su contexto histórico, no implementación de esta precisión.
+
 Para instalación, variables de entorno, arranque y pruebas, consulta el
 [README del backend](../../../README.md).
 
-Las referencias funcionales vigentes son [los cuatro TXT v5](../../../../README.md#referencias-funcionales-vigentes).
+Las referencias funcionales vigentes son [los cuatro TXT V8 y su trazabilidad](../../../../README.md#referencias-funcionales-vigentes), incluida la precisión SUPERUSUARIO etapa 1.
 Este README describe los contratos de usuarios hasta `a131fec` y el bloque
 inicial de asignaciones aprobado después de 6D-2;
 las decisiones futuras no amplían estos contratos por documentación.

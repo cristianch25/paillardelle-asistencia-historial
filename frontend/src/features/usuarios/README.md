@@ -1,5 +1,25 @@
 # Usuarios — interfaz exclusiva de ADMIN
 
+## Precisión aprobada pendiente de implementación — 20/11/2026
+
+SUPERUSUARIO etapa 1 solo actualiza reglas y prepara 007, **NO aplicada**.
+La [matriz V8](../../../../docs/requisitos/PAILLARDELLE_TRAZABILIDAD_v7_v8.md#matriz-normativa-de-gestión-de-cuentas)
+reserva creación/restablecimiento/estados ADMIN a SUPERUSUARIO; ADMIN conservará
+SUBDIRECCION/REGISTRADOR y consulta institucional, sin administrar ADMIN ni
+SUPERUSUARIO. No crear/promover SUPERUSUARIO desde web ni concederle gestión de
+SUBDIRECCION/REGISTRADOR o acceso académico. Conservar cambio de contraseña propia.
+El futuro acceso técnico solo consultará/gestionará las operaciones aprobadas
+sobre ADMIN y el perfil propio, sin cargar secciones, matrículas o asignaciones.
+
+La interfaz actual descrita abajo no implementa estas restricciones nuevas ni
+un acceso SUPERUSUARIO. ADMIN con contraseña temporal deberá cambiarla en primer
+acceso mediante control de servidor futuro; 007 no lo implementa y solo amplía el ENUM.
+Tras cambiar o restablecer una contraseña, los JWT anteriores pueden conservar
+su validez hasta vencer, sujetos a la actividad y permisos actuales de la cuenta.
+La revocación inmediata queda fuera de esta implementación.
+Su indicador/flujo necesitan diseño antes de programar. No hay cambios React,
+contraseñas, cuentas, conexiones ni implementación de logs/backups en esta etapa.
+
 Una sola pantalla `/usuarios`, con menú Usuarios. La ruta rechaza SUBDIRECCION y
 REGISTRADOR antes de montar consultas. Los endpoints de usuarios y de creación
 de asignaciones ya exigen ADMIN en servidor; no se modificó ese backend.

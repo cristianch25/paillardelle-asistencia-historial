@@ -6,6 +6,30 @@ manual de padrones con revisión, sin sincronización automática.
 
 ## Estado del proyecto
 
+20/11/2026 — SUPERUSUARIO, etapa 1: reglas aprobadas y migración
+[007](docs/database/migrations/007_superusuario.sql) **PREPARADA, NO APLICADA**.
+Solo SUPERUSUARIO podrá crear ADMIN y restablecer sus contraseñas o cambiar sus
+estados; ADMIN conservará SUBDIRECCION/REGISTRADOR sin administrar ADMIN ni
+SUPERUSUARIO. El rol técnico es independiente, sin acceso académico automático.
+Se conserva el cambio de contraseña propia y al menos un ADMIN activo.
+La [matriz normativa](docs/requisitos/PAILLARDELLE_TRAZABILIDAD_v7_v8.md#matriz-normativa-de-gestión-de-cuentas)
+precisa D48/D49, RN-48/RN-49 y RF-23/RF-24 V8. El catálogo aprobado incluye los
+tres roles actuales, SUPERUSUARIO pendiente y PORTERIA futuro; no implica que
+los cinco estén implementados. No se cambia código ni datos en esta etapa.
+
+007 amplía exclusivamente `usuarios.rol`, sin añadir columnas, crear cuentas ni
+revocar JWT. Tras cambiar o restablecer una contraseña, los JWT anteriores pueden
+conservar su validez hasta vencer, sujetos al estado activo y permisos actuales
+de la cuenta. La revocación inmediata queda fuera de esta implementación.
+ADMIN con contraseña temporal deberá cambiarla
+en su primer acceso mediante un futuro control del servidor: el indicador/flujo
+todavía no están diseñados y 007 no los implementa. El alta inicial local técnica
+deberá auditar su origen real sin atribuirla falsamente a ADMIN. Logs técnicos y
+backups quedan para otras etapas. Ejecución SQL y etapa 2 requieren autorización
+separada; no se conectó a MySQL ni se tocó la infraestructura 3312.
+Los estados y permisos descritos en los bloques históricos siguientes no
+acreditan implementación de esta nueva decisión.
+
 Actualización puntual 19/11/2026 — ficha mensual PDF: `/reportes` permite a los
 tres roles académicos descargar una ficha A4 vertical por sección/mes con hasta
 30 estudiantes y todos los días del mes. Endpoint único
@@ -92,17 +116,18 @@ documenta endpoints, decisiones de esta etapa, permisos, archivos, tablas y prue
 
 ## Referencias funcionales vigentes
 
-- [Decisiones de asistencia v5](docs/requisitos/PAILLARDELLE_DECISIONES_ASISTENCIA_v5.txt).
-- [Reglas de negocio v5](docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v5.txt).
-- [Requerimientos v5](docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v5.txt).
-- [Análisis de impacto BD/código v5](docs/requisitos/PAILLARDELLE_ANALISIS_IMPACTO_BD_v5.txt).
+- [Decisiones V8](docs/requisitos/PAILLARDELLE_DECISIONES_v8.txt).
+- [Reglas de negocio V8](docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v8.txt).
+- [Requerimientos V8](docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v8.txt).
+- [Análisis de impacto V8](docs/requisitos/PAILLARDELLE_IMPACTO_v8.txt).
+- [Trazabilidad V7 → V8 y matriz de cuentas](docs/requisitos/PAILLARDELLE_TRAZABILIDAD_v7_v8.md).
 - [Instrucciones de trabajo](AGENTS.md).
 
-V5 consolida las decisiones aprobadas, no declara que todas estén programadas.
-Incluye calendario 6D, estado de 003 y el futuro QR/PORTERIA. Su análisis conserva
-los modelos y conflictos pendientes; su estado de implementación corresponde al
-momento de consolidación previo a 6D-2. Citar versión junto a RN/RF/RNF: algunos
-códigos cambiaron de significado respecto de versiones anteriores.
+V8 y sus precisiones posteriores aprobadas son la referencia funcional vigente,
+incluida SUPERUSUARIO etapa 1 del 20/11/2026. Aprobar una regla no demuestra que
+esté programada ni autoriza ejecutar SQL. V5 conserva su contexto histórico de
+calendario 6D y QR/PORTERIA, sin prevalecer sobre V8. Citar versión junto a
+RN/RF/RNF: algunos códigos cambiaron de significado respecto de versiones anteriores.
 
 Antecedentes históricos conservados sin sobrescribir:
 [consolidado v2](docs/requisitos/diseno_asistencia_consolidado_v2.txt) y
@@ -194,7 +219,7 @@ dentro de calendario. El fin de clases no cierra automáticamente el año admini
 
 ## QR y PORTERIA: aprobados, sin implementación
 
-PORTERIA será un cuarto rol independiente, para login, escaneo QR y visualización
+PORTERIA conserva su rol futuro independiente, para login, escaneo QR y visualización
 de resultados propios con datos mínimos, en el acceso principal compartido de
 INICIAL, PRIMARIA y SECUNDARIA. No tendrá asistencia manual, justificaciones,
 horarios, emisión/revocación de credenciales, listados generales ni reportes.

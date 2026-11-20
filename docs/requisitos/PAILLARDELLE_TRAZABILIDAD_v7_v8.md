@@ -1,5 +1,62 @@
 # Trazabilidad V7 → V8 — BORRADOR NO APROBADO
 
+## Precisión aprobada: SUPERUSUARIO etapa 1 — 20/11/2026
+
+V8 fue adoptada el 16/11/2026 según AGENTS.md. Los rótulos y clasificaciones
+de preparación siguientes conservan su contexto histórico; esta precisión
+supera únicamente sus afirmaciones incompatibles sobre catálogo y gestión de
+cuentas. No cambia los permisos académicos de ADMIN/SUBDIRECCION/REGISTRADOR.
+SUPERUSUARIO está aprobado, pendiente de implementación; PORTERIA sigue futuro.
+**007 está preparada, NO aplicada.** No se autoriza ejecutar SQL ni etapa 2.
+
+Referencia V8 | Cambio aprobado | Estado
+--- | --- | ---
+D02/D04, RN-29, RF-01/RF-02 | Catálogo de cinco roles y separación técnica/institucional; sin herencia de ADMIN | Precisión de identificadores existentes
+D48, RN-48, RF-23 | Matriz de cuentas siguiente; último ADMIN activo; autorización por actor/operación/destinatario | Nuevos identificadores, sin equivalente V7; implementación pendiente
+D49, RN-49, RF-24, RNF-03 | Alta local con origen real, cambio de contraseña temporal ADMIN en primer acceso, sin secretos en logs/Git | Nuevos requisitos; no implementados
+Impacto: anexo SUPERUSUARIO; 007 | Ampliar exclusivamente usuarios.rol, añadiendo SUPERUSUARIO al final del ENUM | Solo preparación SQL; sin nuevas columnas, cuentas, permisos ni revocación inmediata
+
+### Matriz normativa de gestión de cuentas
+
+Esta matriz es la decisión aprobada para la futura implementación, no una
+descripción de lo que el backend/frontend actual ya impide.
+
+Operación | SUPERUSUARIO | ADMIN | SUBDIRECCION / REGISTRADOR
+--- | --- | --- | ---
+Crear ADMIN | Sí | No, incluida promoción desde otro rol | No
+Consultar ADMIN | Sí | Conserva consulta institucional existente | No
+Restablecer contraseña o activar/desactivar ADMIN | Sí, preservando al menos un ADMIN activo | No | No
+Editar otros datos o cambiar rol de ADMIN | No autorizado en esta etapa | No | No
+Administrar SUBDIRECCION/REGISTRADOR | No | Conserva permisos existentes | No
+Crear/promover SUPERUSUARIO desde la web | No | No | No
+Modificar, desactivar o restablecer SUPERUSUARIO desde administración web | No autorizado | No | No
+Consultar perfil y cambiar contraseña propia autenticada | Sí | Sí | Sí
+Acceso académico | Sin acceso automático | Conserva permisos existentes | Conserva permisos existentes
+
+El cambio de contraseña propia no es administración de cuentas ajenas.
+PORTERIA conserva RF-16/RN-30 y sus restricciones futuras; 007 no lo habilita.
+No se conceden permisos configurables, SQL/restauraciones/operaciones de servidor
+desde web ni consulta técnica global por inferencia. Logs técnicos y backups
+no se implementan en esta etapa. Cuenta y auditoría compartirán transacción.
+
+ADMIN que reciba contraseña temporal por alta/restablecimiento deberá cambiarla
+en el primer acceso antes de funciones institucionales, con control en servidor.
+007 no añade el indicador de temporalidad: ese estado y flujo necesitan diseño
+y posible migración posterior autorizada. No alterar credenciales existentes ni
+inferir su temporalidad automáticamente. El cambio o restablecimiento de
+contraseña no revoca inmediatamente los JWT anteriores: pueden conservar su
+validez hasta vencer, sujetos a la actividad y permisos actuales de la cuenta.
+La revocación inmediata queda fuera de esta implementación; cualquier
+incorporación futura necesitará autorización expresa.
+El alta inicial local de SUPERUSUARIO registrará origen real e identidad técnica,
+sin atribución ficticia a ADMIN, respetando la FK de auditoría; su representación
+debe resolverse antes de implementar la herramienta. Sin contraseña fija,
+argumentos/archivos de credenciales ni contraseñas, hashes o tokens en auditorías.
+
+El único DDL nuevo es `007_superusuario.sql`, posterior a 006; no modifica
+SQL v1 ni 002–006, no crea usuarios/cuentas SQL ni cambia datos originales. La
+aplicación, respaldo/ensayo y verificación real requieren autorización separada.
+
 Preparación autorizada el 16/11/2026. No adopta V8 ni modifica AGENTS.md. El commit histórico 9f7b9715f35f829b2bcbb9ba4402b4c358bc58d5 contiene solo los cuatro V7 originales, pendientes de aprobación, sin declararlos vigentes.
 
 ## Integridad de los antecedentes
@@ -34,9 +91,9 @@ Excepción TRASLADADO SIAGIE | Autorización expresa del 18/11/2026 para termina
 Documento | ID V7 → V8 | Clasificación | Criterio
 --- | --- | --- | ---
 DECISIONES | D01 → D01 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
-DECISIONES | D02 → D02 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
+DECISIONES | D02 → D02 | PRECISADA 20/11/2026 | Catálogo ampliado con SUPERUSUARIO según D48/D49; no implica implementación.
 DECISIONES | D03 → D03 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
-DECISIONES | D04 → D04 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
+DECISIONES | D04 → D04 | PRECISADA 20/11/2026 | Rol técnico acotado, sin SUPERADMIN con herencia general ni permisos configurables.
 DECISIONES | D05 → D05 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 DECISIONES | D06 → D06 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 DECISIONES | D07 → D07 | SUSTITUIDA / ACTUALIZADA | Guardado sin cierre obligatorio; frontend envía únicamente modificaciones efectivas y backend conserva atomicidad y no-op vigente, sin eventos ni incremento de versiones.
@@ -128,7 +185,7 @@ REGLAS_NEGOCIO | RN-25 → RN-25 | CONSERVADA | Contenido compatible conservado;
 REGLAS_NEGOCIO | RN-26 → RN-26 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REGLAS_NEGOCIO | RN-27 → RN-27 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REGLAS_NEGOCIO | RN-28 → RN-28 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
-REGLAS_NEGOCIO | RN-29 → RN-29 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
+REGLAS_NEGOCIO | RN-29 → RN-29 | PRECISADA 20/11/2026 | Cinco roles aprobados, tres implementados; PORTERIA sigue futuro y 007 NO aplicada.
 REGLAS_NEGOCIO | RN-30 → RN-30 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REGLAS_NEGOCIO | RN-31 → RN-31 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REGLAS_NEGOCIO | RN-32 → RN-32 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
@@ -147,8 +204,8 @@ REGLAS_NEGOCIO | RN-44 → RN-44 | CONSERVADA | Contenido compatible conservado;
 REGLAS_NEGOCIO | RN-45 → RN-45 | SUSTITUIDA / ACTUALIZADA | Texto ajustado por 7B.2/7B.3 o evidencia 005/006; ver mismo ID en V8.
 REGLAS_NEGOCIO | RN-46 → RN-46 | SUSTITUIDA / ACTUALIZADA | Texto ajustado por 7B.2/7B.3 o evidencia 005/006; ver mismo ID en V8.
 REGLAS_NEGOCIO | RN-47 → RN-47 | CONSERVADA CON PRECISIÓN | Conserva consulta diaria y permisos; incorpora decisión aprobada de indicadores diarios en tarjetas «Mis secciones», con datos confirmados del backend y fecha America/Lima. Distingue sesión con registro, ausencia de registro, fecha no lectiva, fuera del año y error; sin ceros ficticios. No acredita implementación de las tarjetas ni sustituye indicadores mensuales pendientes.
-REQUERIMIENTOS | RF-01 → RF-01 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
-REQUERIMIENTOS | RF-02 → RF-02 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
+REQUERIMIENTOS | RF-01 → RF-01 | PRECISADA 20/11/2026 | SUPERUSUARIO sin acceso académico automático; RF-23/RF-24 pendientes de implementación.
+REQUERIMIENTOS | RF-02 → RF-02 | PRECISADA 20/11/2026 | Matriz técnica/institucional de cuentas, sin alterar datos por documentación.
 REQUERIMIENTOS | RF-03 → RF-03 | CONSERVADA CON PRECISIÓN POSTERIOR | Gestión ADMIN de años y cierre manual anual aprobados el 19/11/2026, según P02. Sin arrastre académico, edición general ni reapertura; evidencia de validación en README.md.
 REQUERIMIENTOS | RF-04 → RF-04 | CONSERVADA CON PRECISIÓN POSTERIOR | Incorpora F04 precisada el 18/11/2026: original temporal, documento inválido omitido y documentos existentes conservados. No acredita implementación de confirmación durable.
 REQUERIMIENTOS | RF-05 → RF-05 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
@@ -171,7 +228,7 @@ REQUERIMIENTOS | RF-21 → RF-21 | CONSERVADA | Contenido compatible conservado;
 REQUERIMIENTOS | RF-22 → RF-22 | CONSERVADA CON PRECISIÓN | Conserva consulta diaria y permisos; incorpora decisión aprobada de indicadores diarios en tarjetas «Mis secciones», con datos confirmados del backend y fecha America/Lima. Distingue sesión con registro, ausencia de registro, fecha no lectiva, fuera del año y error; sin ceros ficticios. No acredita implementación de las tarjetas ni sustituye indicadores mensuales pendientes.
 REQUERIMIENTOS | RNF-01 → RNF-01 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REQUERIMIENTOS | RNF-02 → RNF-02 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
-REQUERIMIENTOS | RNF-03 → RNF-03 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
+REQUERIMIENTOS | RNF-03 → RNF-03 | PRECISADA 20/11/2026 | RF-24: cambio de contraseña temporal ADMIN en primer acceso; JWT anteriores pueden conservar validez hasta vencer, sin revocación inmediata.
 REQUERIMIENTOS | RNF-04 → RNF-04 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REQUERIMIENTOS | RNF-05 → RNF-05 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.
 REQUERIMIENTOS | RNF-06 → RNF-06 | CONSERVADA | Contenido compatible conservado; implementación parcial o futura no se presume terminada.

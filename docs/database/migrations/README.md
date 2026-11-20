@@ -1,3 +1,43 @@
+## Migración 007 — SUPERUSUARIO etapa 1, PREPARADA, NO APLICADA
+
+`007_superusuario.sql` está preparada para revisión el 20/11/2026;
+**no se ha ejecutado ni autorizado ejecutar**. Requiere MySQL 8.4 LTS y esquema
+v1 + 002 + 003 + 004 + 005 + 006. Se conservan esos archivos históricos intactos.
+
+Un único `ALTER TABLE usuarios` modifica exclusivamente `rol` a
+`ENUM('ADMIN','SUBDIRECCION','REGISTRADOR','SUPERUSUARIO') NOT NULL`:
+conserva orden/valores anteriores y añade SUPERUSUARIO al final.
+No agrega columnas ni implementa revocación inmediata de JWT.
+
+No añade tablas, claves, índices, CHECK, cuentas o permisos SQL. No cambia
+contraseñas, roles, estados ni otros datos originales; no crea SUPERUSUARIO ni
+incorpora PORTERIA. La comparación estática no certifica el estado de MySQL real.
+Ninguna política de autorización queda impuesta por ampliar un ENUM.
+
+Antes de una futura ejecución autorizada: verificar destino y base seleccionada,
+`SHOW CREATE TABLE usuarios` y ENUM exacto de tres roles;
+comprobar v1 + 002–006, respaldar y ensayar restauración y ALTER
+en copia autorizada. Si falta/difiere una precondición, detenerse y revisar.
+No exige vaciar usuarios/asistencias/historial ni restaura datos de otro esquema.
+No es idempotente; DDL tiene commit implícito, no se revierte con ROLLBACK ni se
+reintenta automáticamente. Coordinar escritores y el despliegue posterior.
+
+Después, solo con autorización: comparar estructura, claves/índices/CHECK y todos
+los valores originales, incluidos hashes/roles/estados, sin publicarlos en logs;
+verificar únicamente la ampliación del ENUM y continuidad de las cuentas. El código
+actual todavía no implementa SUPERUSUARIO. La etapa 1 no cambia
+backend/frontend/herramientas, arranque, seeds, pruebas ni infraestructura 3312.
+
+D48/D49, RN-48/RN-49 y RF-23/RF-24 V8 y su matriz son la referencia funcional.
+El cambio obligatorio de contraseña temporal ADMIN en primer acceso requiere
+estado persistente y flujo de servidor futuros; 007 no incluye ese indicador.
+Su diseño y posible migración adicional requieren autorización, al igual que la
+representación del actor/origen real del alta inicial local.
+El cambio o restablecimiento de contraseña no revoca inmediatamente los JWT
+anteriores: pueden conservar su validez hasta vencer, sujetos a la actividad
+y permisos actuales de la cuenta. La revocación inmediata queda fuera de esta
+implementación; cualquier incorporación futura necesitará autorización expresa.
+
 ## Migración 006 — 7B.3, aplicada y verificada en MySQL local
 
 `006_correccion_sin_motivo.sql` requiere esquema v1 + 002 + 003 + 004 + 005.

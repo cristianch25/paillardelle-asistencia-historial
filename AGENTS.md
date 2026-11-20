@@ -19,7 +19,8 @@ necesariamente el significado de v2. El análisis de impacto describe propuestas
 y limitaciones, no evidencia que una función esté implementada. La decisión
 posterior aprobada de períodos lectivos para 6D se recoge en `README.md`.
 
-Los cinco archivos V8 se conservan con su contenido aprobado. Sus rótulos de
+Los cinco archivos V8 conservan su contenido aprobado y las precisiones posteriores
+expresamente autorizadas, incluida SUPERUSUARIO etapa 1 del 20/11/2026. Sus rótulos de
 borrador y menciones a adopción pendiente o a AGENTS.md todavía basado en v5
 describen la preparación anterior; esta aprobación posterior los supera solo
 respecto del estado de aprobación y adopción documental. No acreditan por ello
@@ -89,9 +90,20 @@ responsabilidades y particularidades de cada tecnología.
 - Aplicar los permisos de V8 en servidor por rol y ámbito específico de cada
   módulo, sección, matrícula y vigencia. Las facultades institucionales generales de ADMIN no
   resuelven operaciones específicas que V8 deja pendientes. La matriz especial
-  de asistencia no se extiende a otros módulos. PORTERIA está aprobado
-  como cuarto rol futuro, no implementado; no crear otros roles ni permisos
-  configurables. Revalidar al actor bajo bloqueo en escrituras
+  de asistencia no se extiende a otros módulos. SUPERUSUARIO es un rol técnico
+  independiente aprobado, sin heredar ADMIN ni acceso académico; etapa 1 solo
+  documental y migración 007 preparada, NO aplicada. Su matriz de gestión de
+  cuentas está en D48/D49, RN-48/RN-49 y RF-23/RF-24 V8 y en la trazabilidad.
+  Solo SUPERUSUARIO podrá crear ADMIN y restablecer sus contraseñas o cambiar
+  sus estados. ADMIN conserva gestión de SUBDIRECCION/REGISTRADOR, sin administrar
+  ADMIN ni SUPERUSUARIO; se conserva el cambio de contraseña propia autenticado.
+  No crear/promover SUPERUSUARIO desde la web ni permitirle gestionar
+  SUBDIRECCION/REGISTRADOR. Conservar al menos un ADMIN activo. El alta inicial
+  local deberá auditar su origen real sin atribuirla falsamente a ADMIN; ADMIN
+  con contraseña temporal deberá cambiarla en el primer acceso, con control en
+  servidor aún pendiente. No modificar cuentas existentes por esta documentación.
+  PORTERIA sigue aprobado como rol futuro, no implementado; 007 no lo incorpora.
+  No crear otros roles ni permisos configurables. Revalidar al actor bajo bloqueo en escrituras
   sensibles, siguiendo el protocolo existente y un orden compatible de bloqueos.
 - Para asistencia ordinaria validar año ABIERTO, día lectivo y vigencias.
   No extender esa exigencia indiscriminadamente a consultas históricas o a la
