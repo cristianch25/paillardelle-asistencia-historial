@@ -7,7 +7,7 @@ import AuthInitialization from './AuthInitialization';
 export default function LoginPage() {
   const { session, notice, initialization } = useAuth();
   if (initialization === 'checking' || initialization === 'error') return <AuthInitialization />;
-  if (session) return <Navigate to="/inicio" replace />;
+  if (session) return <Navigate to={session.user.rol === 'SUPERUSUARIO' ? '/administradores' : '/inicio'} replace />;
   return (
     <main className="flex min-h-dvh items-center justify-center px-5 py-10">
       <section aria-labelledby="login-title" className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 sm:p-9">

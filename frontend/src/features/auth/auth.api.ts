@@ -9,7 +9,7 @@ export async function login(credentials: LoginCredentials, signal: AbortSignal) 
 export async function getCurrentUser(signal: AbortSignal) {
   const response = await httpClient.get<{ user: AuthUser }>('/auth/me', { signal });
   const user = response.data.user;
-  if (!user || typeof user.id !== 'string' || !['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'].includes(user.rol)) {
+  if (!user || typeof user.id !== 'string' || !['ADMIN', 'SUBDIRECCION', 'REGISTRADOR', 'SUPERUSUARIO'].includes(user.rol)) {
     throw new Error('Perfil de autenticación inválido.');
   }
   return user;

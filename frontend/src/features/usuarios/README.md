@@ -1,4 +1,63 @@
-# Usuarios — interfaz exclusiva de ADMIN
+# Usuarios — interfaces por rol
+
+## SUPERUSUARIO etapa 4 — 20/11/2026
+
+Implementa la interfaz autorizada de D48/RN-48/RF-23 V8. `/administradores` es
+exclusiva de SUPERUSUARIO: una única entrada en el menú, sin módulos académicos,
+auditoría global, logs, diagnósticos ni backups. Login y recuperación de perfil
+reconocen SUPERUSUARIO; cabecera y menú muestran su identidad. Se reutiliza el
+cambio de contraseña propia. Las URL académicas directas redirigen antes de
+montar sus componentes; el acceso de los otros roles a esta pantalla redirige
+a `/inicio` sin consultar cuentas ADMIN.
+
+Consulta únicamente GET `/usuarios?page=N&limit=20`. No utiliza `getUsersCatalog`
+ni solicita asignaciones, secciones o años. Rechaza respuestas con otros roles,
+paginación inconsistente o IDs duplicados; conserva una lista explícita de datos
+públicos sin hashes, contraseñas ni tokens. Muestra carga, errores, lista vacía
+y paginación de servidor, sin filtrado parcial de resultados.
+
+Alta: nombres, apellidos, identificador y contraseña inicial confirmada; se valida
+longitud/Unicode y 1–72 bytes UTF-8. El cuerpo fija `rol: ADMIN`, sin selector de
+roles ni permisos académicos. Requiere revisión y confirmación antes de POST
+`/usuarios`. No hay edición de datos o roles de ADMIN ni creación de SUPERUSUARIO.
+La contraseña se retira del formulario tras cada intento y no se muestra en la
+revisión ni se persiste en almacenamiento.
+
+Estado: confirmación explícita antes de PATCH `/usuarios/:id/estado`. La protección
+del último ADMIN activo corresponde al backend y su error 409 se muestra en la
+pantalla; no se deduce el número total de activos desde una página parcial.
+Restablecimiento: reutiliza `PasswordResetDialog` y POST vacío a
+`/usuarios/:id/restablecer-contrasena`. Solo tras confirmación válida entrega la
+contraseña temporal en un diálogo, una vez, sin guardarla en listas o registros.
+
+Las escrituras tienen control de envío único. Ante error de red, 5xx o respuesta
+sin confirmación válida se informa incertidumbre sin anunciar éxito ni reenviar.
+Creación/estado requieren actualizar la consulta explícitamente para recuperar
+controles; el restablecimiento incierto retira su botón de confirmación. Consultar
+no prueba que una contraseña se haya restablecido: no repetir esa operación sin
+verificación y decisión humana. Los avisos de salida del rol técnico hablan de
+cuentas; los textos predeterminados de los flujos académicos se conservan.
+
+Archivos nuevos: `AdminAccountsPage.tsx`, `AdminAccountForm.tsx`,
+`adminAccounts.api.ts` y `useAdminAccounts.ts`. Se reutilizan botones, campos,
+estados, paginación, protección de navegación y diálogo de restablecimiento.
+Los tres roles anteriores mantienen sus menús y pantallas; no se amplían permisos
+backend ni se modifica la herramienta local de etapa 3. 007 sigue sin aplicar y
+el cambio obligatorio de contraseña temporal ADMIN en primer acceso permanece
+pendiente de diseño/implementación de servidor, según D49/RN-49/RF-24 V8.
+
+Pruebas con mocks: `test/superusuario.test.mjs`, `test/superusuario.browser.mjs`
+y `test/support/superusuarioHarness.jsx`. Regresión frontend: 309 pruebas aprobadas;
+regresión HTTP/backend de usuarios/autenticación/asignaciones: 141 aprobadas con
+conexiones MySQL bloqueadas. Navegador headless con mocks: 34 comprobaciones
+aprobadas, incluidas seis nuevas de SUPERUSUARIO y regresiones de autenticación,
+usuarios y credenciales. Se corrigieron selectores escapados en pruebas antiguas
+y la espera de disponibilidad del documento tras F5, sin repetir escrituras.
+TypeScript, build y ESLint focalizado correctos. Todos los archivos de
+implementación creados o modificados en esta etapa tienen hasta 100 líneas.
+Se excluyen archivos de integración MySQL; sin conexiones a 3306/3310/3311/3312,
+cuentas reales, migraciones ni despliegue. Los apartados siguientes son antecedentes
+de la interfaz institucional y de etapas anteriores.
 
 ## Precisión aprobada pendiente de implementación — 20/11/2026
 

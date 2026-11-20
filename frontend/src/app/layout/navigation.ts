@@ -12,6 +12,7 @@ type NavigationItem = {
 export { roleLabels } from '../../features/auth/userPresentation';
 
 const navigation: readonly NavigationItem[] = [
+  { label: 'Administradores', path: '/administradores', icon: Users, roles: ['SUPERUSUARIO'] },
   { label: 'Inicio', path: '/inicio', icon: House, roles: ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'] },
   { label: 'Usuarios', path: '/usuarios', icon: Users, roles: ['ADMIN'] },
   { label: 'Auditoría', path: '/auditoria', icon: ShieldCheck, roles: ['ADMIN'] },

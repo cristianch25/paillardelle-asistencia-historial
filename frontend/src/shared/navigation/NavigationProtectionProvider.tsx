@@ -4,7 +4,8 @@ import { NavigationProtectionContext } from './NavigationProtectionContext';
 import { useDeferredAction } from './useDeferredAction';
 import UnsavedChangesDialog from './UnsavedChangesDialog';
 
-export default function NavigationProtectionProvider({ children, enabled = true }: { children: ReactNode; enabled?: boolean }) {
+export default function NavigationProtectionProvider({ children, enabled = true, activity, continueLabel }:
+  { children: ReactNode; enabled?: boolean; activity?: string; continueLabel?: string }) {
   const [guard, setGuard] = useState({ id: null as object | null, dirty: false, busy: false });
   const needsWarning = guard.dirty;
   const deferred = useDeferredAction(enabled, needsWarning, guard.busy);
@@ -44,7 +45,7 @@ export default function NavigationProtectionProvider({ children, enabled = true 
     <NavigationProtectionContext.Provider value={value}>
       {children}
       <UnsavedChangesDialog open={enabled && (pending || blocker.state === 'blocked')} busy={guard.busy}
-        dirty={guard.dirty}
+        dirty={guard.dirty} activity={activity} continueLabel={continueLabel}
         onCancel={cancelLeaving} onConfirm={confirmLeaving} />
     </NavigationProtectionContext.Provider>
   );

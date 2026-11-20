@@ -4,5 +4,7 @@ import NavigationProtectionProvider from '../shared/navigation/NavigationProtect
 
 export default function NavigationShell() {
   const { session } = useAuth();
-  return <NavigationProtectionProvider enabled={Boolean(session)}><Outlet /></NavigationProtectionProvider>;
+  const technical = session?.user.rol === 'SUPERUSUARIO';
+  return <NavigationProtectionProvider enabled={Boolean(session)} activity={technical ? 'cuentas' : undefined}
+    continueLabel={technical ? 'Continuar aquí' : undefined}><Outlet /></NavigationProtectionProvider>;
 }

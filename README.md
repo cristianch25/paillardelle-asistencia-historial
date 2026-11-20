@@ -6,6 +6,24 @@ manual de padrones con revisión, sin sincronización automática.
 
 ## Estado del proyecto
 
+20/11/2026 — SUPERUSUARIO, etapa 4: interfaz web en `/administradores`, con
+navegación técnica exclusiva, reconocimiento del rol en autenticación/perfil y
+cambio de contraseña propia mediante el flujo existente. Consulta paginada solo
+de ADMIN, alta con rol fijo ADMIN, restablecimiento y activación/desactivación
+confirmados mediante los endpoints existentes. No ofrece edición de ADMIN ni
+creación de SUPERUSUARIO. No carga catálogos académicos; las URL académicas
+directas redirigen antes de montar su contenido para SUPERUSUARIO.
+
+Se reutilizan componentes y diálogo de restablecimiento; los secretos no se
+conservan en listados ni registros. Un resultado incierto no se anuncia como
+éxito ni se reenvía automáticamente y exige consulta explícita antes de decidir
+otro intento. El error de último ADMIN activo se muestra desde el backend.
+Los menús y flujos institucionales de los tres roles anteriores se conservan.
+Sin cambios de permisos backend, herramienta local, dependencias o esquema.
+007 permanece **PREPARADA, NO APLICADA**; sin cuentas reales ni despliegue.
+Validación y límites: [interfaz de cuentas](frontend/src/features/usuarios/README.md).
+Los bloques siguientes conservan el contexto histórico de sus etapas.
+
 20/11/2026 — SUPERUSUARIO, etapa 3: herramienta local preparada en
 [`backend/scripts/crear-superusuario.js`](backend/scripts/crear-superusuario.js),
 verificada exclusivamente con mocks. **No ejecutada contra una base real**;

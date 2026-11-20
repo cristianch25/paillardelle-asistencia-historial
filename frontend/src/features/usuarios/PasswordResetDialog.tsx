@@ -32,7 +32,8 @@ export default function PasswordResetDialog({ user, onClose }: { user: ManagedUs
       <output aria-label="Contraseña temporal" className="block break-all rounded-lg bg-slate-100 p-4 font-mono text-lg select-all">{secret}</output>
       <Button onClick={onClose}>He guardado la contraseña</Button>
     </> : <>
-      <p>Se reemplazará la contraseña por una nueva generada al azar. Los datos de la cuenta y sus asignaciones se conservarán.</p>
+      <p>Se reemplazará la contraseña por una nueva generada al azar. {user.rol === 'ADMIN'
+        ? 'Los datos de la cuenta se conservarán.' : 'Los datos de la cuenta y sus asignaciones se conservarán.'}</p>
       <p className="text-sm text-slate-600">Las sesiones ya iniciadas seguirán vigentes hasta su vencimiento. No se exigirá cambiar la contraseña al iniciar sesión.</p>
       {error && <ErrorState message={error} />}
       <div className="flex flex-wrap gap-3">{uncertain ? <Button onClick={onClose}>Actualizar consulta</Button> : <>

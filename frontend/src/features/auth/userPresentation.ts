@@ -2,6 +2,7 @@ import type { AuthUser, UserRole } from './auth.types';
 
 export const roleLabels: Record<UserRole, string> = {
   ADMIN: 'Administración', SUBDIRECCION: 'Subdirección', REGISTRADOR: 'Registrador',
+  SUPERUSUARIO: 'SUPERUSUARIO',
 };
 const levelLabels = { INICIAL: 'Inicial', PRIMARIA: 'Primaria', SECUNDARIA: 'Secundaria' };
 
