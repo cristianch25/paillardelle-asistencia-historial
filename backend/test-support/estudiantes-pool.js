@@ -35,9 +35,26 @@ export function studentsFixture() {
   function connection() {
     const tx = { keys: new Set(), releases: [], students: [], matriculas: [], links: [], audits: [], attendances: [], events: [] };
     state.transactions.push(tx);
-    const all = key => [...state[key], ...tx[key]];
-    const finish = () => { for (const release of tx.releases.splice(0)) release(); };
-    const persist = () => { for (const key of ['students', 'matriculas', 'links', 'audits', 'attendances']) state[key].push(...tx[key].splice(0)); };
+    const updates = { matriculas: new Map(), links: new Map() };
+    const tables = ['students', 'matriculas', 'links', 'audits', 'attendances'];
+    // Vista actual confirmada más escrituras propias; no simula snapshots de InnoDB.
+    const all = key => [...state[key], ...tx[key]].map(row => ({ ...(updates[key]?.get(row.id) ?? row) }));
+    const update = (key, row, changes) => updates[key].set(row.id, { ...row, ...changes });
+    const finish = () => { tx.keys.clear(); for (const release of tx.releases.splice(0)) release(); };
+    const discard = () => {
+      for (const key of tables) tx[key].length = 0;
+      for (const rows of Object.values(updates)) rows.clear();
+    };
+    const persist = () => {
+      for (const key of tables) {
+        state[key].push(...tx[key].splice(0));
+        for (const [id, row] of updates[key] ?? []) {
+          const index = state[key].findIndex(current => current.id === id);
+          state[key][index] = row;
+        }
+      }
+      discard();
+    };
     return {
       async beginTransaction() { tx.events.push('begin'); },
       async commit() {
@@ -46,9 +63,9 @@ export function studentsFixture() {
         if (state.fail === 'commit') throw new Error('commit falló');
         persist(); finish();
       },
-      async rollback() { tx.events.push('rollback'); finish(); if (state.fail === 'rollback') throw new Error('rollback falló'); },
-      release() { tx.events.push('release'); finish(); },
-      destroy() { tx.events.push('destroy'); finish(); },
+      async rollback() { tx.events.push('rollback'); discard(); finish(); if (state.fail === 'rollback') throw new Error('rollback falló'); },
+      release() { tx.events.push('release'); discard(); finish(); },
+      destroy() { tx.events.push('destroy'); discard(); finish(); },
       async execute(raw, p = []) {
         const sql = raw.replace(/\s+/g, ' ').trim(); state.calls.push({ sql, params: p, tx });
         if (typeof state.fail === 'function') state.fail(sql);
@@ -160,16 +177,14 @@ export function studentsFixture() {
           if (sql.includes('fecha_retiro = NULL')) {
             const target = all('matriculas').find(m => m.id === p[1]);
             if (target && target.estado === p[2] && target.fecha_retiro === p[3]) {
-              target.estado = p[0];
-              target.fecha_retiro = null;
+              update('matriculas', target, { estado: p[0], fecha_retiro: null });
               return [{ affectedRows: 1 }];
             }
             return [{ affectedRows: 0 }];
           }
           const target = all('matriculas').find(m => m.id === p[2]);
           if (target && target.fecha_retiro === p[3]) {
-            target.estado = p[0];
-            target.fecha_retiro = p[1];
+            update('matriculas', target, { estado: p[0], fecha_retiro: p[1] });
             return [{ affectedRows: 1 }];
           }
           return [{ affectedRows: 0 }];
@@ -177,7 +192,7 @@ export function studentsFixture() {
         if (sql.startsWith('UPDATE matricula_secciones SET')) {
           const link = all('links').find(l => l.id === p[1] && l.fecha_fin === null);
           if (link) {
-            link.fecha_fin = p[0];
+            update('links', link, { fecha_fin: p[0] });
             return [{ affectedRows: 1 }];
           }
           return [{ affectedRows: 0 }];
@@ -226,5 +241,5 @@ export function studentsFixture() {
     seccionesService: sections, getToday: () => '2026-11-13',
     identitiesService: createStudentIdentitiesService({ repository: studentsRepository }) });
   const students = createStudentsService({ repository: studentsRepository, matriculasService: matriculas });
-  return { state, matriculas, students, users, sections, actor: id => ({ ...state.users.get(id) }) };
+  return { state, pool, matriculas, students, users, sections, actor: id => ({ ...state.users.get(id) }) };
 }
