@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
@@ -13,7 +13,7 @@ import { usePadron } from './usePadron';
 import EstudiantesList from './EstudiantesList';
 import SectionStaff from './SectionStaff';
 import StudentProfileButton from '../../estudiantes/perfil/StudentProfileButton';
-import { getRetiredStudents, type RetiredStudentEntry } from '../../matriculas/matriculas.api';
+import { useRetirados } from './useRetirados';
 import { padronReferenceDate } from './padronReferenceDate';
 
 export default function EstudiantesSeccionPage() {
@@ -29,9 +29,9 @@ function StudentsSection() {
   const location = useLocation();
   const navigate = useNavigate();
   const [editableDate] = useState(() => peruToday());
-  const [retired, setRetired] = useState<RetiredStudentEntry[]>([]);
   const { selected, checking, error, revalidate } = selection;
   const administrative = session?.user.rol === 'ADMIN' || session?.user.rol === 'SUBDIRECCION';
+  const retired = useRetirados(administrative && !checking && !error ? selected?.section.id ?? null : null);
   const fecha = administrative ? (selected ? padronReferenceDate(selected.year) : '') : editableDate;
   const padron = usePadron(session && !checking && !error ? selected : null, fecha);
   const valid = validCivilDate(fecha);
@@ -39,18 +39,9 @@ function StudentsSection() {
   const section = padron.data?.seccion ?? selected?.section;
   const back = `/secciones${location.search}`;
 
-  const loadRetired = useCallback(() => {
-    if (!administrative || !selected?.section?.id) return;
-    void getRetiredStudents(selected.section.id).then(setRetired).catch(() => setRetired([]));
-  }, [administrative, selected?.section?.id]);
-
-  useEffect(() => {
-    loadRetired();
-  }, [loadRetired]);
-
   const handleRefresh = () => {
     padron.retry();
-    loadRetired();
+    retired.retry();
   };
   return (
     <div className="space-y-6">
@@ -84,26 +75,34 @@ function StudentsSection() {
               onRefresh={handleRefresh}
             />
           )}
-          {administrative && retired.length > 0 && (
-            <details className="rounded-xl border border-slate-200 bg-white p-4">
-              <summary className="cursor-pointer font-semibold text-slate-800">
-                Estudiantes retirados ({retired.length})
-              </summary>
-              <ul className="mt-3 divide-y divide-slate-100">
-                {retired.map(entry => (
-                  <li key={entry.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
-                    <div>
-                      <p className="font-medium text-slate-900">
-                        {[entry.estudiante.apellido_paterno, entry.estudiante.apellido_materno, entry.estudiante.nombres].filter(Boolean).join(' ')}
-                      </p>
-                      <p className="text-sm text-slate-500">Retirado el {formatCivilDate(entry.fecha_retiro)}</p>
-                    </div>
-                    <StudentProfileButton studentId={entry.estudiante_id} yearId={selected.year.id} month={entry.fecha_retiro.slice(0, 7)} />
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
+          {administrative && <section aria-label="Estudiantes retirados">
+            {retired.loading && <LoadingState message="Cargando estudiantes retirados…" />}
+            {retired.error && <div className="space-y-3"><ErrorState message={retired.error} />
+              <Button variant="secondary" onClick={retired.retry}>Reintentar retirados</Button></div>}
+            {!retired.loading && !retired.error && retired.data.length === 0 && (
+              <EmptyState message="No hay estudiantes retirados en esta sección." />
+            )}
+            {retired.data.length > 0 && (
+              <details className="rounded-xl border border-slate-200 bg-white p-4">
+                <summary className="cursor-pointer font-semibold text-slate-800">
+                  Estudiantes retirados ({retired.data.length})
+                </summary>
+                <ul className="mt-3 divide-y divide-slate-100">
+                  {retired.data.map(entry => (
+                    <li key={entry.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                      <div>
+                        <p className="font-medium text-slate-900">
+                          {[entry.estudiante.apellido_paterno, entry.estudiante.apellido_materno, entry.estudiante.nombres].filter(Boolean).join(' ')}
+                        </p>
+                        <p className="text-sm text-slate-500">Retirado el {formatCivilDate(entry.fecha_retiro)}</p>
+                      </div>
+                      <StudentProfileButton studentId={entry.estudiante_id} yearId={selected.year.id} month={entry.fecha_retiro.slice(0, 7)} />
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </section>}
         </>
       )}
     </div>
