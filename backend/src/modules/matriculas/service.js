@@ -2,7 +2,7 @@ import { HttpError } from '../../shared/http-error.js';
 import { peruDate } from '../../shared/peru-date.js';
 import { validateId } from '../../shared/query-validation.js';
 import { createEnrollmentRepository } from './repository.js';
-import { listQuery, enrollmentData, padronQuery, withdrawData } from './validation.js';
+import { listQuery, enrollmentData, padronQuery, withdrawData, sectionChangeData } from './validation.js';
 import { requireActor, enrollmentContext, enrollmentConflict, withdrawContext, validateWithdrawal } from './access.js';
 import { createAttendanceImpactService } from '../asistencias/impact.service.js';
 
@@ -124,6 +124,18 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
           sectionContext: (sectionId, connection) => seccionesService.assignmentContext(sectionId, connection),
           validateSectionContext: withdrawContext,
           validateWithdrawal,
+        });
+      } catch (error) { throw enrollmentConflict(error); }
+    },
+    async changeSection(id, body, actor) {
+      validateId(id);
+      requireActor(actor, true);
+      const data = sectionChangeData(body), today = getToday();
+      if (data.fecha_efectiva > today) throw new HttpError(400, 'La fecha de cambio de sección no puede ser futura.');
+      try {
+        return await repository.changeSection(id, data, actor.id, {
+          authorize: (current, connection) => accessFor(current, today, connection, true),
+          sectionContext: (sectionId, connection) => seccionesService.assignmentContext(sectionId, connection),
         });
       } catch (error) { throw enrollmentConflict(error); }
     },

@@ -4,23 +4,28 @@ import ErrorState from '../../../shared/components/ErrorState';
 import Button from '../../../shared/components/Button';
 import { AuthContext } from '../../auth/AuthContext';
 import type { PadronEntry } from './padron.types';
+import type { Section } from './secciones.types';
 import StudentProfileButton from '../../estudiantes/perfil/StudentProfileButton';
 import EnrollmentWithdrawDialog from '../../matriculas/EnrollmentWithdrawDialog';
+import SectionChangeDialog from '../../matriculas/SectionChangeDialog';
 
 export default function EstudiantesList({
   entries,
+  section,
   yearId,
   date,
   canWithdraw: canWithdrawProp,
   onRefresh,
 }: {
   entries: PadronEntry[];
+  section?: Pick<Section, 'id' | 'anio_escolar_id' | 'nivel' | 'grado' | 'letra'>;
   yearId?: string;
   date?: string;
   canWithdraw?: boolean;
   onRefresh?: () => void;
 }) {
   const [withdrawTarget, setWithdrawTarget] = useState<PadronEntry | null>(null);
+  const [changeSectionTarget, setChangeSectionTarget] = useState<PadronEntry | null>(null);
   const auth = useContext(AuthContext);
   const canWithdraw = canWithdrawProp ?? (auth?.session?.user.rol === 'ADMIN' || auth?.session?.user.rol === 'SUBDIRECCION');
   const count = new Set(entries.map(entry => entry.estudiante_id)).size;
@@ -41,6 +46,11 @@ export default function EstudiantesList({
                 {estudiante.codigo_estudiante && <p className="break-words text-sm text-slate-600">Código: {estudiante.codigo_estudiante}</p>}
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   <StudentProfileButton studentId={estudiante.id} yearId={yearId} month={date?.slice(0, 7)} />
+                  {canWithdraw && section && entry.estado === 'ACTIVA' && entry.fecha_retiro === null && (
+                    <Button variant="secondary" onClick={() => setChangeSectionTarget(entry)}>
+                      Cambiar sección
+                    </Button>
+                  )}
                   {canWithdraw && entry.estado === 'ACTIVA' && entry.fecha_retiro === null && (
                     <Button variant="secondary" onClick={() => setWithdrawTarget(entry)}>
                       Retirar
@@ -58,6 +68,17 @@ export default function EstudiantesList({
           onClose={() => setWithdrawTarget(null)}
           onSuccess={() => {
             setWithdrawTarget(null);
+            onRefresh?.();
+          }}
+        />
+      )}
+      {changeSectionTarget && section && (
+        <SectionChangeDialog
+          entry={changeSectionTarget}
+          currentSection={section}
+          onClose={() => setChangeSectionTarget(null)}
+          onSuccess={() => {
+            setChangeSectionTarget(null);
             onRefresh?.();
           }}
         />

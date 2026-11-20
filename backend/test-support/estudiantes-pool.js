@@ -89,6 +89,10 @@ export function studentsFixture() {
             || (sql.includes('s.id IN') && !p.slice(1).includes(s.id))) return [[]];
           return [[s]];
         }
+        if (sql.includes('FROM secciones WHERE id = ?')) {
+          const s = state.sections.get(p[0]);
+          return [[s].filter(Boolean)];
+        }
         if (sql.startsWith('SELECT CAST(LAST_INSERT_ID()')) return [[{ id: tx.lastId }]];
         if (sql.startsWith('INSERT INTO estudiantes')) {
           await lock(tx, 'identity-uniqueness');
@@ -133,7 +137,8 @@ export function studentsFixture() {
           return [all('links').filter(l => l.matricula_id === p[0] && l.fecha_fin === null)];
         }
         if (sql.includes('FROM asistencias WHERE matricula_id = ?')) {
-          return [(state.attendances ?? []).filter(a => a.matricula_id === p[0] && a.fecha > p[1])];
+          const op = sql.includes('fecha >= ?') ? (a, d) => a.fecha >= d : (a, d) => a.fecha > d;
+          return [(state.attendances ?? []).filter(a => a.matricula_id === p[0] && op(a, p[1]))];
         }
         if (sql.startsWith('UPDATE matriculas SET')) {
           const target = all('matriculas').find(m => m.id === p[2]);

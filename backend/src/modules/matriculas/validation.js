@@ -45,3 +45,12 @@ export function withdrawData(body) {
   }
   return { fecha_retiro: body.fecha_retiro, fecha_retiro_esperada: body.fecha_retiro_esperada };
 }
+
+export function sectionChangeData(body) {
+  object(body, ['seccion_id', 'fecha_efectiva']);
+  const seccion_id = validateId(body?.seccion_id);
+  if (!validDate(body?.fecha_efectiva)) {
+    throw new HttpError(400, 'fecha_efectiva inválida: se requiere YYYY-MM-DD válida.');
+  }
+  return { seccion_id, fecha_efectiva: body.fecha_efectiva };
+}

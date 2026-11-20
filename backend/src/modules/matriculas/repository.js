@@ -3,6 +3,7 @@ import { inTransaction } from '../../shared/transaction.js';
 import { readInsertedId } from '../../shared/inserted-id.js';
 import { createEnrollmentQueries } from './query.repository.js';
 import { withdrawEnrollment } from './withdraw.repository.js';
+import { changeSection } from './section-change.repository.js';
 
 async function actor(connection, id) {
   const [rows] = await connection.execute(
@@ -55,6 +56,9 @@ export function createEnrollmentRepository(poolProvider = getPool) {
     },
     withdraw(id, data, actorId, hooks) {
       return withdrawEnrollment(poolProvider(), id, data, actorId, hooks);
+    },
+    changeSection(id, data, actorId, hooks) {
+      return changeSection(poolProvider(), id, data, actorId, hooks);
     },
   };
 }

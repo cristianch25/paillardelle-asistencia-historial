@@ -6,3 +6,7 @@ export function validDate(value) {
   const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
   return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1];
 }
+
+export function previousDate(date) {
+  return new Date(Date.parse(`${date}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
+}
