@@ -23,5 +23,8 @@ export type ChangePasswordInput = {
 
 export async function changePassword(input: ChangePasswordInput) {
   const response = await httpClient.post<{ message: string }>('/auth/cambiar-contrasena', input);
+  if (typeof response.data?.message !== 'string' || !response.data.message.trim()) {
+    throw new Error('Confirmación de cambio de contraseña no válida.');
+  }
   return response.data;
 }

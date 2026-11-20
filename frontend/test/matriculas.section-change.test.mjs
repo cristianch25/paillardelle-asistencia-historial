@@ -4,7 +4,7 @@ import { createServer } from 'vite';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-let vite, api, Dialog, List, Auth;
+let vite, api, Dialog, List, Auth, errors;
 
 const currentSection = {
   id: '11',
@@ -51,6 +51,7 @@ const retiredEntry = {
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   api = await vite.ssrLoadModule('/src/features/matriculas/matriculas.api.ts');
+  errors = await vite.ssrLoadModule('/src/shared/api/apiError.ts');
   Dialog = (await vite.ssrLoadModule('/src/features/matriculas/SectionChangeDialog.tsx')).default;
   List = (await vite.ssrLoadModule('/src/features/organizacion-escolar/secciones/EstudiantesList.tsx')).default;
   Auth = (await vite.ssrLoadModule('/src/features/auth/AuthContext.ts')).AuthContext;
@@ -63,10 +64,10 @@ after(async () => {
 test('movimientos muestran el conflicto 409 del backend y conservan errores genéricos para otros fallos', () => {
   const mensaje = 'No se puede realizar el movimiento: la sección de destino tiene sesiones de asistencia desde la fecha efectiva indicada.';
   const fallo = status => ({ isAxiosError: true, response: { status, data: { error: mensaje } } });
-  assert.equal(api.movementFailure(fallo(409)), mensaje);
-  assert.equal(api.movementFailure(fallo(403)), 'No tienes permiso para realizar esta acción.');
-  assert.doesNotMatch(api.movementFailure(fallo(500)), /sección de destino/);
-  assert.doesNotMatch(api.movementFailure({ isAxiosError: true }), /sección de destino/);
+  assert.equal(errors.errorEscritura(fallo(409)).mensaje, mensaje);
+  assert.equal(errors.errorEscritura(fallo(403)).mensaje, 'No tienes permiso para realizar esta acción.');
+  assert.doesNotMatch(errors.errorEscritura(fallo(500)).mensaje, /sección de destino/);
+  assert.equal(errors.errorEscritura({ isAxiosError: true }).incierto, true);
 });
 
 test('API changeStudentSection envía POST /matriculas/:id/cambio-seccion con payload esperado', async () => {

@@ -65,6 +65,7 @@ export default function EstudiantesList({
       {withdrawTarget && (
         <EnrollmentWithdrawDialog
           entry={withdrawTarget}
+          onCheckState={onRefresh}
           onClose={() => setWithdrawTarget(null)}
           onSuccess={() => {
             setWithdrawTarget(null);
@@ -75,6 +76,7 @@ export default function EstudiantesList({
       {changeSectionTarget && section && (
         <SectionChangeDialog
           entry={changeSectionTarget}
+          onCheckState={onRefresh}
           currentSection={section}
           onClose={() => setChangeSectionTarget(null)}
           onSuccess={() => {

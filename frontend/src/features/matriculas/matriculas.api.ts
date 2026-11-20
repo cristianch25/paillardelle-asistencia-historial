@@ -1,12 +1,4 @@
 import { httpClient } from '../../shared/api/httpClient';
-import axios from 'axios';
-import { apiErrorMessage } from '../../shared/api/apiError';
-
-export function movementFailure(error: unknown): string {
-  if (axios.isAxiosError(error) && error.response?.status === 409
-    && typeof error.response.data?.error === 'string') return error.response.data.error;
-  return apiErrorMessage(error);
-}
 
 export type WithdrawEnrollmentResponse = {
   id: string;
@@ -67,6 +59,9 @@ export async function withdrawEnrollment(
     fecha_retiro: fechaRetiro,
     fecha_retiro_esperada: fechaRetiroEsperada,
   });
+  if (data?.id !== id || data.estado !== 'RETIRADA' || data.fecha_retiro !== fechaRetiro) {
+    throw new Error('Confirmación de retiro no válida.');
+  }
   return data;
 }
 
@@ -79,6 +74,9 @@ export async function changeStudentSection(
     seccion_id: seccionId,
     fecha_efectiva: fechaEfectiva,
   });
+  if (data?.id !== id || data.estado !== 'ACTIVA' || data.seccion_nueva_id !== seccionId || data.fecha_efectiva !== fechaEfectiva) {
+    throw new Error('Confirmación de cambio de sección no válida.');
+  }
   return data;
 }
 
@@ -98,5 +96,8 @@ export async function reingresoStudent(
     seccion_id: seccionId,
     fecha_reingreso: fechaReingreso,
   });
+  if (data?.id !== matriculaId || data.estado !== 'ACTIVA' || data.seccion_id !== seccionId || data.fecha_reingreso !== fechaReingreso) {
+    throw new Error('Confirmación de reingreso no válida.');
+  }
   return data;
 }

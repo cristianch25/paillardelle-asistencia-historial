@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import axios from 'axios';
 import Button from '../../shared/components/Button';
 import { formatCivilDate, peruToday, validCivilDate } from '../../shared/dates/civilDate';
-import { apiErrorMessage } from '../../shared/api/apiError';
+import { errorEscritura } from '../../shared/api/apiError';
 import { useUnsavedChanges } from '../../shared/navigation/useUnsavedChanges';
 import { withdrawEnrollment } from './matriculas.api';
 import type { PadronEntry } from '../organizacion-escolar/secciones/padron.types';
@@ -17,10 +16,12 @@ export default function EnrollmentWithdrawDialog({
   entry,
   onClose,
   onSuccess,
+  onCheckState,
 }: {
   entry: PadronEntry;
   onClose: () => void;
   onSuccess: () => void;
+  onCheckState?: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const running = useRef(false);
@@ -31,6 +32,7 @@ export default function EnrollmentWithdrawDialog({
   const [fechaRetiro, setFechaRetiro] = useState(initialDate);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [uncertain, setUncertain] = useState(false);
 
   useUnsavedChanges(`enrollment-withdraw:${entry.id}`, true, busy);
 
@@ -48,7 +50,7 @@ export default function EnrollmentWithdrawDialog({
   const following = valid ? nextDay(fechaRetiro) : '';
 
   async function submit() {
-    if (busy || running.current || !valid) return;
+    if (busy || running.current || uncertain || !valid) return;
     running.current = true;
     setBusy(true);
     setError('');
@@ -57,10 +59,8 @@ export default function EnrollmentWithdrawDialog({
       onSuccess();
       onClose();
     } catch (failure: unknown) {
-      const msg = (axios.isAxiosError(failure) && typeof failure.response?.data?.message === 'string')
-        ? failure.response.data.message
-        : apiErrorMessage(failure);
-      setError(msg);
+      const fallo = errorEscritura(failure);
+      setError(fallo.mensaje); setUncertain(fallo.incierto);
     } finally {
       setBusy(false);
       running.current = false;
@@ -89,7 +89,7 @@ export default function EnrollmentWithdrawDialog({
             min={earliest}
             max={today}
             value={fechaRetiro}
-            disabled={busy}
+            disabled={busy || uncertain}
             onChange={event => { setFechaRetiro(event.target.value); setError(''); }}
             className="mt-2 block min-h-11 w-full rounded-lg border border-slate-300 p-2"
           />
@@ -116,11 +116,11 @@ export default function EnrollmentWithdrawDialog({
         )}
 
         <div className="flex flex-wrap gap-3 pt-2">
-          <Button type="submit" disabled={busy || !valid}>
+          <Button type="submit" disabled={busy || uncertain || !valid}>
             {busy ? 'Retirando…' : 'Confirmar retiro'}
           </Button>
-          <Button variant="secondary" disabled={busy} onClick={onClose}>
-            Cancelar
+          <Button variant="secondary" disabled={busy} onClick={() => { if (uncertain) onCheckState?.(); onClose(); }}>
+            {uncertain ? 'Comprobar estado' : 'Cancelar'}
           </Button>
         </div>
       </form>

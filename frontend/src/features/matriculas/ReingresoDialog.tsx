@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import Button from '../../shared/components/Button';
 import { formatCivilDate, peruToday, validCivilDate } from '../../shared/dates/civilDate';
-import { apiErrorMessage } from '../../shared/api/apiError';
+import { apiErrorMessage, errorEscritura } from '../../shared/api/apiError';
 import { useUnsavedChanges } from '../../shared/navigation/useUnsavedChanges';
-import { reingresoStudent, movementFailure } from './matriculas.api';
+import { reingresoStudent } from './matriculas.api';
 import { getSections } from '../organizacion-escolar/secciones/secciones.api';
 import { formatSectionName } from '../organizacion-escolar/secciones/sectionPresentation';
 import type { EducationLevel, Section } from '../organizacion-escolar/secciones/secciones.types';
@@ -23,6 +23,7 @@ export default function ReingresoDialog({
   fechaRetiro,
   onClose,
   onSuccess,
+  onCheckState,
 }: {
   studentName: string;
   matriculaId: string;
@@ -32,6 +33,7 @@ export default function ReingresoDialog({
   fechaRetiro: string;
   onClose: () => void;
   onSuccess: () => void;
+  onCheckState?: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null), running = useRef(false);
   const today = peruToday(), minDate = shiftDay(fechaRetiro, 1);
@@ -39,6 +41,7 @@ export default function ReingresoDialog({
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState('');
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState('');
+  const [uncertain, setUncertain] = useState(false);
 
   useUnsavedChanges(`reingreso:${matriculaId}`, true, busy);
 
@@ -65,13 +68,14 @@ export default function ReingresoDialog({
   const lastRetiredDay = valid ? shiftDay(fechaReingreso, -1) : '';
 
   async function submit() {
-    if (busy || running.current || !valid || !selectedSectionId) return;
+    if (busy || running.current || uncertain || !valid || !selectedSectionId) return;
     running.current = true; setBusy(true); setError('');
     try {
       await reingresoStudent(matriculaId, selectedSectionId, fechaReingreso);
       onSuccess(); onClose();
     } catch (err: unknown) {
-      setError(movementFailure(err));
+      const fallo = errorEscritura(err);
+      setError(fallo.mensaje); setUncertain(fallo.incierto);
     } finally { setBusy(false); running.current = false; }
   }
 
@@ -87,7 +91,7 @@ export default function ReingresoDialog({
         : sections.length === 0 ? (
           <div className="space-y-4">
             <p role="alert" className="text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
-              No hay secciones activas en este grado para realizar el reingreso.
+              {error || 'No hay secciones activas en este grado para realizar el reingreso.'}
             </p>
             <Button variant="secondary" onClick={onClose}>Cerrar</Button>
           </div>
@@ -95,7 +99,7 @@ export default function ReingresoDialog({
           <form className="space-y-4" onSubmit={e => { e.preventDefault(); void submit(); }}>
             <label className="block text-sm font-semibold">
               Sección de destino
-              <select required disabled={busy} value={selectedSectionId}
+              <select required disabled={busy || uncertain} value={selectedSectionId}
                 onChange={e => { setSelectedSectionId(e.target.value); setError(''); }}
                 className="mt-2 block min-h-11 w-full rounded-lg border border-slate-300 p-2 bg-white">
                 {sections.map(s => <option key={s.id} value={s.id}>{formatSectionName(s)} {s.turno ? `(${s.turno})` : ''}</option>)}
@@ -103,7 +107,7 @@ export default function ReingresoDialog({
             </label>
             <label className="block text-sm font-semibold">
               Fecha de reingreso (primer día en la sección)
-              <input type="date" required min={minDate} max={today} value={fechaReingreso} disabled={busy}
+              <input type="date" required min={minDate} max={today} value={fechaReingreso} disabled={busy || uncertain}
                 onChange={e => { setFechaReingreso(e.target.value); setError(''); }}
                 className="mt-2 block min-h-11 w-full rounded-lg border border-slate-300 p-2" />
             </label>
@@ -118,8 +122,9 @@ export default function ReingresoDialog({
             )}
             {error && <p role="alert" className="text-sm font-medium text-rose-700 bg-rose-50 p-3 rounded-lg border border-rose-200">{error}</p>}
             <div className="flex flex-wrap gap-3 pt-2">
-              <Button type="submit" disabled={busy || !valid}>{busy ? 'Reingresando…' : 'Confirmar reingreso'}</Button>
-              <Button variant="secondary" disabled={busy} onClick={onClose}>Cancelar</Button>
+              <Button type="submit" disabled={busy || uncertain || !valid}>{busy ? 'Reingresando…' : 'Confirmar reingreso'}</Button>
+              <Button variant="secondary" disabled={busy} onClick={() => { if (uncertain) onCheckState?.(); onClose(); }}>
+                {uncertain ? 'Comprobar estado' : 'Cancelar'}</Button>
             </div>
           </form>
         )}

@@ -92,6 +92,7 @@ export default function StudentProfileView({ data, compact = false, onBusyChange
         grado={lastSection.grado}
         fechaRetiro={data.contexto.fecha_retiro || lastSection.fecha_fin || ''}
         onClose={() => setShowReingreso(false)}
+        onCheckState={onReload}
         onSuccess={() => {
           setShowReingreso(false);
           onReload?.();

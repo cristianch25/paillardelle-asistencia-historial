@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import axios from 'axios';
 import { Eye, EyeOff } from 'lucide-react';
 import Button from '../../shared/components/Button';
-import { apiErrorMessage } from '../../shared/api/apiError';
+import { errorEscritura } from '../../shared/api/apiError';
 import { changePassword } from './auth.api';
 
 export default function ChangePasswordDialog({ onClose }: { onClose: () => void }) {
@@ -14,6 +13,7 @@ export default function ChangePasswordDialog({ onClose }: { onClose: () => void 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [uncertain, setUncertain] = useState(false);
 
   useEffect(() => {
     const el = dialog.current!;
@@ -22,7 +22,7 @@ export default function ChangePasswordDialog({ onClose }: { onClose: () => void 
   }, []);
 
   async function submit() {
-    if (busy || running.current || success) return;
+    if (busy || running.current || uncertain || success) return;
     if (nueva.length < 8) {
       setError('La nueva contraseña debe tener como mínimo 8 caracteres.');
       return;
@@ -33,16 +33,15 @@ export default function ChangePasswordDialog({ onClose }: { onClose: () => void 
     }
     running.current = true; setBusy(true); setError('');
     try {
-      const res = await changePassword({
+      await changePassword({
         password_actual: actual,
         password_nueva: nueva,
         password_confirmacion: confirmacion,
       });
-      setSuccess(res.message || 'Contraseña cambiada correctamente.');
+      setSuccess('Contraseña cambiada correctamente.');
     } catch (err: unknown) {
-      const msg = (axios.isAxiosError(err) && typeof err.response?.data?.message === 'string')
-        ? err.response.data.message : apiErrorMessage(err);
-      setError(msg);
+      const fallo = errorEscritura(err);
+      setError(fallo.mensaje); setUncertain(fallo.incierto);
     } finally { setBusy(false); running.current = false; }
   }
 
@@ -68,21 +67,21 @@ export default function ChangePasswordDialog({ onClose }: { onClose: () => void 
         <form className="space-y-4" onSubmit={e => { e.preventDefault(); void submit(); }}>
           <label className="block text-sm font-semibold">
             Contraseña actual
-            <input type={inputType} required disabled={busy} value={actual} autoFocus
+            <input type={inputType} required disabled={busy || uncertain} value={actual} autoFocus
               onChange={e => { setActual(e.target.value); setError(''); }}
               className="mt-1 block min-h-11 w-full rounded-lg border border-slate-300 p-2 text-slate-900" />
           </label>
 
           <label className="block text-sm font-semibold">
             Nueva contraseña (mínimo 8 caracteres)
-            <input type={inputType} required minLength={8} disabled={busy} value={nueva}
+            <input type={inputType} required minLength={8} disabled={busy || uncertain} value={nueva}
               onChange={e => { setNueva(e.target.value); setError(''); }}
               className="mt-1 block min-h-11 w-full rounded-lg border border-slate-300 p-2 text-slate-900" />
           </label>
 
           <label className="block text-sm font-semibold">
             Confirmar nueva contraseña
-            <input type={inputType} required minLength={8} disabled={busy} value={confirmacion}
+            <input type={inputType} required minLength={8} disabled={busy || uncertain} value={confirmacion}
               onChange={e => { setConfirmacion(e.target.value); setError(''); }}
               className="mt-1 block min-h-11 w-full rounded-lg border border-slate-300 p-2 text-slate-900" />
           </label>
@@ -101,12 +100,14 @@ export default function ChangePasswordDialog({ onClose }: { onClose: () => void 
             </p>
           )}
 
+          {uncertain && <p className="text-sm text-slate-600">Para comprobar el cambio, inicia sesión en una ventana privada con la nueva contraseña.</p>}
+
           <div className="flex flex-wrap gap-3 pt-2">
-            <Button type="submit" disabled={busy || !actual || !nueva || !confirmacion}>
+            <Button type="submit" disabled={busy || uncertain || !actual || !nueva || !confirmacion}>
               {busy ? 'Guardando…' : 'Cambiar contraseña'}
             </Button>
             <Button variant="secondary" disabled={busy} onClick={onClose}>
-              Cancelar
+              {uncertain ? 'Cerrar' : 'Cancelar'}
             </Button>
           </div>
         </form>

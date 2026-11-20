@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import Button from '../../shared/components/Button';
 import { formatCivilDate, peruToday, validCivilDate } from '../../shared/dates/civilDate';
-import { apiErrorMessage } from '../../shared/api/apiError';
+import { apiErrorMessage, errorEscritura } from '../../shared/api/apiError';
 import { useUnsavedChanges } from '../../shared/navigation/useUnsavedChanges';
-import { changeStudentSection, movementFailure } from './matriculas.api';
+import { changeStudentSection } from './matriculas.api';
 import { getSections } from '../organizacion-escolar/secciones/secciones.api';
 import { formatSectionName } from '../organizacion-escolar/secciones/sectionPresentation';
 import type { Section } from '../organizacion-escolar/secciones/secciones.types';
@@ -20,11 +20,13 @@ export default function SectionChangeDialog({
   currentSection,
   onClose,
   onSuccess,
+  onCheckState,
 }: {
   entry: PadronEntry;
   currentSection: Pick<Section, 'id' | 'anio_escolar_id' | 'nivel' | 'grado' | 'letra'>;
   onClose: () => void;
   onSuccess: () => void;
+  onCheckState?: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null), running = useRef(false);
   const today = peruToday(), minDate = shiftDay(entry.fecha_inicio, 1);
@@ -32,6 +34,7 @@ export default function SectionChangeDialog({
   const [destSections, setDestSections] = useState<Section[]>([]);
   const [selectedDestId, setSelectedDestId] = useState('');
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState('');
+  const [uncertain, setUncertain] = useState(false);
 
   useUnsavedChanges(`section-change:${entry.id}`, true, busy);
 
@@ -60,13 +63,14 @@ export default function SectionChangeDialog({
   const valid = validCivilDate(fechaEfectiva) && fechaEfectiva >= minDate && fechaEfectiva <= today && Boolean(selectedDestId);
 
   async function submit() {
-    if (busy || running.current || !valid || !selectedDestId) return;
+    if (busy || running.current || uncertain || !valid || !selectedDestId) return;
     running.current = true; setBusy(true); setError('');
     try {
       await changeStudentSection(entry.id, selectedDestId, fechaEfectiva);
       onSuccess(); onClose();
     } catch (err: unknown) {
-      setError(movementFailure(err));
+      const fallo = errorEscritura(err);
+      setError(fallo.mensaje); setUncertain(fallo.incierto);
     } finally { setBusy(false); running.current = false; }
   }
 
@@ -82,7 +86,7 @@ export default function SectionChangeDialog({
         : destSections.length === 0 ? (
           <div className="space-y-4">
             <p role="alert" className="text-sm text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
-              No hay otras secciones activas en este grado para realizar el cambio.
+              {error || 'No hay otras secciones activas en este grado para realizar el cambio.'}
             </p>
             <Button variant="secondary" onClick={onClose}>Cerrar</Button>
           </div>
@@ -90,7 +94,7 @@ export default function SectionChangeDialog({
           <form className="space-y-4" onSubmit={e => { e.preventDefault(); void submit(); }}>
             <label className="block text-sm font-semibold">
               Sección destino
-              <select required disabled={busy} value={selectedDestId}
+              <select required disabled={busy || uncertain} value={selectedDestId}
                 onChange={e => { setSelectedDestId(e.target.value); setError(''); }}
                 className="mt-2 block min-h-11 w-full rounded-lg border border-slate-300 p-2 bg-white">
                 {destSections.map(s => <option key={s.id} value={s.id}>{formatSectionName(s)} {s.turno ? `(${s.turno})` : ''}</option>)}
@@ -98,7 +102,7 @@ export default function SectionChangeDialog({
             </label>
             <label className="block text-sm font-semibold">
               Primer día en la nueva sección (fecha efectiva)
-              <input type="date" required min={minDate} max={today} value={fechaEfectiva} disabled={busy}
+              <input type="date" required min={minDate} max={today} value={fechaEfectiva} disabled={busy || uncertain}
                 onChange={e => { setFechaEfectiva(e.target.value); setError(''); }}
                 className="mt-2 block min-h-11 w-full rounded-lg border border-slate-300 p-2" />
             </label>
@@ -111,8 +115,9 @@ export default function SectionChangeDialog({
             )}
             {error && <p role="alert" className="text-sm font-medium text-rose-700 bg-rose-50 p-3 rounded-lg border border-rose-200">{error}</p>}
             <div className="flex flex-wrap gap-3 pt-2">
-              <Button type="submit" disabled={busy || !valid}>{busy ? 'Cambiando…' : 'Confirmar cambio'}</Button>
-              <Button variant="secondary" disabled={busy} onClick={onClose}>Cancelar</Button>
+              <Button type="submit" disabled={busy || uncertain || !valid}>{busy ? 'Cambiando…' : 'Confirmar cambio'}</Button>
+              <Button variant="secondary" disabled={busy} onClick={() => { if (uncertain) onCheckState?.(); onClose(); }}>
+                {uncertain ? 'Comprobar estado' : 'Cancelar'}</Button>
             </div>
           </form>
         )}
