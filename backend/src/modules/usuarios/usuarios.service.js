@@ -3,7 +3,7 @@ import { createUsuariosRepository } from './usuarios.repository.js';
 import { validateNewUser, validateUserId, validateUserPatch, validateRoleLevel } from './usuarios.validation.js';
 import { hashPassword } from '../../shared/passwords.js';
 import { peruDate } from '../../shared/peru-date.js';
-import { unauthorized } from '../auth/auth.errors.js';
+import { accountRoles, authorizeAccountCreation, authorizeAccountOperation } from './usuarios.authorization.js';
 import { validatePagination } from '../../shared/query-validation.js';
 import { createSupervisionService } from './usuarios.supervision.service.js';
 import { createPasswordResetService } from './usuarios.password.service.js';
@@ -22,24 +22,14 @@ export function publicUser(user) {
   };
 }
 
-function authorizeAdmin(actor) {
-  if (!actor || !(actor.activo === 1 || actor.activo === true)) throw unauthorized();
-  if (actor.rol !== 'ADMIN') throw new HttpError(403, 'Acceso reservado a ADMIN.');
-}
-
-function planUserUpdate({ current, actor, adminIds, assignments }, patch, actorId, today) {
+function planUserUpdate({ current, actor, adminIds, assignments }, patch, today, stateOnly) {
   // Revalidar al actor después de esperar los bloqueos de otras peticiones.
-  authorizeAdmin(actor);
-  if (!current) throw new HttpError(404, 'Usuario no encontrado.');
+  authorizeAccountOperation(actor, current, stateOnly ? 'state' : 'edit', patch.rol);
   const next = { ...current, ...patch };
   validateRoleLevel(next);
   const changes = Object.fromEntries(Object.entries(patch).filter(([key, value]) =>
     (typeof value === 'boolean' ? Boolean(current[key]) : current[key]) !== value));
   if (Object.keys(changes).length === 0) return changes;
-  if (String(current.id) === String(actorId)
-    && (changes.activo === false || (changes.rol && changes.rol !== 'ADMIN'))) {
-    throw new HttpError(409, 'No puedes desactivar tu cuenta ni reducir tu propio rol.');
-  }
   if (current.rol === 'ADMIN' && current.activo
     && (next.rol !== 'ADMIN' || !next.activo) && adminIds.length <= 1) {
     throw new HttpError(409, 'Debe conservarse al menos un ADMIN activo.');
@@ -95,7 +85,7 @@ export function createUsuariosService({ repository = createUsuariosRepository(),
       const patch = validateUserPatch(body, stateOnly);
       try {
         return userDetails(await repository.update(id, actorId, patch,
-          context => planUserUpdate(context, patch, actorId, getToday())));
+          context => planUserUpdate(context, patch, getToday(), stateOnly)));
       } catch (error) {
         throw updateConflict(error);
       }
@@ -107,25 +97,29 @@ export function createUsuariosService({ repository = createUsuariosRepository(),
       }
       data.password_hash = await hashPassword(body.password);
       try {
-        return userDetails(await repository.create(data, actorId, authorizeAdmin));
+        return userDetails(await repository.create(data, actorId,
+          actor => authorizeAccountCreation(actor, data.rol)));
       } catch (error) {
         // La restricción UNIQUE es la garantía final, también con peticiones concurrentes.
         throw updateConflict(error);
       }
     },
-    async list(query = {}) {
+    async list(query = {}, actor) {
+      const roles = accountRoles(actor);
       const { page, limit, offset } = validatePagination(query);
       // Una fila extra permite informar si hay otra página, sin contar toda la tabla.
-      const rows = await repository.list({ limit: limit + 1, offset });
+      const rows = await repository.list({ limit: limit + 1, offset, roles });
       return {
         users: rows.slice(0, limit).map(userDetails),
         pagination: { page, limit, has_more: rows.length > limit },
       };
     },
-    async findById(id) {
+    async findById(id, actor) {
+      const roles = accountRoles(actor);
       validateUserId(id);
       const user = await repository.findById(id);
       if (!user) throw new HttpError(404, 'Usuario no encontrado.');
+      if (!roles.includes(user.rol)) throw new HttpError(403, 'Sin permiso para consultar esta cuenta.');
       return userDetails(user);
     },
   };

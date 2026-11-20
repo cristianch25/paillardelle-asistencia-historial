@@ -6,7 +6,7 @@ import { createAuthService } from '../src/modules/auth/auth.service.js';
 import { createTokenService } from '../src/modules/auth/auth.tokens.js';
 import { createUsuariosRepository } from '../src/modules/usuarios/usuarios.repository.js';
 import { createUsuariosService } from '../src/modules/usuarios/usuarios.service.js';
-import { updatePool } from '../test-support/usuarios-update-pool.js';
+import { updatePool, testUser } from '../test-support/usuarios-update-pool.js';
 
 const tokens = createTokenService(() => ({
   secret: 'secreto-ficticio-pruebas-PATCH-usuarios-123456789', expiresIn: 900,
@@ -16,7 +16,7 @@ let server;
 let baseUrl;
 
 beforeEach(async () => {
-  state = updatePool();
+  state = updatePool([testUser('1'), testUser('2', 'REGISTRADOR'), testUser('3', 'REGISTRADOR')]);
   const authService = createAuthService({ tokens, repository: {
     findById: async id => state.users.get(id) ?? null,
   } });
@@ -78,14 +78,14 @@ test('ambos PATCH requieren JWT y ADMIN antes de abrir la transacción', async (
   assert.equal(state.transactions.length, 0);
 });
 
-test('IDs y campos inválidos responden 400; inexistentes 404; propia desactivación o reducción 409', async () => {
+test('IDs y campos inválidos responden 400; inexistentes 404; administración de ADMIN 403', async () => {
   for (const [path, body, expected] of [
     ['0', { nombres: 'Otro' }, 400], ['18446744073709551616', { nombres: 'Otro' }, 400],
     ['3', {}, 400], ['3', { activo: false }, 400], ['3', { password: 'no' }, 400],
     ['3', { rol: 'SUBDIRECCION' }, 400], ['3/estado', { activo: 0 }, 400],
     ['3/estado', { activo: false, cargo: 'No' }, 400],
     ['999', { nombres: 'Otro' }, 404], ['999/estado', { activo: false }, 404],
-    ['1/estado', { activo: false }, 409], ['1', { rol: 'REGISTRADOR' }, 409],
+    ['1/estado', { activo: false }, 403], ['1', { rol: 'REGISTRADOR' }, 403],
   ]) {
     const response = await patch(path, body);
     assert.equal(response.status, expected);

@@ -9,7 +9,7 @@ export function createPasswordResetRepository(poolProvider = getPool) {
         await connection.execute('SELECT id FROM usuarios WHERE rol = ? AND activo = ? ORDER BY id FOR UPDATE', ['ADMIN', 1]);
         const [actors] = await connection.execute('SELECT id, rol, activo FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId]);
         authorize(actors[0] ?? null);
-        const [targets] = await connection.execute('SELECT id FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [id]);
+        const [targets] = await connection.execute('SELECT id, rol, activo FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [id]);
         requireTarget(targets[0] ?? null);
         const [result] = await connection.execute('UPDATE usuarios SET password_hash = ? WHERE id = ?', [hash, id]);
         if (result.affectedRows !== 1) throw new Error('No se restableció una única cuenta.');

@@ -12,6 +12,9 @@ function effective(user, additional) {
 }
 function target(user) {
   if (!user) throw new HttpError(404, 'Usuario no encontrado.');
+  if (['ADMIN', 'SUPERUSUARIO'].includes(user.rol)) {
+    throw new HttpError(403, 'Sin permiso para administrar niveles de esta cuenta.');
+  }
   if (user.rol !== 'SUBDIRECCION' || !educationLevels.includes(user.nivel_asignado)) {
     throw new HttpError(409, 'El usuario debe ser SUBDIRECCION con nivel principal válido.');
   }

@@ -68,38 +68,38 @@ test('asignaciones históricas se conservan; actuales y futuras se bloquean y va
   const { service, state } = fixture();
   state.assignments.push({ usuario_id: '3', nivel: 'PRIMARIA', fecha_fin: '2200-01-01' });
   const original = structuredClone(state.assignments);
-  await assert.rejects(service.update('3', { rol: 'ADMIN' }, '1'), { status: 409 });
+  await assert.rejects(service.update('3', { rol: 'SUBDIRECCION', nivel_asignado: 'PRIMARIA' }, '1'), { status: 409 });
   await assert.rejects(service.update('3', { nivel_asignado: 'SECUNDARIA' }, '1'), { status: 409 });
   assert.deepEqual(state.assignments, original);
   const statement = state.transactions[0].find(item => item.sql?.includes('FROM asignaciones'));
   assert.match(statement.sql, /WHERE a.usuario_id = \? ORDER BY a.id FOR UPDATE$/);
   assert.deepEqual(statement.params, ['3']);
   state.assignments[0].fecha_fin = '2000-01-01';
-  assert.equal((await service.update('3', { rol: 'ADMIN' }, '1')).rol, 'ADMIN');
+  assert.equal((await service.update('3', { rol: 'SUBDIRECCION', nivel_asignado: 'PRIMARIA' }, '1')).rol, 'SUBDIRECCION');
 });
 
-test('desactivaciones cruzadas concurrentes conservan un ADMIN y revalidan al actor que esperó', async () => {
-  const { service, state } = fixture([testUser('1'), testUser('2')]);
+test('SUPERUSUARIO desactiva concurrentemente y conserva el último ADMIN activo', async () => {
+  const { service, state } = fixture([testUser('1'), testUser('2'), testUser('9', 'SUPERUSUARIO')]);
   const results = await Promise.allSettled([
-    service.update('2', { activo: false }, '1', true),
-    service.update('1', { activo: false }, '2', true),
+    service.update('2', { activo: false }, '9', true),
+    service.update('1', { activo: false }, '9', true),
   ]);
   assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
-  assert.equal(results.find(result => result.status === 'rejected').reason.status, 401);
+  assert.equal(results.find(result => result.status === 'rejected').reason.status, 409);
   assert.equal([...state.users.values()].filter(user => user.rol === 'ADMIN' && user.activo).length, 1);
   assert.equal(state.audits.length, 1);
   assert.equal(state.transactions[1].includes('rollback'), true);
 });
 
-test('reducciones de rol cruzadas concurrentes conservan un ADMIN; UNIQUE y bloqueos devuelven 409', async () => {
-  const { service, state } = fixture([testUser('1'), testUser('2')]);
+test('ADMIN no reduce otros ADMIN; UNIQUE y bloqueos devuelven 409', async () => {
+  const { service, state } = fixture([testUser('1'), testUser('2'), testUser('9', 'SUPERUSUARIO')]);
   const results = await Promise.allSettled([
     service.update('2', { rol: 'REGISTRADOR' }, '1'),
     service.update('1', { rol: 'REGISTRADOR' }, '2'),
   ]);
-  assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
+  assert.equal(results.filter(result => result.status === 'fulfilled').length, 0);
   assert.equal(results.find(result => result.status === 'rejected').reason.status, 403);
-  assert.equal([...state.users.values()].filter(user => user.rol === 'ADMIN' && user.activo).length, 1);
+  assert.equal([...state.users.values()].filter(user => user.rol === 'ADMIN' && user.activo).length, 2);
   for (const failAt of ['duplicate', 'deadlock', 'timeout']) {
     const scenario = fixture();
     scenario.state.failAt = failAt;

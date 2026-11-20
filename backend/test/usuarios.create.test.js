@@ -81,8 +81,8 @@ test('ADMIN registra con bcrypt de 12 rondas y recibe 201 sin contraseña ni has
   assert.equal(await bcrypt.compare(payload.password, captured.data.password_hash), true);
 });
 
-test('acepta los tres roles y opcionales válidos, sin inventar restricciones por cargo', async () => {
-  for (const rol of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {
+test('ADMIN acepta los dos roles institucionales gestionables y opcionales válidos, sin inventar restricciones por cargo', async () => {
+  for (const rol of ['SUBDIRECCION', 'REGISTRADOR']) {
     const response = await post({ ...payload, rol, nivel_asignado: 'SECUNDARIA',
       cargo: 'Auxiliar', puede_escanear_qr: true, puede_usar_bitacora: false, activo: false });
     assert.equal(response.status, 201);
@@ -145,7 +145,7 @@ test('alta revalida al actor transaccional aunque su JWT haya autorizado la peti
       assert.equal(response.status, status);
       if (status === 401) assert.equal(response.headers.get('www-authenticate'), 'Bearer');
       assert.deepEqual(await response.json(), { error: status === 401
-        ? 'Credenciales o autenticación no válidas.' : 'Acceso reservado a ADMIN.' });
+        ? 'Credenciales o autenticación no válidas.' : 'Sin permiso para consultar cuentas.' });
     }
   } finally { failAt = undefined; }
 });

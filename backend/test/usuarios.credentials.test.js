@@ -7,7 +7,7 @@ import { createAuthService } from '../src/modules/auth/auth.service.js';
 import { createTokenService } from '../src/modules/auth/auth.tokens.js';
 
 const admin = { id: '1', rol: 'ADMIN', activo: 1 };
-function passwordFixture(actor = admin, target = { id: '2' }) {
+function passwordFixture(actor = admin, target = { id: '2', rol: 'REGISTRADOR' }) {
   const calls = [], service = createPasswordResetService({ hash: async value => `HASH_FICTICIO_${value}`,
     repository: { async reset(id, hash, actorId, authorize, requireTarget) {
       calls.push({ id, hash, actorId }); authorize(actor); requireTarget(target);

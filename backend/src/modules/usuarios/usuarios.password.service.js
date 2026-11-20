@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { HttpError } from '../../shared/http-error.js';
 import { hashPassword } from '../../shared/passwords.js';
 import { validateId } from '../../shared/query-validation.js';
-import { unauthorized } from '../auth/auth.errors.js';
+import { authorizeAccountActor, authorizeAccountOperation } from './usuarios.authorization.js';
 import { createPasswordResetRepository } from './usuarios.password.repository.js';
 
 export function createPasswordResetService({ repository = createPasswordResetRepository(), hash = hashPassword,
@@ -15,10 +15,11 @@ export function createPasswordResetService({ repository = createPasswordResetRep
       }
       const temporary = generate(), passwordHash = await hash(temporary);
       try {
+        let lockedActor;
         await repository.reset(id, passwordHash, actorId, actor => {
-          if (!actor || !(actor.activo === 1 || actor.activo === true)) throw unauthorized();
-          if (actor.rol !== 'ADMIN') throw new HttpError(403, 'Solo ADMIN puede restablecer contraseñas.');
-        }, target => { if (!target) throw new HttpError(404, 'Usuario no encontrado.'); });
+          authorizeAccountActor(actor);
+          lockedActor = actor;
+        }, target => authorizeAccountOperation(lockedActor, target, 'password'));
       } catch (error) {
         if (['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT'].includes(error.code)) throw new HttpError(409, 'Conflicto concurrente; consulta antes de volver a restablecer.');
         throw error;

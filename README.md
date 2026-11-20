@@ -6,6 +6,25 @@ manual de padrones con revisión, sin sincronización automática.
 
 ## Estado del proyecto
 
+20/11/2026 — SUPERUSUARIO, etapa 2: autorización backend implementada según
+D48/RN-48/RF-23 V8. SUPERUSUARIO consulta y crea ADMIN, cambia sus estados y
+restablece sus contraseñas. ADMIN consulta las cuentas institucionales y conserva
+la administración de SUBDIRECCION/REGISTRADOR; no administra ADMIN ni consulta
+SUPERUSUARIO. No hay edición de datos/roles de ADMIN por SUPERUSUARIO ni
+creación/promoción web de SUPERUSUARIO. Se mantienen perfil, contraseña propia,
+JWT actuales, bloqueos, último ADMIN activo y auditoría transaccional sin secretos.
+Los controles compartidos de los módulos académicos permanecen intactos.
+
+Verificación: 1054 pruebas backend aprobadas con mocks y HTTP aislado; archivos
+de integración MySQL excluidos y creación de conexiones MySQL bloqueada durante
+la ejecución. No acredita concurrencia en MySQL real. Sin conexión a 3306,
+3310, 3311 o 3312; sin migraciones, cuentas reales, frontend ni herramienta local.
+007 sigue **PREPARADA, NO APLICADA**: usar el rol en una base real requiere su
+aplicación autorizada y una etapa posterior de alta inicial. El cambio obligatorio
+de contraseña temporal ADMIN en primer acceso sigue pendiente de diseño del
+indicador persistente y flujo de servidor (D49/RN-49/RF-24 V8).
+Los bloques siguientes conservan el contexto histórico de sus etapas.
+
 20/11/2026 — SUPERUSUARIO, etapa 1: reglas aprobadas y migración
 [007](docs/database/migrations/007_superusuario.sql) **PREPARADA, NO APLICADA**.
 Solo SUPERUSUARIO podrá crear ADMIN y restablecer sus contraseñas o cambiar sus

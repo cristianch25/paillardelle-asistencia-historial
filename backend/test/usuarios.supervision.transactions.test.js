@@ -103,18 +103,17 @@ test('deadlock y timeout responden 409, sin reintentar ni alterar niveles', asyn
   }
 });
 
-test('ADMIN que pierde rol o activación mientras la petición espera no puede conceder permisos', async () => {
-  for (const [patch, status] of [[{ rol: 'REGISTRADOR' }, 403], [{ activo: false }, 401]]) {
-    const { state, supervision, users } = fixture();
-    state.users.set('7', testUser('7'));
-    const results = await Promise.allSettled([
-      users.update('1', patch, '7', Object.hasOwn(patch, 'activo')),
-      supervision.update('2', { niveles_adicionales: ['INICIAL'] }, '1'),
-    ]);
-    assert.equal(results[0].status, 'fulfilled');
-    assert.equal(results[1].status, 'rejected');
-    assert.equal(results[1].reason.status, status);
-    assert.deepEqual(state.additional.get('2'), ['SECUNDARIA']);
-    assert.equal(state.audits.length, 1);
-  }
+test('ADMIN desactivado por SUPERUSUARIO mientras espera no puede conceder permisos', async () => {
+  const { state, supervision, users } = fixture();
+  state.users.set('7', testUser('7', 'SUPERUSUARIO'));
+  state.users.set('8', testUser('8'));
+  const results = await Promise.allSettled([
+    users.update('1', { activo: false }, '7', true),
+    supervision.update('2', { niveles_adicionales: ['INICIAL'] }, '1'),
+  ]);
+  assert.equal(results[0].status, 'fulfilled');
+  assert.equal(results[1].status, 'rejected');
+  assert.equal(results[1].reason.status, 401);
+  assert.deepEqual(state.additional.get('2'), ['SECUNDARIA']);
+  assert.equal(state.audits.length, 1);
 });

@@ -49,13 +49,15 @@ test('valida el resultado completo de rol y nivel sin borrar datos implícitamen
   assert.deepEqual(await plan({ rol: 'REGISTRADOR' }, { current: sub }), { rol: 'REGISTRADOR' });
 });
 
-test('no permite autodesactivación ni reducción de rol; protege al último ADMIN activo', async () => {
-  for (const patch of [{ activo: false }, { rol: 'REGISTRADOR' }]) {
-    await assert.rejects(() => plan(patch, { current: actor }), { status: 409 });
-    // Aislar la regla del último ADMIN sin depender de la prohibición sobre la propia cuenta.
-    await assert.rejects(() => plan(patch, { current: { ...actor, id: '2' }, adminIds: ['2'] }), { status: 409 });
+test('ADMIN no administra ADMIN; SUPERUSUARIO protege al último ADMIN activo', async () => {
+  for (const patch of [{ activo: false }, { rol: 'REGISTRADOR' }, { nombres: 'Otro' }]) {
+    await assert.rejects(() => plan(patch, { current: actor }), { status: 403 });
   }
-  assert.deepEqual(await plan({ activo: false }, { current: { ...actor, id: '2' } }), { activo: false });
+  const technical = { id: '9', rol: 'SUPERUSUARIO', activo: 1 };
+  await assert.rejects(() => plan({ activo: false }, {
+    actor: technical, current: actor, adminIds: ['1'],
+  }), { status: 409 });
+  assert.deepEqual(await plan({ activo: false }, { actor: technical, current: actor }), { activo: false });
 });
 
 test('asignaciones actuales, futuras y con fecha_fin igual a hoy impiden abandonar REGISTRADOR', async () => {
@@ -64,15 +66,13 @@ test('asignaciones actuales, futuras y con fecha_fin igual a hoy impiden abandon
     { fecha_inicio: '2026-01-01', fecha_fin: '2026-11-08' },
     { fecha_inicio: '2030-01-01', fecha_fin: '2030-12-31' },
   ]) {
-    for (const rol of ['ADMIN', 'SUBDIRECCION']) {
-      await assert.rejects(() => plan({ rol, nivel_asignado: 'PRIMARIA' }, {
-        assignments: [{ nivel: 'PRIMARIA', ...period }],
-      }), { status: 409 });
-    }
+    await assert.rejects(() => plan({ rol: 'SUBDIRECCION', nivel_asignado: 'PRIMARIA' }, {
+      assignments: [{ nivel: 'PRIMARIA', ...period }],
+    }), { status: 409 });
   }
-  assert.deepEqual(await plan({ rol: 'ADMIN' }, {
+  assert.deepEqual(await plan({ rol: 'SUBDIRECCION', nivel_asignado: 'PRIMARIA' }, {
     assignments: [{ nivel: 'PRIMARIA', fecha_fin: '2026-11-07' }],
-  }), { rol: 'ADMIN' });
+  }), { rol: 'SUBDIRECCION', nivel_asignado: 'PRIMARIA' });
 });
 
 test('nivel específico debe coincidir con todas las asignaciones no finalizadas; NULL es válido para REGISTRADOR', async () => {

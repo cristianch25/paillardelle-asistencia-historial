@@ -20,10 +20,10 @@ export function createUsuariosController(service) {
       res.location(`/api/usuarios/${user.id}`).status(201).json({ user });
     },
     async list(req, res) {
-      res.json(await service.list(req.query));
+      res.json(await service.list(req.query, req.authUser));
     },
     async findById(req, res) {
-      res.json({ user: await service.findById(req.params.id) });
+      res.json({ user: await service.findById(req.params.id, req.authUser) });
     },
   };
 }

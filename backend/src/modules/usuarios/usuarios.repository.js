@@ -105,9 +105,10 @@ export function createUsuariosRepository(poolProvider = getPool) {
         return user;
       });
     },
-    async list({ limit, offset }) {
+    async list({ limit, offset, roles }) {
       const [rows] = await poolProvider().execute(
-        `SELECT ${columns} FROM usuarios ORDER BY id ASC LIMIT ? OFFSET ?`, [limit, offset],
+        `SELECT ${columns} FROM usuarios WHERE rol IN (${roles.map(() => '?').join(', ')})
+         ORDER BY id ASC LIMIT ? OFFSET ?`, [...roles, limit, offset],
       );
       return rows;
     },

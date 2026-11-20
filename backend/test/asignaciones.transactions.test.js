@@ -11,7 +11,7 @@ test('asignaciones concurrentes iniciales: dos ADMIN, un alta y un 409 sin dupli
 });
 
 test('asignaciones y edición real de usuarios coordinan cambio de rol/nivel en ambos órdenes', async () => {
-  for (const patch of [{ rol: 'ADMIN' }, { nivel_asignado: 'SECUNDARIA' }]) {
+  for (const patch of [{ rol: 'SUBDIRECCION', nivel_asignado: 'PRIMARIA' }, { nivel_asignado: 'SECUNDARIA' }]) {
     for (const assignFirst of [true, false]) {
       const { service, state, admin, users } = assignmentFixture();
       const assign = () => service.create(assignmentBody, admin);
@@ -26,10 +26,11 @@ test('asignaciones y edición real de usuarios coordinan cambio de rol/nivel en 
 });
 
 test('asignaciones: revocación del actor o desactivación del destinatario antes del bloqueo impide alta', async () => {
-  for (const [id, patch, status] of [['1', { rol: 'REGISTRADOR' }, 403], ['1', { activo: false }, 401],
+  for (const [id, patch, status] of [['1', { activo: false }, 401],
     ['3', { activo: false }, 409]]) {
     const { service, state, admin, users } = assignmentFixture();
-    const results = await Promise.allSettled([users.update(id, patch, '2', Object.hasOwn(patch, 'activo')),
+    state.users.set('7', { id: '7', rol: 'SUPERUSUARIO', activo: 1 });
+    const results = await Promise.allSettled([users.update(id, patch, id === '1' ? '7' : '2', Object.hasOwn(patch, 'activo')),
       service.create(assignmentBody, admin)]);
     assert.equal(results[0].status, 'fulfilled'); assert.equal(results[1].reason.status, status);
     assert.equal(state.assignments.length, 0);

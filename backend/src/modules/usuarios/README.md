@@ -1,5 +1,45 @@
 # Módulo de usuarios
 
+## Contrato vigente: SUPERUSUARIO etapa 2 — 20/11/2026
+
+Implementa D48/RN-48/RF-23 V8; este bloque sustituye únicamente los permisos
+incompatibles de los contratos históricos siguientes. Todos los endpoints
+siguen autenticando la cuenta y su rol actual, con respuestas públicas y no-store.
+
+| Operación | ADMIN | SUPERUSUARIO |
+| --- | --- | --- |
+| GET listado y detalle | ADMIN/SUBDIRECCION/REGISTRADOR, activos e inactivos | Solo ADMIN, activos e inactivos |
+| POST cuenta | SUBDIRECCION/REGISTRADOR | Solo ADMIN |
+| PATCH datos/rol | Solo SUBDIRECCION/REGISTRADOR, sin promoción a ADMIN | Denegado |
+| PATCH estado y POST restablecer contraseña | Solo SUBDIRECCION/REGISTRADOR | Solo ADMIN |
+| GET/PUT niveles adicionales | SUBDIRECCION conforme al contrato existente | Denegado |
+
+SUBDIRECCION/REGISTRADOR no administran ni consultan cuentas. Ningún rol crea,
+promueve o administra SUPERUSUARIO mediante estos endpoints. ADMIN tampoco
+administra su propia cuenta mediante ellos; el perfil y cambio de contraseña
+propia autenticado siguen disponibles para los cuatro roles en `/api/auth`.
+La consulta por ID de un rol ajeno devuelve 403; inexistentes 404. Campos o roles
+no admitidos, incluido SUPERUSUARIO en POST/PATCH, devuelven 400. Los listados
+filtran los roles en SQL antes de LIMIT/OFFSET y de calcular `has_more`.
+
+`usuarios.authorization.js` centraliza la matriz del módulo. Creación revalida
+al actor bloqueado; edición/estado y restablecimiento revalidan actor y rol del
+destinatario bajo bloqueo antes de escribir. Se conserva el prefijo ADMIN activos
+por ID → actor → destino en las operaciones que ya lo utilizaban, con auditoría
+en la misma transacción, no-op autorizado y protección del último ADMIN activo.
+COMMIT incierto descarta conexión y no se reintenta. No cambian los JWT ni los
+controles compartidos académicos. Autenticación/perfil ya transmitían el rol
+actual sin un catálogo de tres valores; no necesitaron modificaciones.
+
+1054 pruebas backend aprobadas con mocks y HTTP aislado, excluyendo archivos
+`*.mysql.test.js` y bloqueando conexiones MySQL durante la ejecución. Incluyen
+matriz de cuatro roles, solicitudes directas, bloqueos/concurrencia simulados,
+auditoría, rollback, COMMIT incierto, login/perfil/contraseña y JWT anteriores.
+No equivalen a validación en MySQL real. 007 permanece preparada y no aplicada;
+sin cuentas reales, herramienta inicial, interfaz técnica, logs ni backups.
+El indicador/flujo obligatorio de contraseña temporal ADMIN en primer acceso
+continúa pendiente de diseño autorizado (D49/RN-49/RF-24 V8).
+
 ## Decisión posterior: SUPERUSUARIO etapa 1 — 20/11/2026
 
 La [matriz V8 aprobada](../../../../docs/requisitos/PAILLARDELLE_TRAZABILIDAD_v7_v8.md#matriz-normativa-de-gestión-de-cuentas)

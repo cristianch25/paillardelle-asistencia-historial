@@ -100,6 +100,27 @@ function fixture() {
   return { state, service };
 }
 
+test('V8: SUPERUSUARIO crea ADMIN con actor bloqueado y auditoría atómica sin secretos', async () => {
+  for (const failAt of [undefined, 'audit', 'commit', 'commit-after']) {
+    const { state, service } = fixture();
+    state.users.set('1', testUser('1', 'SUPERUSUARIO'));
+    state.failAt = failAt;
+    state.error = new Error('Fallo ficticio');
+    const run = service.create({ ...body, rol: 'ADMIN' }, '1');
+    if (failAt) await assert.rejects(run, error => error === state.error);
+    else assert.equal((await run).rol, 'ADMIN');
+    const persisted = !failAt || failAt === 'commit-after';
+    assert.equal(state.users.has('9'), persisted);
+    assert.equal(state.audits.length, persisted ? 1 : 0);
+    assert.equal(state.events.length, 1);
+    if (persisted) {
+      assert.deepEqual(state.audits[0].slice(0, 4), ['1', 'CREAR_USUARIO', 'usuarios', '9']);
+      assert.equal(/password|HASH|ClaveFicticia/.test(state.audits[0][5]), false);
+    }
+    if (failAt?.startsWith('commit')) assert.equal(state.events[0].at(-1), 'destroy');
+  }
+});
+
 test('alta: ADMIN activo confirma usuario y auditoría después de bloquear/revalidar actor', async () => {
   const { state, service } = fixture();
   const user = await service.create(body, '1');
@@ -176,8 +197,11 @@ test('alta: rollback fallido no oculta el rechazo del actor y descarta la conexi
 });
 
 test('alta y revocación concurrentes: el primero en bloquear determina la autorización', async () => {
-  for (const createFirst of [false, true]) for (const patch of [{ activo: false }, { rol: 'REGISTRADOR' }]) {
+  for (const createFirst of [false, true]) {
+    const patch = { activo: false };
     const { state, service } = fixture();
+    state.users.set('7', testUser('7', 'SUPERUSUARIO'));
+    state.users.set('8', testUser('8'));
     state.pauseNextLock = true;
     const create = () => service.create(body, '1');
     const revoke = () => service.update('1', patch, '7', Object.hasOwn(patch, 'activo'));
@@ -193,7 +217,7 @@ test('alta y revocación concurrentes: el primero en bloquear determina la autor
     const results = await resultsPromise;
     assert.equal(results[0].status, 'fulfilled');
     assert.equal(results[1].status, createFirst ? 'fulfilled' : 'rejected');
-    if (!createFirst) assert.equal(results[1].reason.status, patch.activo === false ? 401 : 403);
+    if (!createFirst) assert.equal(results[1].reason.status, 401);
     assert.equal(state.users.has('9'), createFirst);
     assert.equal(state.audits.length, createFirst ? 2 : 1);
     assert.equal(state.users.get('1')[Object.keys(patch)[0]], Object.values(patch)[0]);
