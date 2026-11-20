@@ -8,6 +8,11 @@ puerto temporal sin iniciar el servidor habitual al importar la aplicación.
 
 ## Estado y referencias vigentes
 
+Estado actual: autorización SUPERUSUARIO de etapa 2 guardada en `b9dba6c`;
+herramienta local de etapa 3 preparada con mocks, según el contrato siguiente.
+007 continúa **NO aplicada**. Los párrafos de etapas anteriores que siguen son
+antecedentes históricos y no sustituyen el estado del README principal.
+
 SUPERUSUARIO, etapa 1 aprobada el 20/11/2026: solo documentación y
 [007 preparada, NO aplicada](../docs/database/migrations/README.md).
 El backend no implementa todavía el rol; 007 solo amplía el ENUM de roles.
@@ -37,6 +42,79 @@ las precisiones aprobadas de SUPERUSUARIO etapa 1, enlazados en el
 [README principal](../README.md#referencias-funcionales-vigentes). V2 y la adenda
 6C-A y los TXT V4–V7 son antecedentes históricos; no conceden permisos contrarios a V8 ni
 acreditan implementación de asistencia, justificaciones o bitácora.
+
+## Herramienta local de alta inicial SUPERUSUARIO — etapa 3
+
+Preparada, **no ejecutada contra MySQL real**. Usar únicamente después de obtener
+autorización específica de ejecución, verificar el destino y aplicar 007 mediante
+su procedimiento separado autorizado. Esta herramienta no aplica migraciones.
+La restricción actual de la etapa es trabajar exclusivamente con mocks.
+
+Invocación futura desde la raíz, en terminal local interactiva, sin argumentos:
+
+```powershell
+node backend/scripts/crear-superusuario.js
+```
+
+No se conecta al importarla ni desde el arranque, tests, endpoints o formularios.
+No se añadió comando automático ni integración con seeds. La autorización de
+preparación no autoriza esa ejecución real. El operador debe proteger el acceso
+al sistema operativo y a la configuración SQL; la herramienta no autentica un
+ADMIN ni usa un JWT para el alta local.
+
+Antes de abrir conexión exige un UUID de instancia esperado, conocido previamente
+por un canal autorizado. Con la configuración SQL existente verifica DATABASE(),
+@@server_uuid, @@hostname, @@port, VERSION() 8.4 y CURRENT_USER(). Comprueba base
+exacta, UUID esperado, coincidencia de puerto configurado/servidor, InnoDB en ambas
+tablas, ENUM exacto de 007 e índice UNIQUE original de usuario. Un puerto externo
+distinto del puerto reportado por la instancia se rechaza. No basta con que la base
+se llame igual; no aceptar como verificación independiente un UUID desconocido
+mostrado por el propio destino. No se imprimen credenciales SQL.
+
+Muestra la identidad verificada y solicita nombres, apellidos e identificador de
+cuenta. Reutiliza sus validaciones backend. Exige copiar una frase que contiene
+endpoint, base y UUID; un «sí» genérico no autoriza escrituras. Después solicita
+contraseña y confirmación mediante `lib/local-password.js`, sin eco. Rechaza
+argumentos y entrada redirigida. Reutiliza `isValidPassword` (1–72 bytes UTF-8)
+y bcrypt de coste 12. No guarda secretos en archivos, auditoría ni mensajes de
+error; libera referencias sin prometer borrado físico de cadenas JavaScript.
+
+En la misma conexión dedicada obtiene GET_LOCK con nombre fijo por base dentro
+de la instancia y espera cero. Otra inicialización falla sin esperar ni reintentar.
+Revalida instancia/esquema dentro de la transacción; mantiene el prefijo de bloqueo
+ADMIN activos por ID, seguido de la búsqueda bloqueada de cualquier SUPERUSUARIO
+y del identificador. Rechaza un SUPERUSUARIO existente incluso inactivo, o cualquier
+cuenta con el mismo identificador, sin modificarla. UNIQUE sigue siendo la garantía
+SQL del identificador frente a otros escritores. No hay recuperación ni reemplazo.
+
+Decisión explícita aprobada para D49/RN-49/RF-24 V8: inserta cuenta y evento
+`CREAR_SUPERUSUARIO_LOCAL` en la misma transacción. `usuario_id` y `registro_id`
+referencian la cuenta recién creada; el primero es una referencia técnica de
+inicialización, **no el ejecutor autenticado**. El JSON distingue `cuenta_creada`,
+`ejecutor_real` (usuario SO, equipo y cuenta SQL), origen de herramienta local,
+instancia/UUID/base y zona UTC. `fecha_hora` se obtiene con UTC_TIMESTAMP(); la
+descripción explica la referencia. La consulta backend identifica el origen local
+en lugar de presentar la nueva cuenta como responsable. No se modifican tablas,
+migraciones, auditorías anteriores ni permisos de consulta de auditoría.
+
+Reutiliza `shared/transaction.js`. Ante COMMIT incierto descarta la conexión,
+preserva el error principal y no reintenta; ROLLBACK posterior no prueba reversión.
+También descarta si el bloqueo o su liberación quedan inciertos. Solo anuncia
+éxito después de COMMIT, liberación y cierre del pool completos. Cualquier fallo
+produce un diagnóstico seguro sin afirmar que la cuenta fue creada ni asegurar
+que no exista; revisar manualmente antes de otra ejecución autorizada.
+
+Pruebas de la herramienta: `test/superusuario.target.test.js`,
+`test/superusuario.initialization.test.js` y `test/superusuario.cli.test.js`, con
+`test-support/superusuario-local-pool.js`. Las pruebas existentes de entrada oculta
+están en `test/admin-prueba.test.js`. Toda la evidencia de esta etapa usa mocks,
+incluida la concurrencia; no certifica funcionamiento o bloqueos en MySQL real.
+No se ha accedido a 3306/3310/3311/3312 ni a la infraestructura temporal MySQL.
+Regresión backend: 1074 pruebas aprobadas, excluyendo `*.mysql.test.js`, con
+creación de conexiones MySQL bloqueada durante la suite. Las pruebas nuevas
+cubren destino, 007 ausente, entrada/confirmación, bcrypt, duplicados, dos
+inicializaciones concurrentes, auditoría y su presentación, rollback, COMMIT
+incierto, errores de limpieza y ausencia de secretos en mensajes.
 
 ## Iniciar y detener
 

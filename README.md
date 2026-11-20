@@ -6,6 +6,29 @@ manual de padrones con revisión, sin sincronización automática.
 
 ## Estado del proyecto
 
+20/11/2026 — SUPERUSUARIO, etapa 3: herramienta local preparada en
+[`backend/scripts/crear-superusuario.js`](backend/scripts/crear-superusuario.js),
+verificada exclusivamente con mocks. **No ejecutada contra una base real**;
+007 sigue preparada y **NO aplicada**. No hay alta real, recuperación técnica,
+interfaz SUPERUSUARIO, nuevas dependencias ni cambios de esquema.
+
+Precisión de D49/RN-49/RF-24 V8 aprobada expresamente durante esta etapa:
+`usuario_id` del evento de alta inicial referencia técnicamente al SUPERUSUARIO
+recién creado. No representa un actor autenticado ni un alta desde la aplicación.
+El evento distingue cuenta creada y ejecutor real mediante origen de herramienta
+local, usuario SO, equipo, identidad SQL, instancia y fecha UTC; cuenta y evento
+comparten transacción. La consulta backend presenta este evento como inicialización
+local y no atribuye la acción a la nueva cuenta ni a ADMIN.
+
+La herramienta exige terminal interactiva, UUID de instancia esperado, comprobación
+de destino/esquema, confirmación escrita y contraseña oculta confirmada. Serializa
+inicializaciones con bloqueo por instancia/base, rechaza SUPERUSUARIO existente
+incluso inactivo y no reintenta errores ni COMMIT incierto. Instrucciones y límites
+en el [README backend](backend/README.md#herramienta-local-de-alta-inicial-superusuario--etapa-3).
+Verificación de etapa 3: 1074 pruebas backend aprobadas con mocks y HTTP aislado;
+archivos de integración MySQL excluidos y conexiones MySQL bloqueadas en la suite.
+Los bloques siguientes conservan el contexto histórico de sus etapas.
+
 20/11/2026 — SUPERUSUARIO, etapa 2: autorización backend implementada según
 D48/RN-48/RF-23 V8. SUPERUSUARIO consulta y crea ADMIN, cambia sus estados y
 restablece sus contraseñas. ADMIN consulta las cuentas institucionales y conserva

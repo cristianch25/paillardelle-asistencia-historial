@@ -13,18 +13,21 @@ export {
 } from './audit.description.js';
 
 function auditItem(row) {
-  const actorNombre = [row.actor_nombres, row.actor_apellidos].filter(Boolean).join(' ') || 'Desconocido';
+  // En el alta inicial, usuario_id referencia la cuenta creada; no es un actor web.
+  const localInitialization = row.accion === 'CREAR_SUPERUSUARIO_LOCAL';
+  const actorNombre = localInitialization ? 'Herramienta local de inicialización'
+    : [row.actor_nombres, row.actor_apellidos].filter(Boolean).join(' ') || 'Desconocido';
   return {
     id: String(row.id),
     fecha_hora: row.fecha_hora instanceof Date ? row.fecha_hora.toISOString() : String(row.fecha_hora),
     usuario: {
       id: String(row.usuario_id),
       nombre_completo: actorNombre,
-      usuario: row.actor_usuario ?? '',
-      rol: row.actor_rol ?? '',
+      usuario: localInitialization ? 'inicializacion_local' : row.actor_usuario ?? '',
+      rol: localInitialization ? '' : row.actor_rol ?? '',
     },
     accion: row.accion,
-    accion_nombre: formatAuditAction(row.accion),
+    accion_nombre: localInitialization ? 'Alta inicial local de SUPERUSUARIO' : formatAuditAction(row.accion),
     entidad: row.entidad,
     registro_id: row.registro_id ? String(row.registro_id) : null,
     descripcion: formatAuditDescription(row),
