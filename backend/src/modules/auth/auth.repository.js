@@ -1,4 +1,5 @@
 import { getPool } from '../../config/database.js';
+import { inTransaction } from '../../shared/transaction.js';
 
 const publicColumns = `id, nombres, apellidos, usuario, rol, cargo, nivel_asignado,
   puede_escanear_qr, puede_usar_bitacora, activo`;
@@ -18,6 +19,28 @@ export function createAuthRepository(poolProvider = getPool) {
         [id],
       );
       return rows[0] ?? null;
+    },
+    changePassword(id, verifyAndHash) {
+      return inTransaction(poolProvider(), async connection => {
+        const [rows] = await connection.execute(
+          'SELECT id, password_hash, activo FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE',
+          [id],
+        );
+        const user = rows[0] ?? null;
+        if (!user || !(user.activo === 1 || user.activo === true)) {
+          throw new Error('Usuario no encontrado o inactivo.');
+        }
+        const newHash = await verifyAndHash(user.password_hash);
+        const [result] = await connection.execute(
+          'UPDATE usuarios SET password_hash = ? WHERE id = ?',
+          [newHash, id],
+        );
+        if (result.affectedRows !== 1) throw new Error('No se actualizó la contraseña.');
+        await connection.execute(`INSERT INTO auditoria_administrativa
+          (usuario_id, accion, entidad, registro_id, datos_anteriores, datos_nuevos)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+        [id, 'CAMBIAR_PASSWORD', 'usuarios', id, null, JSON.stringify({ password_cambiada: true })]);
+      });
     },
   };
 }

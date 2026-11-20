@@ -6,5 +6,8 @@ export function createAuthController(service) {
     me(req, res) {
       res.json({ user: req.authUser });
     },
+    async changePassword(req, res) {
+      res.json(await service.changePassword(req.authUser.id, req.body));
+    },
   };
 }

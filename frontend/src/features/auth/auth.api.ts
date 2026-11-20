@@ -14,3 +14,14 @@ export async function getCurrentUser(signal: AbortSignal) {
   }
   return user;
 }
+
+export type ChangePasswordInput = {
+  password_actual: string;
+  password_nueva: string;
+  password_confirmacion: string;
+};
+
+export async function changePassword(input: ChangePasswordInput) {
+  const response = await httpClient.post<{ message: string }>('/auth/cambiar-contrasena', input);
+  return response.data;
+}

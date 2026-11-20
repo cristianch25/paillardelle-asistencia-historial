@@ -13,6 +13,7 @@ export function createAuthRoutes(service = createAuthService()) {
   });
   router.post('/login', json({ limit: '8kb' }), controller.login);
   router.get('/me', authenticate(service), controller.me);
+  router.post('/cambiar-contrasena', authenticate(service), json({ limit: '4kb' }), controller.changePassword);
 
   return router;
 }
