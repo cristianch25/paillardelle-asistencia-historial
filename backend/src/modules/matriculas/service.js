@@ -1,8 +1,9 @@
 import { HttpError } from '../../shared/http-error.js';
 import { peruDate } from '../../shared/peru-date.js';
+import { validateId } from '../../shared/query-validation.js';
 import { createEnrollmentRepository } from './repository.js';
-import { listQuery, enrollmentData, padronQuery } from './validation.js';
-import { requireActor, enrollmentContext, enrollmentConflict } from './access.js';
+import { listQuery, enrollmentData, padronQuery, withdrawData } from './validation.js';
+import { requireActor, enrollmentContext, enrollmentConflict, withdrawContext, validateWithdrawal } from './access.js';
 import { createAttendanceImpactService } from '../asistencias/impact.service.js';
 
 export function createEnrollmentService({ repository = createEnrollmentRepository(), usuariosService,
@@ -111,6 +112,20 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
       const students = await identitiesService.readIdentities(rows.map(row => row.estudiante_id));
       const byId = new Map(students.map(student => [student.id, student]));
       return { seccion: section, fecha, padron: rows.map(row => ({ ...row, estudiante: byId.get(row.estudiante_id) })) };
+    },
+    async withdraw(id, body, actor) {
+      validateId(id);
+      requireActor(actor, true);
+      const data = withdrawData(body), today = getToday();
+      if (data.fecha_retiro > today) throw new HttpError(400, 'La fecha de retiro no puede ser futura.');
+      try {
+        return await repository.withdraw(id, data, actor.id, {
+          authorize: (current, connection) => accessFor(current, today, connection, true),
+          sectionContext: (sectionId, connection) => seccionesService.assignmentContext(sectionId, connection),
+          validateSectionContext: withdrawContext,
+          validateWithdrawal,
+        });
+      } catch (error) { throw enrollmentConflict(error); }
     },
   };
 }

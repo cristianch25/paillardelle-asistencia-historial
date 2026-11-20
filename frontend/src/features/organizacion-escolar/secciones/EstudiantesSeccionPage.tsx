@@ -58,7 +58,7 @@ function StudentsSection() {
           {padron.loading && <LoadingState message="Consultando estudiantes…" />}
           {padron.error && <div className="space-y-3"><ErrorState message={padron.error} />
             <Button variant="secondary" onClick={padron.retry}>Reintentar consulta</Button></div>}
-          {padron.data && <EstudiantesList entries={padron.data.padron} yearId={selected.year.id} date={fecha} />}
+          {padron.data && <EstudiantesList entries={padron.data.padron} yearId={selected.year.id} date={fecha} onRefresh={padron.retry} />}
         </>
       )}
     </div>

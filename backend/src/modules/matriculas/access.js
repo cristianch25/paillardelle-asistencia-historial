@@ -26,3 +26,26 @@ export function enrollmentConflict(error) {
   }
   return error;
 }
+
+export function withdrawContext({ section, year }, access) {
+  if (!section || !year) throw new HttpError(404, 'Sección o año escolar no encontrado.');
+  if (access.levels && !access.levels.includes(section.nivel)) throw new HttpError(404, 'Matrícula no encontrada.');
+  if (year.estado !== 'ABIERTO') throw new HttpError(409, 'Solo puede retirarse una matrícula en un año escolar ABIERTO.');
+}
+
+export function validateWithdrawal({ before, activeLink, context, data }) {
+  if (before.estado !== 'ACTIVA') throw new HttpError(409, 'La matrícula no está activa o ya se encuentra retirada.');
+  if (before.fecha_retiro !== data.fecha_retiro_esperada) {
+    throw new HttpError(409, 'La matrícula cambió. Actualiza la consulta antes de continuar.');
+  }
+  if (data.fecha_retiro < before.fecha_ingreso) {
+    throw new HttpError(400, 'La fecha de retiro no puede ser anterior a la fecha de ingreso.');
+  }
+  if (data.fecha_retiro < context.year.fecha_inicio || data.fecha_retiro > context.year.fecha_fin) {
+    throw new HttpError(400, 'La fecha de retiro debe estar dentro del año escolar.');
+  }
+  if (!activeLink) throw new HttpError(409, 'No se encontró un vínculo de sección activo para esta matrícula.');
+  if (data.fecha_retiro < activeLink.fecha_inicio) {
+    throw new HttpError(400, 'La fecha de retiro no puede ser anterior al inicio del vínculo vigente en la sección.');
+  }
+}

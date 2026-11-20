@@ -22,7 +22,7 @@ export function studentsFixture() {
   ]), years: new Map([['1', { id: '1', estado: 'PLANIFICADO', fecha_inicio: '2026-03-01', fecha_fin: '2026-12-20' }]]),
   sections: new Map(['PRIMARIA', 'SECUNDARIA', 'INICIAL'].map((nivel, i) => [String(11 + i), {
     id: String(11 + i), anio_escolar_id: '1', nivel, grado: 4, letra: 'A', activo: 1, turno: null }])),
-  additional: new Map([['2', ['INICIAL']]]), assignments: [], students: [], matriculas: [], links: [], audits: [],
+  additional: new Map([['2', ['INICIAL']]]), assignments: [], students: [], matriculas: [], links: [], audits: [], attendances: [],
   transactions: [], calls: [], nextId: 9007199254740993n, fail: null, beforeActor: null };
   const locks = new Map();
   async function lock(tx, key) {
@@ -33,11 +33,11 @@ export function studentsFixture() {
     locks.set(key, current); await previous; tx.keys.add(key); tx.releases.push(release);
   }
   function connection() {
-    const tx = { keys: new Set(), releases: [], students: [], matriculas: [], links: [], audits: [], events: [] };
+    const tx = { keys: new Set(), releases: [], students: [], matriculas: [], links: [], audits: [], attendances: [], events: [] };
     state.transactions.push(tx);
     const all = key => [...state[key], ...tx[key]];
     const finish = () => { for (const release of tx.releases.splice(0)) release(); };
-    const persist = () => { for (const key of ['students', 'matriculas', 'links', 'audits']) state[key].push(...tx[key].splice(0)); };
+    const persist = () => { for (const key of ['students', 'matriculas', 'links', 'audits', 'attendances']) state[key].push(...tx[key].splice(0)); };
     return {
       async beginTransaction() { tx.events.push('begin'); },
       async commit() {
@@ -118,6 +118,39 @@ export function studentsFixture() {
         }
         if (sql.startsWith('SELECT id FROM matriculas')) {
           return [all('matriculas').filter(m => m.estudiante_id === p[0] && m.anio_escolar_id === p[1])];
+        }
+        if (sql.includes('FROM matriculas m LEFT JOIN matricula_secciones ms')) {
+          const m = all('matriculas').find(row => row.id === p[0]);
+          if (!m) return [[]];
+          const link = all('links').find(row => row.matricula_id === p[0] && row.fecha_fin === null);
+          return [[{ id: m.id, estudiante_id: m.estudiante_id, anio_escolar_id: m.anio_escolar_id, estado: m.estado,
+            matricula_seccion_id: link ? link.id : null, seccion_id: link ? link.seccion_id : null }]];
+        }
+        if (sql.includes('FROM matriculas WHERE id = ?')) {
+          return [all('matriculas').filter(m => m.id === p[0])];
+        }
+        if (sql.includes('FROM matricula_secciones WHERE matricula_id = ?')) {
+          return [all('links').filter(l => l.matricula_id === p[0] && l.fecha_fin === null)];
+        }
+        if (sql.includes('FROM asistencias WHERE matricula_id = ?')) {
+          return [(state.attendances ?? []).filter(a => a.matricula_id === p[0] && a.fecha > p[1])];
+        }
+        if (sql.startsWith('UPDATE matriculas SET')) {
+          const target = all('matriculas').find(m => m.id === p[2]);
+          if (target && target.fecha_retiro === p[3]) {
+            target.estado = p[0];
+            target.fecha_retiro = p[1];
+            return [{ affectedRows: 1 }];
+          }
+          return [{ affectedRows: 0 }];
+        }
+        if (sql.startsWith('UPDATE matricula_secciones SET')) {
+          const link = all('links').find(l => l.id === p[1] && l.fecha_fin === null);
+          if (link) {
+            link.fecha_fin = p[0];
+            return [{ affectedRows: 1 }];
+          }
+          return [{ affectedRows: 0 }];
         }
         if (sql.includes('FROM matriculas m JOIN')) return [readEnrollmentRows(sql, p, {
           ...state, matriculas: all('matriculas'), links: all('links') })];

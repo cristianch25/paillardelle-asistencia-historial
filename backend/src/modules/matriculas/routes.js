@@ -14,6 +14,7 @@ export function createEnrollmentRoutes(authService, service) {
   router.get('/', controller.list);
   router.post('/', writer, json({ limit: '8kb' }), controller.create);
   router.post('/alta-inicial', writer, json({ limit: '8kb' }), controller.joint);
+  router.patch('/:id/retiro', writer, json({ limit: '2kb' }), controller.withdraw);
   padron.get('/:id/padron', noStore, authenticate(authService), controller.padron);
   return { router, padron };
 }

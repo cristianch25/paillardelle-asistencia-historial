@@ -2,6 +2,7 @@ import { getPool } from '../../config/database.js';
 import { inTransaction } from '../../shared/transaction.js';
 import { readInsertedId } from '../../shared/inserted-id.js';
 import { createEnrollmentQueries } from './query.repository.js';
+import { withdrawEnrollment } from './withdraw.repository.js';
 
 async function actor(connection, id) {
   const [rows] = await connection.execute(
@@ -51,6 +52,9 @@ export function createEnrollmentRepository(poolProvider = getPool) {
         return { ...identity, matricula };
       };
       return sharedConnection ? work(sharedConnection) : inTransaction(poolProvider(), work);
+    },
+    withdraw(id, data, actorId, hooks) {
+      return withdrawEnrollment(poolProvider(), id, data, actorId, hooks);
     },
   };
 }

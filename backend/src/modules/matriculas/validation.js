@@ -35,3 +35,13 @@ export function padronQuery(id, query) {
   if (!validDate(query.fecha)) throw new HttpError(400, 'Se requiere fecha YYYY-MM-DD válida.');
   return query.fecha;
 }
+
+export function withdrawData(body) {
+  object(body, ['fecha_retiro', 'fecha_retiro_esperada']);
+  if (!validDate(body?.fecha_retiro)) throw new HttpError(400, 'fecha_retiro inválida: se requiere YYYY-MM-DD válida.');
+  if (!Object.hasOwn(body, 'fecha_retiro_esperada')
+    || (body.fecha_retiro_esperada !== null && !validDate(body.fecha_retiro_esperada))) {
+    throw new HttpError(400, 'fecha_retiro_esperada debe ser null o YYYY-MM-DD válida.');
+  }
+  return { fecha_retiro: body.fecha_retiro, fecha_retiro_esperada: body.fecha_retiro_esperada };
+}
