@@ -1,6 +1,14 @@
 import { getPool } from '../../config/database.js';
 import { createAttendanceListRepository } from './list.repository.js';
 
+function fechaModificacionUtc(value) {
+  if (value instanceof Date) return value.toISOString();
+  // UTC_TIMESTAMP(6) llega como DATETIME sin zona; no interpretarlo en la zona de Node.
+  const iso = String(value).replace(
+    /^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?)$/, '$1T$2Z');
+  return new Date(iso).toISOString();
+}
+
 export function createAttendanceHistoryRepository(poolProvider = getPool) {
   const { read } = createAttendanceListRepository(poolProvider);
   return {
@@ -78,9 +86,7 @@ export function createAttendanceHistoryRepository(poolProvider = getPool) {
         version_anterior: Number(row.version_anterior),
         version_nueva: Number(row.version_nueva),
         posterior_cierre: Boolean(row.posterior_cierre),
-        fecha_modificacion: row.fecha_modificacion instanceof Date
-          ? row.fecha_modificacion.toISOString()
-          : new Date(row.fecha_modificacion).toISOString(),
+        fecha_modificacion: fechaModificacionUtc(row.fecha_modificacion),
         modificado_por: {
           id: String(row.usuario_id),
           usuario: row.usuario_username,

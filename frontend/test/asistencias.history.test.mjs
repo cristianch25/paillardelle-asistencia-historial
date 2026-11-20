@@ -4,19 +4,47 @@ import { createServer } from 'vite';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-let vite, api, HistoryButton, HistoryDialog, StudentRow, AuthContext;
+let vite, api, HistoryButton, HistoryDialog, HistoryList, StudentRow, AuthContext, civilDate;
 
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   api = await vite.ssrLoadModule('/src/features/asistencias/historial/attendanceHistory.api.ts');
   HistoryButton = (await vite.ssrLoadModule('/src/features/asistencias/historial/AttendanceHistoryButton.tsx')).default;
   HistoryDialog = (await vite.ssrLoadModule('/src/features/asistencias/historial/AttendanceHistoryDialog.tsx')).default;
+  HistoryList = (await vite.ssrLoadModule('/src/features/asistencias/historial/AttendanceHistoryList.tsx')).default;
+  civilDate = await vite.ssrLoadModule('/src/shared/dates/civilDate.ts');
   StudentRow = (await vite.ssrLoadModule('/src/features/asistencias/AttendanceStudentRow.tsx')).default;
   AuthContext = (await vite.ssrLoadModule('/src/features/auth/AuthContext.ts')).AuthContext;
 });
 
 after(async () => {
   await vite?.close();
+});
+
+test('historial: presenta instantes en Lima y conserva fecha civil y orden con Node en UTC o Lima', () => {
+  const previousTimezone = process.env.TZ;
+  try {
+    for (const timezone of ['UTC', 'America/Lima']) {
+      process.env.TZ = timezone;
+      assert.equal(Intl.DateTimeFormat().resolvedOptions().timeZone, timezone);
+      const cambios = ['2026-11-20T03:59:59.999Z', '2026-11-20T18:30:45.123Z'].map((fecha_modificacion, index) => ({
+        id: String(index + 1), tipo: 'CAMBIO', fecha_modificacion,
+        estado_anterior: 'FALTA', estado_nuevo: 'PRESENTE', version_anterior: index, version_nueva: index + 1,
+        justificada_nueva: false, posterior_cierre: false,
+        modificado_por: { nombres: 'Admin', apellidos: 'Prueba', usuario: 'ficticio', rol: 'ADMIN' },
+      }));
+      const antes = structuredClone(cambios);
+      const html = renderToStaticMarkup(h(HistoryList, { cambios }));
+      assert.match(html, /19\/11\/2026.*22:59:59/);
+      assert.match(html, /20\/11\/2026.*13:30:45/);
+      assert.ok(html.indexOf('22:59:59') < html.indexOf('13:30:45'));
+      assert.equal(civilDate.formatCivilDate('2026-11-20'), '20/11/2026');
+      assert.deepEqual(cambios, antes);
+    }
+  } finally {
+    if (previousTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = previousTimezone;
+  }
 });
 
 test('API getAttendanceHistory llama a GET /asistencias/:asistenciaId/historial', async () => {
