@@ -19,8 +19,10 @@ export const ACTION_LABELS = {
   CAMBIAR_SECCION_MATRICULA: 'Cambiar sección',
   REINGRESAR_MATRICULA: 'Reingresar estudiante',
   IMPORTAR_PADRON: 'Importar padrón',
-  ABRIR_SESION: 'Abrir sesión de asistencia',
-  CERRAR_SESION: 'Cerrar sesión de asistencia',
+  ABRIR_SESION_ASISTENCIA: 'Creación de sesión de asistencia',
+  ABRIR_SESION: 'Creación de sesión de asistencia',
+  CERRAR_SESION_ASISTENCIA: 'Cierre de sesión de asistencia',
+  CERRAR_SESION: 'Cierre de sesión de asistencia',
   ACTUALIZAR_TELEFONO_APODERADO: 'Actualizar teléfono',
   ACTUALIZAR_SUPERVISION: 'Actualizar supervisión',
 };
@@ -129,10 +131,12 @@ export function formatAuditDescription(row) {
       return `Creación de año escolar${targetId}.`;
     case 'ACTUALIZAR_ANIO_ESCOLAR':
       return `Actualización de año escolar${targetId}.`;
+    case 'ABRIR_SESION_ASISTENCIA':
     case 'ABRIR_SESION':
-      return `Apertura de sesión de asistencia${targetId}.`;
+      return 'Se creó la sesión para registrar la asistencia del día.';
+    case 'CERRAR_SESION_ASISTENCIA':
     case 'CERRAR_SESION':
-      return `Cierre de sesión de asistencia${targetId}.`;
+      return 'Se cerró la sesión de asistencia. Este cierre no impide las correcciones autorizadas.';
     case 'ACTUALIZAR_TELEFONO_APODERADO':
       return `Actualización de teléfono de contacto${targetId}.`;
     case 'IMPORTAR_PADRON':

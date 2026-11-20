@@ -18,6 +18,12 @@ export function createAdministrativeAuditRepository(poolProvider = getPool) {
           conditions.push('(a.accion = "CREAR_ASIGNACION" OR a.accion = "ASIGNAR_DOCENTE")');
         } else if (clean === 'CREAR_MATRICULA' || clean === 'MATRICULAR_ESTUDIANTE') {
           conditions.push('(a.accion = "CREAR_MATRICULA" OR a.accion = "MATRICULAR_ESTUDIANTE")');
+        } else if (clean === 'ABRIR_SESION_ASISTENCIA' || clean === 'ABRIR_SESION') {
+          conditions.push('a.accion IN (?, ?)');
+          params.push('ABRIR_SESION_ASISTENCIA', 'ABRIR_SESION');
+        } else if (clean === 'CERRAR_SESION_ASISTENCIA' || clean === 'CERRAR_SESION') {
+          conditions.push('a.accion IN (?, ?)');
+          params.push('CERRAR_SESION_ASISTENCIA', 'CERRAR_SESION');
         } else {
           conditions.push('a.accion = ?');
           params.push(clean);

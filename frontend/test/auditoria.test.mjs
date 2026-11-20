@@ -35,6 +35,11 @@ test('API getAuditLog envía GET /auditoria con query params serializados', asyn
 
     await api.getAuditLog();
     assert.equal(capturedUrl, '/auditoria');
+
+    for (const accion of ['ABRIR_SESION_ASISTENCIA', 'CERRAR_SESION_ASISTENCIA']) {
+      await api.getAuditLog({ page: 2, limit: 20, accion });
+      assert.equal(capturedUrl, `/auditoria?page=2&limit=20&accion=${accion}`);
+    }
   } finally {
     http.httpClient.get = originalGet;
   }
@@ -73,6 +78,9 @@ test('AuditPage renderiza estructura de encabezado, filtro y estados para ADMIN'
   assert.match(html, /Auditoría administrativa/);
   assert.match(html, /Tipo de operación:/);
   assert.match(html, /Todas las operaciones/);
+  assert.match(html, /<option value="ABRIR_SESION_ASISTENCIA">Creación de sesión de asistencia<\/option>/);
+  assert.match(html, /<option value="CERRAR_SESION_ASISTENCIA">Cierre de sesión de asistencia<\/option>/);
+  assert.doesNotMatch(html, /<option value="(?:ABRIR_SESION|CERRAR_SESION)">/);
   assert.match(html, /Actualizar/);
   assert.match(html, /Cargando registros de auditoría/);
 });

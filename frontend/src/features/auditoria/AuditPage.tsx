@@ -27,8 +27,8 @@ const AUDIT_ACTIONS = [
   { value: 'CREAR_SECCION', label: 'Crear sección' },
   { value: 'ACTUALIZAR_SECCION', label: 'Actualizar sección' },
   { value: 'IMPORTAR_PADRON', label: 'Importar padrón' },
-  { value: 'ABRIR_SESION', label: 'Abrir sesión de asistencia' },
-  { value: 'CERRAR_SESION', label: 'Cerrar sesión de asistencia' },
+  { value: 'ABRIR_SESION_ASISTENCIA', label: 'Creación de sesión de asistencia' },
+  { value: 'CERRAR_SESION_ASISTENCIA', label: 'Cierre de sesión de asistencia' },
   { value: 'ACTUALIZAR_TELEFONO_APODERADO', label: 'Actualizar teléfono' },
 ];
 
