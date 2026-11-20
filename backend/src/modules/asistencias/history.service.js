@@ -1,16 +1,11 @@
 import { HttpError } from '../../shared/http-error.js';
 import { validateId } from '../../shared/query-validation.js';
 import { createAttendanceHistoryRepository } from './history.repository.js';
-
-function subdirectionLevels(nivelAsignado) {
-  if (nivelAsignado === 'PRIMARIA') return ['INICIAL', 'PRIMARIA'];
-  if (nivelAsignado === 'SECUNDARIA') return ['SECUNDARIA'];
-  if (nivelAsignado === 'INICIAL') return ['INICIAL'];
-  return [];
-}
+import { createUsuariosService } from '../usuarios/usuarios.service.js';
 
 export function createAttendanceHistoryService(options = {}) {
   const repository = options.repository ?? createAttendanceHistoryRepository();
+  const users = options.users ?? createUsuariosService();
 
   return {
     async history(asistenciaId, actor) {
@@ -35,7 +30,8 @@ export function createAttendanceHistoryService(options = {}) {
         }
 
         if (dbActor.rol === 'SUBDIRECCION') {
-          const allowedLevels = subdirectionLevels(dbActor.nivel_asignado);
+          // D43/RN-42 V8: el historial técnico usa supervisión, no la matriz de asistencia diaria.
+          const allowedLevels = await users.supervisionLevels(dbActor, connection, { readOnly: true });
           if (!allowedLevels.includes(context.seccion.nivel)) {
             throw new HttpError(403, 'Nivel educativo no autorizado para esta subdirección.');
           }

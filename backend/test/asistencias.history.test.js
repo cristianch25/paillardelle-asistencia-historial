@@ -4,10 +4,10 @@ import { test } from 'node:test';
 import { createApp } from '../src/app.js';
 import { createAttendanceHistoryService } from '../src/modules/asistencias/history.service.js';
 
-function mockRepository({ actor, context, history = [] }) {
+function mockRepository({ actor, context, history = [], connection = {} }) {
   return {
     async read(actorId, work) {
-      return work({}, actor ?? { id: actorId, rol: 'ADMIN', activo: 1 });
+      return work(connection, actor ?? { id: actorId, rol: 'ADMIN', activo: 1 });
     },
     async findContext(_connection, id) {
       if (context && context.asistencia_id === id) return context;
@@ -151,56 +151,71 @@ test('historial asistencias service: permisos V8 por rol', async () => {
   assert.equal(result.cambios[1].tipo, 'JUSTIFICACION');
 });
 
-test('historial asistencias service: ámbito de SUBDIRECCION por nivel educativo', async () => {
-  // Subdirección PRIMARIA puede ver PRIMARIA e INICIAL, pero no SECUNDARIA
-  const subPrimaria = createAttendanceHistoryService({
-    repository: {
-      async read(_id, work) {
-        return work({}, { id: '2', rol: 'SUBDIRECCION', activo: 1, nivel_asignado: 'PRIMARIA' });
+const ambitos = [
+  ['Primaria propia', 'PRIMARIA', [], sampleContextPrimaria, true],
+  ['Inicial propio', 'INICIAL', [], sampleContextInicial, true],
+  ['Secundaria propia', 'SECUNDARIA', [], sampleContextSecundaria, true],
+  ['Primaria sin Inicial adicional', 'PRIMARIA', [], sampleContextInicial, false],
+  ['Primaria con Inicial adicional', 'PRIMARIA', ['INICIAL'], sampleContextInicial, true],
+  ['Secundaria con Primaria adicional', 'SECUNDARIA', ['PRIMARIA'], sampleContextPrimaria, true],
+  ['Primaria sin Secundaria adicional', 'PRIMARIA', ['INICIAL'], sampleContextSecundaria, false],
+  ['Secundaria sin Primaria adicional', 'SECUNDARIA', [], sampleContextPrimaria, false],
+  ['Sin nivel principal válido', null, ['INICIAL'], sampleContextInicial, false],
+];
+
+for (const [nombre, principal, adicionales, context, permitido] of ambitos) {
+  test(`historial técnico V8: ${nombre}`, async () => {
+    const actor = { id: '2', rol: 'SUBDIRECCION', activo: 1, nivel_asignado: principal };
+    let consultasPermisos = 0, consultasHistorial = 0;
+    const connection = {
+      async execute(sql, params) {
+        consultasPermisos++;
+        assert.match(sql, /FROM usuario_niveles_adicionales/);
+        assert.doesNotMatch(sql, /FOR UPDATE/);
+        assert.deepEqual(params, [actor.id]);
+        return [adicionales.map(nivel => ({ nivel }))];
       },
-      async findContext(_c, id) {
-        if (id === '100') return sampleContextPrimaria;
-        if (id === '200') return sampleContextSecundaria;
-        if (id === '300') return sampleContextInicial;
-        return null;
-      },
-      async findHistory() { return []; },
-    },
+    };
+    const repository = mockRepository({ actor, context, connection });
+    repository.findHistory = async actualConnection => {
+      assert.equal(actualConnection, connection);
+      consultasHistorial++;
+      return sampleHistory;
+    };
+    const service = createAttendanceHistoryService({ repository });
+    // El rol y nivel enviados no sustituyen al actor revalidado por el repositorio.
+    const solicitante = { id: actor.id, rol: 'ADMIN', nivel_asignado: 'INICIAL' };
+    if (permitido) {
+      const result = await service.history(context.asistencia_id, solicitante);
+      assert.equal(result.asistencia_id, context.asistencia_id);
+      assert.deepEqual(result.cambios, sampleHistory);
+    } else {
+      await assert.rejects(service.history(context.asistencia_id, solicitante),
+        error => error.status === 403);
+    }
+    assert.equal(consultasPermisos, 1);
+    assert.equal(consultasHistorial, permitido ? 1 : 0);
   });
+}
 
-  const okPrimaria = await subPrimaria.history('100', { id: '2' });
-  assert.equal(okPrimaria.asistencia_id, '100');
+test('historial técnico: ADMIN global sin consultar permisos adicionales', async () => {
+  for (const context of [sampleContextPrimaria, sampleContextInicial, sampleContextSecundaria]) {
+    const service = createAttendanceHistoryService({ repository: mockRepository({ context }) });
+    assert.equal((await service.history(context.asistencia_id, { id: '1' })).asistencia_id,
+      context.asistencia_id);
+  }
+});
 
-  const okInicial = await subPrimaria.history('300', { id: '2' });
-  assert.equal(okInicial.asistencia_id, '300');
-
-  await assert.rejects(
-    async () => subPrimaria.history('200', { id: '2' }),
-    err => err.status === 403 && /Nivel educativo no autorizado/.test(err.message),
-  );
-
-  // Subdirección SECUNDARIA solo puede ver SECUNDARIA
-  const subSecundaria = createAttendanceHistoryService({
-    repository: {
-      async read(_id, work) {
-        return work({}, { id: '4', rol: 'SUBDIRECCION', activo: 1, nivel_asignado: 'SECUNDARIA' });
-      },
-      async findContext(_c, id) {
-        if (id === '100') return sampleContextPrimaria;
-        if (id === '200') return sampleContextSecundaria;
-        return null;
-      },
-      async findHistory() { return []; },
-    },
-  });
-
-  const okSec = await subSecundaria.history('200', { id: '4' });
-  assert.equal(okSec.asistencia_id, '200');
-
-  await assert.rejects(
-    async () => subSecundaria.history('100', { id: '4' }),
-    err => err.status === 403 && /Nivel educativo no autorizado/.test(err.message),
-  );
+test('historial técnico: retirar un adicional impide la siguiente consulta', async () => {
+  let adicionales = [{ nivel: 'INICIAL' }];
+  const service = createAttendanceHistoryService({ repository: mockRepository({
+    actor: { id: '2', rol: 'SUBDIRECCION', activo: 1, nivel_asignado: 'PRIMARIA' },
+    context: sampleContextInicial,
+    connection: { async execute() { return [adicionales]; } },
+  }) });
+  await service.history('300', { id: '2' });
+  adicionales = [];
+  await assert.rejects(service.history('300', { id: '2' }), error => error.status === 403);
 });
 
 test('historial asistencias: controller y router configuran GET /:asistenciaId/historial', async () => {
