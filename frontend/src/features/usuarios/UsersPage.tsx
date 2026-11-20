@@ -9,12 +9,13 @@ import ErrorState from '../../shared/components/ErrorState';
 import LoadingState from '../../shared/components/LoadingState';
 import EmptyState from '../../shared/components/EmptyState';
 import Pagination from '../../shared/components/Pagination';
-import { createUserAssignment, saveUser, setUserState } from './usuarios.api';
+import { createUserAssignment, finalizeUserAssignment, saveUser, setUserState } from './usuarios.api';
 import { matchesUser, type ManagedUser } from './usuarios.types';
 import { useUsers } from './useUsers';
 import UserForm from './UserForm';
 import UsersList from './UsersList';
 import UserAssignments from './UserAssignments';
+import PasswordResetDialog from './PasswordResetDialog';
 
 export default function UsersPage() {
   const { session } = useAuth();
@@ -28,11 +29,12 @@ function AdminUsers({ actorId }: { actorId: string }) {
   const [text, setText] = useState(''), [role, setRole] = useState(''), [state, setState] = useState(''), [page, setPage] = useState(1);
   const [editor, setEditor] = useState<{ user?: ManagedUser } | null>(null), [assigned, setAssigned] = useState<ManagedUser | null>(null);
   const [confirm, setConfirm] = useState<ManagedUser | null>(null);
+  const [passwordUser, setPasswordUser] = useState<ManagedUser | null>(null);
   useUnsavedChanges('users-operation', false, catalog.busy);
   const data = catalog.data;
   const users = data?.users.filter(user => matchesUser(user, text) && (!role || user.rol === role) && (!state || String(user.activo) === state)) ?? [];
   const currentPage = Math.min(page, Math.max(1, Math.ceil(users.length / 20)));
-  function close() { setEditor(null); setAssigned(null); setConfirm(null); }
+  function close() { setEditor(null); setAssigned(null); setConfirm(null); setPasswordUser(null); }
   function open(action: () => void) { void request(() => { close(); action(); }); }
   const selectStyle = 'mt-2 block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base';
   return <div className="min-w-0 space-y-5">
@@ -46,6 +48,7 @@ function AdminUsers({ actorId }: { actorId: string }) {
     {data && (editor ? <UserForm key={editor.user?.id ?? 'new'} user={editor.user} busy={catalog.busy}
       onCancel={() => open(close)} onSave={async draft => { const ok = await catalog.perform(() => saveUser(draft, editor.user)); if (ok) close(); return ok; }} />
       : assigned ? <UserAssignments user={assigned} catalog={data} busy={catalog.busy} onClose={() => open(close)}
+        onFinalize={async (assignment, date) => catalog.perform(() => finalizeUserAssignment(assignment, date))}
         onSave={async input => { const ok = await catalog.perform(() => createUserAssignment(input)); if (ok) close(); return ok; }} /> : <>
         <div className="grid gap-4 sm:grid-cols-3"><FormField label="Buscar por nombre o identificador" type="search" value={text}
           onChange={e => { setText(e.target.value); setPage(1); }} />
@@ -62,8 +65,10 @@ function AdminUsers({ actorId }: { actorId: string }) {
         </section>}
         <p role="status" className="text-sm text-slate-600">{users.length} usuarios encontrados · Búsqueda sobre el catálogo completo cargado.</p>
         {!users.length ? <EmptyState message="No hay usuarios para estos filtros." /> : <UsersList users={users.slice((currentPage - 1) * 20, currentPage * 20)} catalog={data}
-          actorId={actorId} busy={catalog.busy} onEdit={user => open(() => setEditor({ user }))} onState={setConfirm} onAssignments={user => open(() => setAssigned(user))} />}
+          actorId={actorId} busy={catalog.busy} onEdit={user => open(() => setEditor({ user }))} onState={setConfirm} onAssignments={user => open(() => setAssigned(user))}
+          onResetPassword={user => open(() => setPasswordUser(user))} />}
         <Pagination pagination={{ page: currentPage, limit: 20, has_more: currentPage * 20 < users.length }} onPageChange={setPage} />
       </>)}
+    {passwordUser && <PasswordResetDialog user={passwordUser} onClose={() => { setPasswordUser(null); catalog.refresh(); }} />}
   </div>;
 }

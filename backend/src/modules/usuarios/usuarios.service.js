@@ -6,6 +6,7 @@ import { peruDate } from '../../shared/peru-date.js';
 import { unauthorized } from '../auth/auth.errors.js';
 import { validatePagination } from '../../shared/query-validation.js';
 import { createSupervisionService } from './usuarios.supervision.service.js';
+import { createPasswordResetService } from './usuarios.password.service.js';
 
 export function publicUser(user) {
   return {
@@ -73,8 +74,9 @@ function userDetails(user) {
 }
 
 export function createUsuariosService({ repository = createUsuariosRepository(), getToday = peruDate,
-  supervision = createSupervisionService() } = {}) {
+  supervision = createSupervisionService(), passwords = createPasswordResetService() } = {}) {
   return {
+    resetPassword: (id, body, actorId) => passwords.reset(id, body, actorId),
     async historicalSectionIds(id, date, today = getToday(), connection) {
       validateUserId(id);
       const rows = await repository.historicalSectionIds(id, date, today, connection);

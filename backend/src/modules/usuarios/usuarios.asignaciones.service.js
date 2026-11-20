@@ -4,11 +4,12 @@ import { peruDate } from '../../shared/peru-date.js';
 import { createUsuariosService } from './usuarios.service.js';
 import { createAssignmentsRepository } from './usuarios.asignaciones.repository.js';
 import { validateAssignmentQuery, validateNewAssignment } from './usuarios.asignaciones.validation.js';
+import { createAssignmentFinalizer } from './usuarios.asignaciones.finalize.service.js';
 
 function active(user) { return user && (user.activo === 1 || user.activo === true); }
-function authorizeAdmin(actor) {
-  if (!active(actor)) throw unauthorized();
-  if (actor.rol !== 'ADMIN') throw new HttpError(403, 'Solo ADMIN puede crear asignaciones.');
+function authorizeAdmin(actor, locked = true) {
+  if (!actor || ((locked || Object.hasOwn(actor, 'activo')) && !active(actor))) throw unauthorized();
+  if (actor.rol !== 'ADMIN') throw new HttpError(403, 'Solo ADMIN puede administrar asignaciones.');
 }
 function authorizeTarget(user) {
   if (!user) throw new HttpError(404, 'Usuario destinatario no encontrado.');
@@ -37,6 +38,7 @@ export function createAssignmentsService({ repository = createAssignmentsReposit
   seccionesService, getToday = peruDate } = {}) {
   if (!seccionesService) throw new Error('La composición debe proporcionar el servicio de secciones.');
   return {
+    finalize: createAssignmentFinalizer({ repository, seccionesService, getToday, authorizeAdmin }),
     async list(query, actor) {
       if (!actor || (Object.hasOwn(actor, 'activo') && !active(actor))) throw unauthorized();
       const { filters, page, limit, offset } = validateAssignmentQuery(query);

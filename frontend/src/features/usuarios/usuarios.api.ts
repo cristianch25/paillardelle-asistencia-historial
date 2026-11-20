@@ -53,10 +53,28 @@ export async function setUserState(id: string, activo: boolean) {
   if (response.status !== 200 || response.data?.user?.id !== id || response.data.user.activo !== activo) throw new Error('Confirmación no válida.');
 }
 
+export async function resetUserPassword(id: string): Promise<string> {
+  const response = await httpClient.post(`/usuarios/${id}/restablecer-contrasena`, {});
+  if (response.status !== 200 || response.data?.usuario_id !== id
+    || typeof response.data.password_temporal !== 'string' || !/^[A-Za-z0-9_-]{24}$/.test(response.data.password_temporal)) {
+    throw new Error('Restablecimiento sin confirmación válida.');
+  }
+  return response.data.password_temporal;
+}
+
 export async function createUserAssignment(input: AssignmentInput) {
   const response = await httpClient.post('/asignaciones', input);
   if (response.status !== 201 || typeof response.data?.asignacion?.id !== 'string'
     || Object.entries(input).some(([key, value]) => response.data.asignacion[key] !== value)) throw new Error('Confirmación no válida.');
+}
+
+export async function finalizeUserAssignment(assignment: SectionAssignment, fecha_efectiva: string) {
+  const response = await httpClient.patch(`/asignaciones/${assignment.id}/finalizar`, { fecha_efectiva, fecha_fin_esperada: assignment.fecha_fin });
+  const previous = new Date(`${fecha_efectiva}T00:00:00Z`); previous.setUTCDate(previous.getUTCDate() - 1);
+  const row = response.data?.asignacion;
+  if (response.status !== 200 || row?.id !== assignment.id || row.usuario_id !== assignment.usuario_id
+    || row.seccion_id !== assignment.seccion_id || row.fecha_inicio !== assignment.fecha_inicio
+    || row.fecha_fin !== previous.toISOString().slice(0, 10)) throw new Error('Finalización sin confirmación válida.');
 }
 
 export function userFailure(error: unknown) {

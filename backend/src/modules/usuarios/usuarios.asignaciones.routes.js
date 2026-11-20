@@ -15,5 +15,6 @@ export function createAssignmentsRoutes(authService, service) {
     next();
   }, controller.list);
   router.post('/', requireAdmin, json({ limit: '8kb' }), controller.create);
+  router.patch('/:id/finalizar', requireAdmin, json({ limit: '8kb' }), controller.finalize);
   return router;
 }

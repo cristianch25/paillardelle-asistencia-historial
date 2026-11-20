@@ -4,8 +4,9 @@ import { peruToday } from '../../shared/dates/civilDate';
 import { assignmentSectionLabel, type ManagedUser, type UsersCatalog } from './usuarios.types';
 
 type Props = { users: ManagedUser[]; catalog: UsersCatalog; busy: boolean; actorId: string;
-  onEdit: (user: ManagedUser) => void; onState: (user: ManagedUser) => void; onAssignments: (user: ManagedUser) => void };
-export default function UsersList({ users, catalog, busy, actorId, onEdit, onState, onAssignments }: Props) {
+  onEdit: (user: ManagedUser) => void; onState: (user: ManagedUser) => void; onAssignments: (user: ManagedUser) => void;
+  onResetPassword: (user: ManagedUser) => void };
+export default function UsersList({ users, catalog, busy, actorId, onEdit, onState, onAssignments, onResetPassword }: Props) {
   const today = peruToday();
   return <ul aria-label="Usuarios encontrados" className="grid min-w-0 gap-4 lg:grid-cols-2">
     {users.map(user => {
@@ -18,6 +19,7 @@ export default function UsersList({ users, catalog, busy, actorId, onEdit, onSta
           <Button variant="secondary" disabled={busy} onClick={() => onEdit(user)}>Editar</Button>
           <Button variant="secondary" disabled={busy || user.id === actorId} onClick={() => onState(user)}>{user.activo ? 'Desactivar' : 'Activar'}</Button>
           <Button variant="secondary" disabled={busy} onClick={() => onAssignments(user)}>Asignaciones</Button>
+          <Button variant="secondary" disabled={busy} onClick={() => onResetPassword(user)}>Restablecer contraseña</Button>
         </div>
       </li>;
     })}

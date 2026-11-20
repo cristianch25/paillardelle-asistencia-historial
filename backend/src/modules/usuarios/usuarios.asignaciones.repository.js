@@ -1,6 +1,7 @@
 import { getPool } from '../../config/database.js';
 import { inTransaction } from '../../shared/transaction.js';
 import { readInsertedId } from '../../shared/inserted-id.js';
+import { finalizeAssignment } from './usuarios.asignaciones.finalize.repository.js';
 
 const fields = ['id', 'usuario_id', 'seccion_id', 'fecha_inicio', 'fecha_fin', 'created_at'];
 const columns = fields.map(key => `a.${key}`).join(', ');
@@ -29,6 +30,9 @@ function conditions(filters, access, today) {
 }
 export function createAssignmentsRepository(poolProvider = getPool) {
   return {
+    finalize(data, actorId, hooks) {
+      return finalizeAssignment(poolProvider(), data, actorId, hooks, columns, publicRow);
+    },
     async list({ filters, access, today, limit, offset }) {
       const where = conditions(filters, access, today);
       const [rows] = await poolProvider().execute(

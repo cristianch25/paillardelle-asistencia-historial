@@ -33,6 +33,13 @@ httpClient.defaults.adapter = async config => {
   } else if (config.url === '/asignaciones') {
     const asignacion = { id: String(9007199254760000n + BigInt(controls.assignments.length)), ...body };
     controls.assignments.push(asignacion); data = { asignacion }; status = 201;
+  } else if (config.url.startsWith('/asignaciones/') && config.url.endsWith('/finalizar')) {
+    const asignacion = controls.assignments.find(row => row.id === config.url.split('/')[2]);
+    if (asignacion.fecha_fin !== body.fecha_fin_esperada || body.fecha_efectiva <= asignacion.fecha_inicio) fail(409);
+    const last = new Date(`${body.fecha_efectiva}T00:00:00Z`); last.setUTCDate(last.getUTCDate() - 1);
+    asignacion.fecha_fin = last.toISOString().slice(0, 10); data = { asignacion };
+  } else if (config.url.endsWith('/restablecer-contrasena')) {
+    data = { usuario_id: config.url.split('/')[2], password_temporal: 'X'.repeat(24) };
   } else if (config.url.startsWith('/usuarios/')) {
     const user = controls.users.find(row => row.id === config.url.split('/')[2]);
     Object.assign(user, body); data = { user };

@@ -1,5 +1,8 @@
 export function createUsuariosController(service) {
   return {
+    async resetPassword(req, res) {
+      res.json(await service.resetPassword(req.params.id, req.body, req.authUser.id));
+    },
     async getAdditionalLevels(req, res) {
       res.json(await service.getAdditionalLevels(req.params.id));
     },

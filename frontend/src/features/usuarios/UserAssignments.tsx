@@ -2,17 +2,21 @@ import { useId, useState, type SubmitEvent } from 'react';
 import FormField from '../../shared/components/FormField';
 import Button from '../../shared/components/Button';
 import ErrorState from '../../shared/components/ErrorState';
-import { formatCivilDate, validCivilDate } from '../../shared/dates/civilDate';
+import { formatCivilDate, peruToday, validCivilDate } from '../../shared/dates/civilDate';
 import { useUnsavedChanges } from '../../shared/navigation/useUnsavedChanges';
 import { educationLevelLabels, formatSectionName } from '../organizacion-escolar/secciones/sectionPresentation';
 import { assignmentSectionLabel, type AssignmentInput, type ManagedUser, type UsersCatalog } from './usuarios.types';
 import { useInitialSchoolYear } from '../organizacion-escolar/anios-escolares/useInitialSchoolYear';
+import type { SectionAssignment } from '../organizacion-escolar/secciones/sectionStaff.api';
+import AssignmentEndDialog from './AssignmentEndDialog';
 
-type Props = { user: ManagedUser; catalog: UsersCatalog; busy: boolean; onSave: (input: AssignmentInput) => Promise<boolean>; onClose: () => void };
+type Props = { user: ManagedUser; catalog: UsersCatalog; busy: boolean; onSave: (input: AssignmentInput) => Promise<boolean>; onClose: () => void;
+  onFinalize: (assignment: SectionAssignment, date: string) => Promise<boolean> };
 const control = 'mt-2 block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base';
-export default function UserAssignments({ user, catalog, busy, onSave, onClose }: Props) {
+export default function UserAssignments({ user, catalog, busy, onSave, onClose, onFinalize }: Props) {
   const id = useId(), [yearId, setYear] = useState(''), [sectionId, setSection] = useState('');
   const [start, setStart] = useState(''), [end, setEnd] = useState(''), [error, setError] = useState('');
+  const [ending, setEnding] = useState<SectionAssignment | null>(null);
   const canAssign = user.rol === 'REGISTRADOR' && user.activo;
   const eligibleYears = catalog.years.filter(row => ['PLANIFICADO', 'ABIERTO'].includes(row.estado));
   useInitialSchoolYear(eligibleYears, canAssign, yearId, setYear);
@@ -34,8 +38,9 @@ export default function UserAssignments({ user, catalog, busy, onSave, onClose }
     {assignments.length ? <ul className="space-y-3">{assignments.map(row => <li key={row.id} className="rounded-lg bg-slate-50 p-3 text-sm">
       <p className="font-semibold">{assignmentSectionLabel(row.seccion_id, catalog)}</p>
       <p>{formatCivilDate(row.fecha_inicio)} — {row.fecha_fin ? formatCivilDate(row.fecha_fin) : 'Sin fecha de fin'}</p>
+      {(row.fecha_fin === null || row.fecha_fin >= peruToday()) && <Button variant="secondary" disabled={busy} onClick={() => setEnding(row)}>Finalizar asignación</Button>}
     </li>)}</ul> : <p className="text-sm text-slate-600">Sin asignaciones registradas.</p>}
-    <p className="text-sm text-slate-600">Las asignaciones existentes son de consulta. Desactivar la cuenta conserva sus asignaciones e historial.</p>
+    <p className="text-sm text-slate-600">Finalizar conserva el historial. Puedes asignar otra sección con la misma cuenta. Desactivar una cuenta conserva sus asignaciones.</p>
     {canAssign ? <form aria-label="Nueva asignación" onSubmit={e => void submit(e)} className="space-y-4">
       <h3 className="font-semibold">Nueva asignación</h3>
       {error && <ErrorState message={error} />}
@@ -58,5 +63,7 @@ export default function UserAssignments({ user, catalog, busy, onSave, onClose }
       <Button type="submit" disabled={busy || !sections.length}>{busy ? 'Guardando…' : 'Crear asignación'}</Button>
     </form> : <p className="text-sm text-slate-600">Solo los REGISTRADOR activos pueden recibir nuevas asignaciones.</p>}
     <Button variant="secondary" disabled={busy} onClick={onClose}>Volver al listado</Button>
+    {ending && <AssignmentEndDialog assignment={ending} label={assignmentSectionLabel(ending.seccion_id, catalog)} busy={busy}
+      onSave={date => onFinalize(ending, date)} onClose={() => setEnding(null)} />}
   </section>;
 }
