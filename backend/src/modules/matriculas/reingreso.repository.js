@@ -13,32 +13,16 @@ export function reingresoEnrollment(pool, enrollmentId, data, actorId, hooks) {
     const actorRow = await actor(connection, actorId);
     const access = await hooks.authorize(actorRow, connection);
 
-    const [enrollments] = await connection.execute(
-      'SELECT id, estudiante_id, anio_escolar_id, fecha_ingreso, fecha_retiro, estado FROM matriculas WHERE id = ? LIMIT 1 FOR UPDATE',
+    // Localizar sin bloquear matrícula antes del año; revalidar después con lectura actual.
+    const [locations] = await connection.execute(
+      'SELECT estudiante_id, anio_escolar_id FROM matriculas WHERE id = ? LIMIT 1',
       [enrollmentId]);
-    if (!enrollments[0]) throw new HttpError(404, 'Matrícula no encontrada.');
-    const before = enrollments[0];
-    if (before.estado !== 'RETIRADA') throw new HttpError(409, 'Solo se puede reingresar a un estudiante con matrícula RETIRADA.');
-    if (!before.fecha_retiro) throw new HttpError(409, 'La matrícula no registra fecha de retiro.');
+    if (!locations[0]) throw new HttpError(404, 'Matrícula no encontrada.');
+    const studentId = String(locations[0].estudiante_id), yearId = String(locations[0].anio_escolar_id);
 
-    const [students] = await connection.execute(
-      'SELECT id FROM estudiantes WHERE id = ? LIMIT 1 FOR UPDATE', [String(before.estudiante_id)]);
-    if (!students[0]) throw new HttpError(404, 'Estudiante no encontrado.');
-
-    const [destRows] = await connection.execute(
-      'SELECT id, anio_escolar_id, nivel, grado, letra, turno, activo FROM secciones WHERE id = ? LIMIT 1 FOR UPDATE',
-      [data.seccion_id]);
-    if (!destRows[0]) throw new HttpError(404, 'Sección destino no encontrada.');
-    const dest = destRows[0];
-    if (String(dest.anio_escolar_id) !== String(before.anio_escolar_id)) {
-      throw new HttpError(400, 'La sección destino debe pertenecer al mismo año escolar.');
-    }
-    if (!(dest.activo === 1 || dest.activo === true)) throw new HttpError(409, 'La sección destino está inactiva.');
-    if (access.levels && !access.levels.includes(dest.nivel)) throw new HttpError(403, 'Nivel de destino no autorizado.');
-
+    // Protocolo V8: actor → año → sección → estudiante → matrícula.
     const [yearRows] = await connection.execute(
-      'SELECT id, estado, fecha_inicio, fecha_fin FROM anios_escolares WHERE id = ? LIMIT 1 FOR UPDATE',
-      [String(before.anio_escolar_id)]);
+      'SELECT id, estado, fecha_inicio, fecha_fin FROM anios_escolares WHERE id = ? LIMIT 1 FOR UPDATE', [yearId]);
     if (!yearRows[0]) throw new HttpError(404, 'Año escolar no encontrado.');
     const year = yearRows[0];
     if (year.estado !== 'ABIERTO') throw new HttpError(409, 'Solo se puede reingresar en un año escolar ABIERTO.');
@@ -46,10 +30,37 @@ export function reingresoEnrollment(pool, enrollmentId, data, actorId, hooks) {
       throw new HttpError(400, 'La fecha de reingreso debe estar dentro del año escolar.');
     }
 
+    const [destRows] = await connection.execute(
+      'SELECT id, anio_escolar_id, nivel, grado, letra, turno, activo FROM secciones WHERE id = ? LIMIT 1 FOR UPDATE',
+      [data.seccion_id]);
+    if (!destRows[0]) throw new HttpError(404, 'Sección destino no encontrada.');
+    const dest = destRows[0];
+    if (String(dest.anio_escolar_id) !== yearId) {
+      throw new HttpError(400, 'La sección destino debe pertenecer al mismo año escolar.');
+    }
+    if (!(dest.activo === 1 || dest.activo === true)) throw new HttpError(409, 'La sección destino está inactiva.');
+    if (access.levels && !access.levels.includes(dest.nivel)) throw new HttpError(403, 'Nivel de destino no autorizado.');
+
+    const [students] = await connection.execute(
+      'SELECT id FROM estudiantes WHERE id = ? LIMIT 1 FOR UPDATE', [studentId]);
+    if (!students[0]) throw new HttpError(404, 'Estudiante no encontrado.');
+
+    const [enrollments] = await connection.execute(
+      'SELECT id, estudiante_id, anio_escolar_id, fecha_ingreso, fecha_retiro, estado FROM matriculas WHERE id = ? LIMIT 1 FOR UPDATE',
+      [enrollmentId]);
+    if (!enrollments[0]) throw new HttpError(404, 'Matrícula no encontrada.');
+    const before = enrollments[0];
+    if (String(before.estudiante_id) !== studentId || String(before.anio_escolar_id) !== yearId) {
+      throw new HttpError(409, 'La matrícula cambió. Actualiza la consulta antes de reingresar.');
+    }
+    if (before.estado !== 'RETIRADA') throw new HttpError(409, 'Solo se puede reingresar a un estudiante con matrícula RETIRADA.');
+    if (!before.fecha_retiro) throw new HttpError(409, 'La matrícula no registra fecha de retiro.');
+
+    // Leer vínculos actuales sin adquirir bloqueos tardíos sobre las secciones del JOIN.
     const [links] = await connection.execute(`SELECT ms.id, ms.seccion_id, ms.fecha_inicio, ms.fecha_fin, s.nivel, s.grado
       FROM matricula_secciones ms
       JOIN secciones s ON s.id = ms.seccion_id
-      WHERE ms.matricula_id = ? ORDER BY ms.id DESC`, [enrollmentId]);
+      WHERE ms.matricula_id = ? ORDER BY ms.id DESC FOR UPDATE OF ms`, [enrollmentId]);
     if (!links.length) throw new HttpError(409, 'No se encontraron vínculos previos de sección.');
     const lastLink = links[0];
     if (access.levels && !access.levels.includes(lastLink.nivel)) throw new HttpError(404, 'Matrícula no encontrada.');

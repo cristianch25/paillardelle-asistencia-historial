@@ -137,7 +137,8 @@ export function studentsFixture() {
             matricula_seccion_id: link ? link.id : null, seccion_id: link ? link.seccion_id : null }]];
         }
         if (sql.includes('FROM matriculas WHERE id = ?')) {
-          return [all('matriculas').filter(m => m.id === p[0])];
+          if (sql.includes('FOR UPDATE')) await lock(tx, `enrollment:${p[0]}`);
+          return [all('matriculas').filter(m => m.id === p[0]).map(m => ({ ...m }))];
         }
         if (sql.includes('FROM matricula_secciones WHERE matricula_id = ?')) {
           return [all('links').filter(l => l.matricula_id === p[0] && l.fecha_fin === null)];
