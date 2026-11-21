@@ -76,7 +76,17 @@ test('login público muestra campos reales y escudo, sin contenido autenticado',
   assert.match(markup, /type="password"/);
   assert.match(markup, /autocomplete="current-password"/i);
   assert.match(markup, /images\/escudo-paillardelle.png/);
+  assert.match(markup, /type="button" aria-label="Mostrar contraseña"/);
+  assert.doesNotMatch(markup, /Al recargar se comprobará tu sesión/);
   assert.doesNotMatch(markup, /Sesión iniciada/);
+});
+
+test('login conserva el aviso de sesión vencida', () => {
+  const markup = renderToStaticMarkup(createElement(AuthContext.Provider,
+    { value: { session: null, notice: 'Tu sesión venció. Inicia sesión nuevamente.', initialization: 'ready' } },
+    createElement(MemoryRouter, null, createElement(LoginPage))));
+  assert.match(markup, /role="status"/);
+  assert.match(markup, /Tu sesión venció/);
 });
 
 test('al inicializar muestra comprobación sin formulario de login ni contenido autenticado', () => {
