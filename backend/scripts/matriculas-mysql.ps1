@@ -1,13 +1,22 @@
 param(
   [Parameter(Mandatory=$true)][ValidateSet('initialize','start','stop','verify-process')][string]$Action,
   [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{12}$')][string]$Run,
+  [Alias('Profile')][ValidateSet('matriculas','superusuario')][string]$TestProfile = 'matriculas',
   [switch]$Confirm3312
 )
 $ErrorActionPreference = 'Stop'
 if (!$Confirm3312) { throw 'Requiere autorización explícita y -Confirm3312.' }
 $backend = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $temporaryRoot = Join-Path $backend 'tmp'
-$directory = Join-Path $temporaryRoot "matriculas-mysql-$Run"
+$directory = Join-Path $temporaryRoot "$TestProfile-mysql-$Run"
+$kind = 'MOVIMIENTOS_SINTETICOS_3312'
+$schema = "matriculas_test_$Run"
+$jsRunner = 'matriculas-mysql.mjs'
+if ($TestProfile -eq 'superusuario') {
+  $kind = 'SUPERUSUARIO_SINTETICO_3312'
+  $schema = 'asistencia_paillardelle'
+  $jsRunner = 'superusuario-mysql.mjs'
+}
 $datadir = Join-Path $directory 'data'
 $manifestFile = Join-Path $directory 'manifest.json'
 $mysqlBase = 'C:\Program Files\MySQL\MySQL Server 8.4'
@@ -91,8 +100,8 @@ if ($Action -eq 'initialize') {
   & $executable --no-defaults --initialize-insecure "--basedir=$mysqlBase" "--datadir=$datadir" "--log-error=$directory\mysql-error.log"
   if ($LASTEXITCODE -ne 0) { throw 'Inicialización fallida; conservar evidencia, no reintentar sobre esa carpeta.' }
   $uuid = [regex]::Match((Get-Content -Raw -LiteralPath (Join-Path $datadir 'auto.cnf')), 'server-uuid=([^\r\n]+)').Groups[1].Value
-  $manifest = @{ kind='MOVIMIENTOS_SINTETICOS_3312'; run=$Run; host='127.0.0.1'; port=3312;
-    schema="matriculas_test_$Run"; datadir=$datadir; uuid=$uuid }
+  $manifest = @{ kind=$kind; run=$Run; host='127.0.0.1'; port=3312;
+    schema=$schema; datadir=$datadir; uuid=$uuid }
   [IO.File]::WriteAllText($manifestFile, ($manifest | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
   Write-Output 'Inicializada carpeta nueva. No se ha arrancado MySQL.'
   exit
@@ -100,9 +109,9 @@ if ($Action -eq 'initialize') {
 Assert-NormalPath $datadir
 Assert-NormalPath $manifestFile
 $manifest = Get-Content -Raw -LiteralPath $manifestFile | ConvertFrom-Json
-if ($manifest.kind -ne 'MOVIMIENTOS_SINTETICOS_3312' -or $manifest.run -ne $Run -or
+if ($manifest.kind -ne $kind -or $manifest.run -ne $Run -or
   $manifest.host -ne '127.0.0.1' -or $manifest.port -ne 3312 -or $manifest.datadir -ne $datadir -or
-  $manifest.schema -ne "matriculas_test_$Run") { throw 'Manifiesto inesperado.' }
+  $manifest.schema -ne $schema) { throw 'Manifiesto inesperado.' }
 $uuid = [regex]::Match((Get-Content -Raw -LiteralPath (Join-Path $datadir 'auto.cnf')), 'server-uuid=([^\r\n]+)').Groups[1].Value
 if (!$uuid -or $uuid -ne $manifest.uuid) { throw 'UUID inesperado.' }
 if ($Action -eq 'verify-process') {
@@ -122,7 +131,7 @@ if ($Action -eq 'start') {
     $launched = Get-CimInstance Win32_Process -Filter "ProcessId = $($server.pid)"
     if ($server.pid -ne $launcher.Id -and $launched.ParentProcessId -ne $launcher.Id) { throw 'Proceso ajeno al lanzamiento.' }
     Write-ProtectedFile $launchFile { $server | ConvertTo-Json }
-    & node (Join-Path $PSScriptRoot 'matriculas-mysql.mjs') verify-server $Run --allow-temporary-mysql-3312
+    & node (Join-Path $PSScriptRoot $jsRunner) verify-server $Run --allow-temporary-mysql-3312
     if ($LASTEXITCODE -ne 0) { throw 'No se verificó el servidor; no ejecutar preparación ni pruebas.' }
     Assert-NormalPath $bootstrap
     Remove-Item -LiteralPath $bootstrap
@@ -130,7 +139,7 @@ if ($Action -eq 'start') {
   } catch { throw 'Arranque no confirmado. Conservar credenciales y bootstrap privado; no reintentar, apagar ni borrar automáticamente.' }
 } else {
   $server = Assert-Process (Read-Launch)
-  & node (Join-Path $PSScriptRoot 'matriculas-mysql.mjs') shutdown $Run --allow-temporary-mysql-3312
+  & node (Join-Path $PSScriptRoot $jsRunner) shutdown $Run --allow-temporary-mysql-3312
   if ($LASTEXITCODE -ne 0) { throw 'Apagado no confirmado; no forzar ni borrar.' }
   $deadline = [DateTime]::UtcNow.AddSeconds(20)
   do { Start-Sleep -Milliseconds 200; $running = Get-Process -Id $server.pid -ErrorAction SilentlyContinue } until (!$running -or [DateTime]::UtcNow -gt $deadline)

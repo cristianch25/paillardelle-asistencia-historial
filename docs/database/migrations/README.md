@@ -1,3 +1,16 @@
+## Preparación de ensayo SUPERUSUARIO — 21/11/2026, SIN ejecución
+
+Se conserva expresamente `chk_usuario_nivel`. 007 retira y repone su definición
+exacta en el mismo ALTER al modificar `rol`, siguiendo el patrón de 002 y la
+[restricción documentada de MySQL 8.4](https://dev.mysql.com/doc/refman/8.4/en/alter-table.html).
+No cambia la regla ni se modifica SQL v1, 002–006 u 008. 007/008 siguen **NO aplicadas**.
+
+Preparado [perfil aislado SUPERUSUARIO 3312](../../../backend/integration/SUPERUSUARIO.md):
+v1–006 con cuentas ficticias previas, después 007/008 con comparación de conservación,
+y suite separada sin DDL. Cada operación futura requiere autorización propia.
+Solo se verifica la preparación mediante mocks; no acredita compatibilidad ejecutada
+del DDL, arranque, grants ni concurrencia MySQL reales.
+
 ## Migración 008 — contraseña inicial/temporal ADMIN, PREPARADA, NO APLICADA
 
 `008_admin_password_temporal.sql` añade únicamente
@@ -34,6 +47,8 @@ v1 + 002 + 003 + 004 + 005 + 006. Se conservan esos archivos históricos intacto
 Un único `ALTER TABLE usuarios` modifica exclusivamente `rol` a
 `ENUM('ADMIN','SUBDIRECCION','REGISTRADOR','SUPERUSUARIO') NOT NULL`:
 conserva orden/valores anteriores y añade SUPERUSUARIO al final.
+Retira y repone `chk_usuario_nivel` dentro de ese mismo ALTER, con su definición
+original intacta: `CHECK (rol <> 'SUBDIRECCION' OR nivel_asignado IS NOT NULL)`.
 No agrega columnas ni implementa revocación inmediata de JWT.
 
 No añade tablas, claves, índices, CHECK, cuentas o permisos SQL. No cambia

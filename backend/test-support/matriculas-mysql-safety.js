@@ -8,15 +8,21 @@ import { promisify } from 'node:util';
 
 export const temporaryRoot = fileURLToPath(new URL('../tmp/', import.meta.url));
 export const activation = 'MOVIMIENTOS_SINTETICOS_3312';
-export function locations(run) {
+export const superuserActivation = 'SUPERUSUARIO_SINTETICO_3312';
+export function profileOf(manifest) {
+  assert.ok([activation, superuserActivation].includes(manifest.kind));
+  return manifest.kind === superuserActivation ? 'superusuario' : 'matriculas';
+}
+export function locations(run, profile = 'matriculas') {
   assert.match(run ?? '', /^[a-f0-9]{12}$/);
-  const directory = path.resolve(temporaryRoot, `matriculas-mysql-${run}`);
-  return { directory, datadir: path.join(directory, 'data'), schema: `matriculas_test_${run}` };
+  assert.ok(['matriculas', 'superusuario'].includes(profile));
+  const directory = path.resolve(temporaryRoot, `${profile}-mysql-${run}`);
+  return { directory, datadir: path.join(directory, 'data'),
+    schema: profile === 'superusuario' ? 'asistencia_paillardelle' : `matriculas_test_${run}` };
 }
 const normalize = value => path.resolve(value).replaceAll('\\', '/').replace(/\/$/, '').toLowerCase();
 export function validateManifest(manifest, run) {
-  const expected = locations(run);
-  assert.equal(manifest.kind, activation);
+  const expected = locations(run, profileOf(manifest));
   assert.equal(manifest.run, run);
   assert.equal(manifest.host, '127.0.0.1');
   assert.equal(manifest.port, 3312);
@@ -25,13 +31,14 @@ export function validateManifest(manifest, run) {
   assert.match(manifest.uuid ?? '', /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/);
   return manifest;
 }
-export async function loadManifest(run) {
-  const { directory, datadir } = locations(run);
+export async function loadManifest(run, profile = 'matriculas') {
+  const { directory, datadir } = locations(run, profile);
   for (const entry of [temporaryRoot, directory, datadir, path.join(directory, 'manifest.json')]) {
     assert.equal((await lstat(entry)).isSymbolicLink(), false, 'No se admiten enlaces.');
     assert.equal(normalize(await realpath(entry)), normalize(entry), 'Ruta redirigida.');
   }
   const manifest = validateManifest(JSON.parse(await readFile(path.join(directory, 'manifest.json'), 'utf8')), run);
+  assert.equal(profileOf(manifest), profile);
   const cnf = await readFile(path.join(datadir, 'auto.cnf'), 'utf8');
   assert.equal(cnf.match(/^server-uuid=(.+)$/m)?.[1].trim(), manifest.uuid);
   return manifest;
@@ -50,14 +57,15 @@ export function assertProcessIdentity(record, current, manifest) {
   }
 }
 export async function verifyOwnedProcess(manifest) {
-  const launch = path.join(locations(manifest.run).directory, 'launch.json');
+  const profile = profileOf(manifest);
+  const launch = path.join(locations(manifest.run, profile).directory, 'launch.json');
   assert.equal((await lstat(launch)).isSymbolicLink(), false);
   assert.equal(normalize(await realpath(launch)), normalize(launch));
   const record = JSON.parse(await readFile(launch, 'utf8'));
   const powershell = path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe');
   const script = fileURLToPath(new URL('../scripts/matriculas-mysql.ps1', import.meta.url));
   const { stdout } = await promisify(execFile)(powershell, ['-NoProfile', '-NonInteractive', '-File', script,
-    '-Action', 'verify-process', '-Run', manifest.run, '-Confirm3312'], { windowsHide: true, timeout: 10000 });
+    '-Action', 'verify-process', '-Run', manifest.run, '-Profile', profile, '-Confirm3312'], { windowsHide: true, timeout: 10000 });
   const current = JSON.parse(stdout.replace(/^\uFEFF/, '').trim());
   assertProcessIdentity(record, current, manifest);
   return current;
@@ -83,7 +91,7 @@ export function suiteEnabled(env) {
 export function assertRunnerGrants(grants, manifest) {
   const rows = grants.map(row => Object.values(row)[0]);
   const schema = manifest.schema.replaceAll('_', '\\_');
-  const account = 'TO `matriculas_runner`@`127.0.0.1`';
+  const account = `TO \`${profileOf(manifest)}_runner\`@\`127.0.0.1\``;
   assert.equal(rows.length, 2);
   assert.ok(rows.includes(`GRANT USAGE ON *.* ${account}`));
   assert.ok(rows.includes(`GRANT SELECT, INSERT, UPDATE ON \`${schema}\`.* ${account}`));
@@ -96,22 +104,31 @@ export function assertIdentity(row, manifest, database = manifest.schema) {
   assert.equal(normalize(row.datadir), normalize(manifest.datadir));
   assert.equal(row.db, database);
   assert.match(row.version, /^8\.4\./);
+  if (profileOf(manifest) === 'superusuario') {
+    assert.match(row.sql_mode ?? '', /(?:^|,)STRICT_(?:TRANS|ALL)_TABLES(?:,|$)/);
+    assert.equal(Number(row.fk_checks), 1);
+  }
 }
 // No usa .env ni acepta opciones de conexión suministradas por el llamador.
-export async function openVerified(manifest, credentials, database = manifest.schema, connect = mysql.createConnection) {
+export async function openVerified(manifest, credentials, database = manifest.schema, connect = mysql.createConnection,
+  verifyProcess = verifyOwnedProcess) {
   validateManifest(manifest, manifest.run);
   assert.ok(database === null || database === manifest.schema);
-  assert.ok(['root', 'matriculas_runner'].includes(credentials.user));
+  assert.ok(['root', `${profileOf(manifest)}_runner`].includes(credentials.user));
   password(credentials.password);
+  if (profileOf(manifest) === 'superusuario') await verifyProcess(manifest);
   const raw = await connect({ host: '127.0.0.1', port: 3312, database: database ?? undefined,
     user: credentials.user, password: credentials.password, connectTimeout: 3000,
     supportBigNumbers: true, bigNumberStrings: true, dateStrings: true, charset: 'utf8mb4',
     multipleStatements: false, enableKeepAlive: false });
   async function verify() {
-    const [[row]] = await raw.query('SELECT @@port port, @@bind_address bind_address, @@server_uuid uuid, @@datadir datadir, DATABASE() db, VERSION() version');
+    const [[row]] = await raw.query('SELECT @@port port, @@bind_address bind_address, @@server_uuid uuid, @@datadir datadir, DATABASE() db, VERSION() version, @@sql_mode sql_mode, @@foreign_key_checks fk_checks');
     assertIdentity(row, manifest, database);
   }
   try { await verify(); } catch (error) { raw.destroy(); throw error; }
+  if (profileOf(manifest) === 'superusuario') {
+    try { await raw.query("SET SESSION time_zone='+00:00'"); } catch (error) { raw.destroy(); throw error; }
+  }
   return new Proxy(raw, { get(target, key) {
     if (['query', 'execute', 'beginTransaction', 'commit', 'rollback'].includes(key)) return async (...args) => {
       try { await verify(); } catch (error) { target.destroy(); throw error; }

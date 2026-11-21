@@ -6,6 +6,14 @@ manual de padrones con revisión, sin sincronización automática.
 
 ## Estado del proyecto
 
+21/11/2026 — preparado el [ensayo aislado de SUPERUSUARIO](backend/integration/SUPERUSUARIO.md)
+en un perfil propio del arnés 3312, con v1–008, cuentas sintéticas, conservación,
+autenticación, permisos, rollback y concurrencia. 007 conserva `chk_usuario_nivel`
+retirándolo y reponiéndolo en el mismo ALTER. 008 y los SQL anteriores intactos.
+**Sin inicialización, arranque, conexiones MySQL, migraciones aplicadas ni cuentas
+reales.** Validación de preparación exclusivamente con mocks; operaciones reales
+pendientes de autorizaciones separadas. No cambia módulos académicos ni JWT.
+
 20/11/2026 — contraseña inicial/temporal obligatoria de ADMIN, según aprobación
 posterior de D49/RN-49/RF-24 V8. Preparada
 [008](docs/database/migrations/008_admin_password_temporal.sql), **NO APLICADA**;

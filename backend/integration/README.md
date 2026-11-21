@@ -1,5 +1,9 @@
 # Integración desechable de movimientos — MySQL 3312
 
+Perfil independiente preparado para [SUPERUSUARIO y 007/008](SUPERUSUARIO.md).
+Se selecciona explícitamente con `-Profile superusuario`, usa otra carpeta y
+otro manifiesto; no ejecutar esta suite de movimientos sobre sus datos.
+
 Estado: arnés implementado, **sin inicialización ni pruebas reales ejecutadas**.
 Cada operación siguiente requiere autorización previa del usuario. No ejecutar
 esta secuencia completa por aprobar únicamente una de sus operaciones.
