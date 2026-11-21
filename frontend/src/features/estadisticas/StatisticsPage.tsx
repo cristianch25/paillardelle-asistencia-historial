@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { peruToday, formatCivilDate } from '../../shared/dates/civilDate';
+import { peruToday } from '../../shared/dates/civilDate';
 import Button from '../../shared/components/Button';
 import ErrorState from '../../shared/components/ErrorState';
 import EmptyState from '../../shared/components/EmptyState';
@@ -34,8 +34,7 @@ function StatisticsContent() {
     anio_escolar_id: yearId, fecha_desde: range.fecha_desde!, fecha_hasta: range.fecha_hasta!, ...(level ? { nivel: level } : {}),
   } : null);
   return <div className="min-w-0 space-y-4">
-    <header><h1 className="text-2xl font-bold sm:text-3xl">Estadísticas</h1>
-      <p className="mt-2 text-sm text-slate-600">Asistencia registrada en los niveles autorizados · America/Lima.</p></header>
+    <header><h1 className="text-2xl font-bold sm:text-3xl">Estadísticas</h1></header>
     <section aria-label="Filtros de estadísticas" className={`grid gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2 ${personalized ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
       <label htmlFor={`${id}-year`} className="min-w-0 text-sm font-semibold">Año escolar
         <select id={`${id}-year`} className={inputClass} value={yearId} disabled={years.loading || Boolean(years.error)} onChange={e => setYear(e.target.value)}>
@@ -71,8 +70,6 @@ function StatisticsContent() {
       <ErrorState message={years.error} /><Button variant="secondary" onClick={years.retry}>Reintentar años escolares</Button>
     </> : !years.years.length ? <EmptyState message="No hay años escolares disponibles." />
       : range.error ? <EmptyState message={range.error} /> : null}
-    {!range.error && <p className="text-sm text-slate-600">Del {formatCivilDate(range.fecha_desde!)} al {formatCivilDate(range.fecha_hasta!)}.
-      {period === 'semana' && ' Semana de lunes a domingo.'} Fechas limitadas al año escolar.</p>}
     {query.loading && <LoadingState message="Consultando estadísticas…" />}
     {query.error && <><ErrorState message={`No se pudieron obtener las estadísticas. ${query.error}`} />
       <Button variant="secondary" onClick={query.retry}>Reintentar estadísticas</Button></>}
@@ -81,7 +78,6 @@ function StatisticsContent() {
       {!query.data.sesiones_con_registro ? <EmptyState message="Sin datos: no hay asistencia registrada en este período y ámbito." />
         : <StatisticsCharts data={query.data} />}
     </>}
-    <p className="text-xs text-slate-600">Los días y salones sin registro no se cuentan como faltas ni pendientes. Incluye registros históricos de secciones inactivas.</p>
     <MonthlyFollowup year={year} state={followup} />
   </div>;
 }

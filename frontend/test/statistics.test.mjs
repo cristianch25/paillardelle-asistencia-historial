@@ -37,7 +37,8 @@ test('gráficos: cantidades reales, pendientes separados y porcentajes sobre mar
   const html = renderToStaticMarkup(h(Charts, { data: statisticsResponse() })), text = html.replace(/<[^>]*>/g, '');
   assert.equal((html.match(/role="img"/g) ?? []).length, 2);
   assert.match(text, /Presentes: 6 \(60 %\)/); assert.match(text, /Tardanzas: 2 \(20 %\)/); assert.match(text, /Faltas: 2 \(20 %\)/);
-  assert.match(text, /Pendientes7/); assert.match(text, /no a estudiantes únicos/);
+  assert.match(text, /Pendientes7/);
+  assert.doesNotMatch(text, /salones con registro diario|Cada salón cuenta|Porcentajes sobre presentes|registros diarios, no a estudiantes únicos/);
   assert.match(html, /width="240"/); assert.match(html, /stroke-dasharray="60 40"/);
   for (const color of ['#22C55E', '#F59E0B', '#F43F5E']) {
     assert.ok(html.includes(`fill="${color}"`)); assert.ok(html.includes(`stroke="${color}"`));

@@ -40,8 +40,10 @@ function render(state) {
 test('tabla compacta: estudiante único con secciones, desglose de incidencias, total y sin acciones de historial', () => {
   const html = render({ data: monthlyFollowupResponse(query, 1) }), text = html.replace(/<[^>]*>/g, '');
   assert.match(text, /Prueba Estudiante 1/); assert.match(text, /4 años · A/); assert.match(text, /4 años · B/);
-  assert.match(text, /JustificadasInjustificadas/); assert.match(text, /desde la tercera incidencia, sin esperar cierres/);
-  assert.match(text, /no implica sanciones/); assert.doesNotMatch(html, /<a |historial técnico|motivo_justificacion/);
+  assert.match(text, /JustificadasInjustificadas/);
+  assert.match(text, /Incidencias: faltas y tardanzas del mes, incluidas las justificadas/);
+  assert.doesNotMatch(text, /Comparte año y nivel|Las correcciones se reflejan|sanciones|Del 01\/11\/2026/);
+  assert.doesNotMatch(html, /<a |historial técnico|motivo_justificacion/);
 });
 test('carga, vacío, error y página vacía tras correcciones se distinguen sin filas antiguas', () => {
   assert.match(render({ loading: true }), /Consultando seguimiento mensual/);

@@ -30,6 +30,8 @@ test('Estadísticas: filtros, ambos gráficos, carga/error/vacío, roles y móvi
       const before = await evaluate(`${calls}.length`);
       await click('Actualizar estadísticas'); await ready();
       assert.equal(await evaluate(`${calls}.length`), before + 1);
+      assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'),
+        /Asistencia registrada en los niveles autorizados|America\/Lima|salones con registro diario|Porcentajes sobre presentes|registros históricos|Comparte año y nivel|Las correcciones se reflejan/);
     });
     await t.test('día, semana y mes calculan rangos civiles y nivel enviado al servidor', async () => {
       await date('2026-11-17'); await ready();
@@ -98,17 +100,22 @@ test('Estadísticas: filtros, ambos gráficos, carga/error/vacío, roles y móvi
       await evaluate('statisticsTest.hold = false'); await date('2025-11'); await ready();
       await evaluate('statisticsTest.pending.splice(0).forEach(resolve => resolve())');
       await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
-      assert.match(await evaluate('document.body.textContent'), /01\/11\/2025 al 30\/11\/2025/);
+      assert.equal(await evaluate(`${filter}.querySelector('input').value`), '2025-11');
+      assert.equal(await evaluate(`${calls}.at(-1).params.fecha_desde`), '2025-11-01');
+      assert.equal(await evaluate(`${calls}.at(-1).params.fecha_hasta`), '2025-11-30');
       const before = await evaluate(`${calls}.length`); await date('');
       await wait(`${filter}.querySelector('input').getAttribute('aria-invalid') === 'true'`);
       assert.equal(await evaluate(`${calls}.length`), before); assert.equal(await evaluate(`Boolean(${result})`), false);
       await date('2025-11'); await ready();
     });
     await t.test('móvil 320 px, SUBDIRECCION usa niveles del servidor y REGISTRADOR sin consultas', async () => {
-      await ui.command('Emulation.setDeviceMetricsOverride', { width: 320, height: 812, deviceScaleFactor: 1, mobile: true });
-      assert.ok(await evaluate('document.documentElement.scrollWidth <= 320'));
-      const screenshot = await ui.command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
-      await writeFile('node_modules/.tmp/statistics-320.png', Buffer.from(screenshot.data, 'base64'));
+      for (const width of [1280, 412, 320]) {
+        await ui.command('Emulation.setDeviceMetricsOverride', { width, height: 915, deviceScaleFactor: 1, mobile: width < 600 });
+        assert.ok(await evaluate(`document.documentElement.scrollWidth <= ${width}`));
+        assert.equal(await evaluate(`${result}.querySelectorAll('svg').length`), 2);
+        const screenshot = await ui.command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+        await writeFile(`node_modules/.tmp/statistics-${width}.png`, Buffer.from(screenshot.data, 'base64'));
+      }
       await click('Cerrar sesión'); await wait('location.pathname === "/login"');
       await evaluate('statisticsTest.role = "SUBDIRECCION"; statisticsTest.levels = ["SECUNDARIA", "INICIAL"]');
       await ui.login(); await ui.setRoute('/estadisticas'); await ready();

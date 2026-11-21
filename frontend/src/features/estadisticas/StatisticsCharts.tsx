@@ -13,7 +13,6 @@ export default function StatisticsCharts({ data }: { data: AttendanceStatistics 
       <div><dt className="text-sm text-slate-600">Marcas registradas</dt><dd className="text-2xl font-bold">{data.marcas_registradas}</dd></div>
       <div><dt className="text-sm text-slate-600">Pendientes</dt><dd className="text-2xl font-bold">{data.totales.pendientes}</dd></div>
     </dl>
-    <p className="text-sm text-slate-600">{data.sesiones_con_registro} salones con registro diario en el período. Cada salón cuenta una vez por fecha.</p>
     <div className="grid gap-4 lg:grid-cols-2">
       <figure className="min-w-0 rounded-xl border border-slate-200 bg-white p-4">
         <figcaption className="font-semibold">Cantidades de asistencia</figcaption>
@@ -45,6 +44,5 @@ export default function StatisticsCharts({ data }: { data: AttendanceStatistics 
         </> : <p className="py-8 text-sm text-slate-600">No hay marcas registradas para calcular porcentajes.</p>}
       </figure>
     </div>
-    <p className="text-xs text-slate-600">Porcentajes sobre presentes + tardanzas + faltas, redondeados a un decimal. Pendientes excluidos. Las faltas y tardanzas justificadas conservan su estado base. Los conteos corresponden a registros diarios, no a estudiantes únicos.</p>
   </section>;
 }

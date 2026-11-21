@@ -1,7 +1,6 @@
 import { useId } from 'react';
 import type { SchoolYear } from '../organizacion-escolar/anios-escolares/aniosEscolares.types';
 import { educationLevelLabels, formatSectionName } from '../organizacion-escolar/secciones/sectionPresentation';
-import { formatCivilDate } from '../../shared/dates/civilDate';
 import Button from '../../shared/components/Button';
 import ErrorState from '../../shared/components/ErrorState';
 import LoadingState from '../../shared/components/LoadingState';
@@ -15,7 +14,7 @@ export default function MonthlyFollowup({ year, state }: Props) {
   const id = useId();
   return <section aria-label="Seguimiento mensual" className="min-w-0 space-y-4 rounded-xl border border-slate-200 bg-white p-4">
     <header><h2 className="text-lg font-bold">Estudiantes con 3 o más incidencias</h2>
-      <p className="mt-1 text-sm text-slate-600">Faltas y tardanzas combinadas del mes, incluidas justificadas. Aparecen desde la tercera incidencia, sin esperar cierres.</p></header>
+      <p className="mt-1 text-sm text-slate-600">Incidencias: faltas y tardanzas del mes, incluidas las justificadas.</p></header>
     <div className="flex flex-wrap items-end gap-3">
       <label htmlFor={id} className="min-w-0 text-sm font-semibold">Mes de seguimiento
         <input id={id} type="month" value={state.month} disabled={!year} min={year?.fecha_inicio.slice(0, 7)} max={year?.fecha_fin.slice(0, 7)}
@@ -23,9 +22,7 @@ export default function MonthlyFollowup({ year, state }: Props) {
           className="mt-2 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base" /></label>
       <Button variant="secondary" disabled={!year || Boolean(state.range.error) || state.loading} onClick={state.refresh}>Actualizar seguimiento</Button>
     </div>
-    <p className="text-xs text-slate-600">Comparte año y nivel con los gráficos; el mes se elige por separado. Solo se cuentan incidencias del ámbito seleccionado.</p>
-    {state.range.error ? <EmptyState message={state.range.error} />
-      : <p className="text-sm text-slate-600">Del {formatCivilDate(state.range.fecha_desde!)} al {formatCivilDate(state.range.fecha_hasta!)}.</p>}
+    {state.range.error && <EmptyState message={state.range.error} />}
     {state.loading && <LoadingState message="Consultando seguimiento mensual…" />}
     {state.error && <><ErrorState message={`No se pudo obtener el seguimiento. ${state.error}`} />
       <Button variant="secondary" onClick={state.refresh}>Reintentar seguimiento</Button></>}
@@ -52,6 +49,5 @@ export default function MonthlyFollowup({ year, state }: Props) {
         </div>}
       <Pagination pagination={state.data.pagination} onPageChange={state.setPage} />
     </>}
-    <p className="text-xs text-slate-600">Las correcciones se reflejan al consultar o actualizar. Al bajar de tres incidencias, el estudiante deja de aparecer. Este indicador no implica sanciones.</p>
   </section>;
 }

@@ -24,7 +24,7 @@ test('Seguimiento mensual: filtros independientes, correcciones, paginación, pe
       assert.match(await evaluate(`${block}.textContent`), /Estudiantes con 3 o más incidencias: 21/);
       assert.match(await evaluate(`${rows}[0].textContent`), /Prueba Estudiante 1/);
       assert.equal(await evaluate(`${rows}[0].querySelectorAll('li').length`), 2);
-      assert.match(await evaluate(`${block}.textContent`), /desde la tercera incidencia, sin esperar cierres/);
+      assert.match(await evaluate(`${block}.textContent`), /Incidencias: faltas y tardanzas del mes, incluidas las justificadas/);
     });
     await t.test('página y mes propios; cambiar día o personalizado no cambia seguimiento', async () => {
       await click('Siguiente'); await wait(`${rows}.length === 1`);
@@ -60,7 +60,8 @@ test('Seguimiento mensual: filtros independientes, correcciones, paginación, pe
       await evaluate('statisticsTest.monthly.hold = false'); await month('2025-11'); await ready();
       await evaluate('statisticsTest.monthly.pending.splice(0).forEach(resolve => resolve())');
       await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
-      assert.match(await evaluate(`${block}.textContent`), /01\/11\/2025 al 30\/11\/2025/);
+      assert.equal(await evaluate(`${block}.querySelector('input').value`), '2025-11');
+      assert.equal(await evaluate(`${calls}.at(-1).params.mes`), '2025-11');
       await evaluate('statisticsTest.monthly.status = 500'); await click('Actualizar seguimiento');
       await wait(`Boolean(${block}.querySelector('[role=alert]'))`);
       assert.equal(await evaluate(`${rows}.length`), 0);
