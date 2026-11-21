@@ -95,6 +95,32 @@ cada operación concreta. Nunca ejecutar el documento completo como un bloque.
    .\scripts\matriculas-mysql.ps1 -Action stop -Profile superusuario -Run $run -Confirm3312
    ```
 
+## Recuperar únicamente el registro de un proceso existente
+
+Requiere autorización específica y PID, creación UTC y UUID obtenidos previamente.
+Usar solo después de verificar la identidad SQL y protección administrativa; esta
+acción no abre conexiones SQL ni vuelve a comprobar la contraseña. No ejecuta
+initialize/start/stop ni modifica el datadir o el bootstrap.
+
+```powershell
+powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ".\scripts\matriculas-mysql.ps1" -Action recover-launch -Profile superusuario -Run $run -ExpectedPid $expectedPid -ExpectedCreated $expectedCreatedUtc -ExpectedUuid $expectedUuid -Confirm3312
+```
+
+`ExpectedCreated` exige UTC con siete decimales y Z, como el campo `created` del
+verificador. Se rechaza `launch.json` o `launch.recovery.tmp` existente. Conserva
+exactamente los campos del registro habitual y añade `recovery.origin` y fecha UTC.
+Escribe un provisional CreateNew con la ACL exclusiva ya usada por el arnés;
+revalida proceso/manifiesto/auto.cnf y lo publica completo mediante File.Move en
+el mismo directorio, sin sobrescribir. Revalida de nuevo después de publicar.
+Un fallo conserva la evidencia; no reintentar ni borrar automáticamente.
+
+Después, `-Action verify-process` reconoce el registro sin conectar a MySQL.
+El bootstrap se conserva: esta recuperación no autoriza ni incorpora su retirada.
+
+Validación focalizada de esta ampliación: 59 pruebas con mocks aprobadas, con
+MySQL bloqueado. Incluyen registro existente, cambio de PID/creación/UUID,
+cambios durante publicación, fallo de ACL y rechazo de sobrescritura concurrente.
+
 ## Cobertura preparada
 
 Conservación de cuentas al migrar; alta local/auditoría atómica; bloqueo concurrente

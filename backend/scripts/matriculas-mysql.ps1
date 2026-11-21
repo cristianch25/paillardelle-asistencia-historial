@@ -1,7 +1,10 @@
 param(
-  [Parameter(Mandatory=$true)][ValidateSet('initialize','start','stop','verify-process')][string]$Action,
+  [Parameter(Mandatory=$true)][ValidateSet('initialize','start','stop','verify-process','recover-launch')][string]$Action,
   [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{12}$')][string]$Run,
   [Alias('Profile')][ValidateSet('matriculas','superusuario')][string]$TestProfile = 'matriculas',
+  [ValidateRange(1,2147483647)][int]$ExpectedPid,
+  [ValidatePattern('^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{7}Z$')][string]$ExpectedCreated,
+  [ValidatePattern('^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$')][string]$ExpectedUuid,
   [switch]$Confirm3312
 )
 $ErrorActionPreference = 'Stop'
@@ -71,9 +74,17 @@ function Assert-Process($record = $null) {
   $listeners = @(Listeners)
   if ($listeners.Count -ne 1 -or $listeners[0].LocalAddress -ne '127.0.0.1') { throw 'Listener inesperado.' }
   $server = Get-CimInstance Win32_Process -Filter "ProcessId = $($listeners[0].OwningProcess)"
-  $expectedCommand = '"' + $executable + '" ' + ($arguments -join ' ')
+  # Reconocer cada valor esperado, sin quitar comillas de la entrada observada.
+  # Solo aceptar comillas exteriores opcionales si el token no contiene espacios.
+  $commandTokens = @($executable) + $arguments
+  $commandPattern = '\A' + (($commandTokens | ForEach-Object {
+    $value = $_.Trim('"')
+    $quoted = [regex]::Escape('"' + $value + '"')
+    if ($value -match '\s') { $quoted }
+    else { '(?:' + $quoted + '|' + [regex]::Escape($value) + ')' }
+  }) -join ' ') + '\z'
   if ($server.ProcessId -ne $listeners[0].OwningProcess -or $server.ExecutablePath -ne $executable -or
-    $server.CommandLine -cne $expectedCommand) { throw 'Identidad de proceso inesperada.' }
+    ![regex]::IsMatch([string]$server.CommandLine, $commandPattern)) { throw 'Identidad de proceso inesperada.' }
   Assert-NormalPath (Join-Path $directory 'mysql.pid')
   if ([int](Get-Content -LiteralPath (Join-Path $directory 'mysql.pid')) -ne $server.ProcessId) { throw 'PID inconsistente.' }
   $identity = [ordered]@{ run=$Run; uuid=$uuid; host='127.0.0.1'; port=3312; datadir=$datadir;
@@ -87,6 +98,41 @@ function Assert-Process($record = $null) {
 function Read-Launch {
   Assert-NormalPath $launchFile
   return Get-Content -Raw -LiteralPath $launchFile | ConvertFrom-Json
+}
+function Recover-Launch([int]$pinnedPid, [string]$pinnedCreated, [string]$pinnedUuid,
+  [scriptblock]$Publish = { param($source, $target) [IO.File]::Move($source, $target) }) {
+  if (!$pinnedPid -or !$pinnedCreated -or !$pinnedUuid) { throw 'Recuperacion requiere PID, creacion UTC y UUID previamente verificados.' }
+  $staging = Join-Path $directory 'launch.recovery.tmp'
+  if ((Test-Path -LiteralPath $launchFile) -or (Test-Path -LiteralPath $staging)) { throw 'Registro o provisional existentes: no sobrescribir ni reintentar.' }
+  Assert-NormalPath $directory
+  Assert-NormalPath $datadir
+  Assert-NormalPath $manifestFile
+  $cnfFile = Join-Path $datadir 'auto.cnf'
+  Assert-NormalPath $cnfFile
+  $manifestBefore = Get-Content -Raw -LiteralPath $manifestFile
+  $cnfBefore = Get-Content -Raw -LiteralPath $cnfFile
+  if ((($manifestBefore | ConvertFrom-Json) | ConvertTo-Json -Compress) -cne ($manifest | ConvertTo-Json -Compress) -or
+    $uuid -cne $pinnedUuid -or [regex]::Match($cnfBefore, 'server-uuid=([^\r\n]+)').Groups[1].Value -cne $pinnedUuid) { throw 'Manifiesto o UUID cambiados: detenerse.' }
+  $server = Assert-Process
+  if ($server.pid -ne $pinnedPid -or $server.created -cne $pinnedCreated) { throw 'PID o creacion distintos de los previamente verificados.' }
+  $record = [ordered]@{}
+  foreach ($property in $server.PSObject.Properties) { $record[$property.Name] = $property.Value }
+  $record.recovery = @{ origin='RECUPERACION_PROCESO_EXISTENTE'; registered_utc=[DateTime]::UtcNow.ToString('o') }
+  $validateFiles = {
+    Assert-NormalPath $manifestFile
+    Assert-NormalPath $cnfFile
+    if ((Get-Content -Raw -LiteralPath $manifestFile) -cne $manifestBefore -or
+      (Get-Content -Raw -LiteralPath $cnfFile) -cne $cnfBefore) { throw 'Identidad en disco cambiada durante la recuperacion.' }
+  }
+  # CreateNew y ACL exclusiva tambien para el provisional; un fallo conserva evidencia.
+  Write-ProtectedFile $staging { $record | ConvertTo-Json -Depth 3 }
+  & $validateFiles
+  $null = Assert-Process $server
+  # Mismo directorio/volumen: publicar completo, sin reemplazar un destino existente.
+  & $Publish $staging $launchFile
+  & $validateFiles
+  $null = Assert-Process (Read-Launch)
+  Write-Output 'Registro recuperado y revalidado. Sin conexiones SQL; bootstrap conservado.'
 }
 if ($Action -eq 'initialize') {
   Assert-NormalPath $backend
@@ -114,6 +160,10 @@ if ($manifest.kind -ne $kind -or $manifest.run -ne $Run -or
   $manifest.schema -ne $schema) { throw 'Manifiesto inesperado.' }
 $uuid = [regex]::Match((Get-Content -Raw -LiteralPath (Join-Path $datadir 'auto.cnf')), 'server-uuid=([^\r\n]+)').Groups[1].Value
 if (!$uuid -or $uuid -ne $manifest.uuid) { throw 'UUID inesperado.' }
+if ($Action -eq 'recover-launch') {
+  Recover-Launch $ExpectedPid $ExpectedCreated $ExpectedUuid
+  exit
+}
 if ($Action -eq 'verify-process') {
   Assert-Process (Read-Launch) | ConvertTo-Json -Compress
   exit

@@ -185,10 +185,15 @@ test('PowerShell aislado: protección fallida no evalúa ni escribe el secreto; 
     if(!$failed -or $script:evaluated){throw 'Se escribió/evaluó el secreto sin protección'}
     'OK'`), 'OK');
 });
-test('PowerShell aislado: listener, PID, creación y argumentos deben coincidir exactamente', () => {
+test('PowerShell aislado: comillas equivalentes sin debilitar argumentos ni identidad', () => {
   assert.equal(powershellMock(['Assert-Process'], String.raw`
-    $directory='C:\synthetic'; $datadir='C:\synthetic\data'; $executable='C:\fake\mysqld.exe'
-    $Run='aabbcc112233'; $uuid='uuid'; $arguments=@('--no-defaults','--port=3312')
+    $directory='C:\synthetic[one].v1+safe'; $datadir=$directory+'\data'
+    $mysqlBase='C:\Program Files\MySQL\MySQL Server 8.4'; $executable=$mysqlBase+'\bin\mysqld.exe'
+    $Run='aabbcc112233'; $uuid='uuid'
+    $arguments=@('--no-defaults',('"--basedir='+$mysqlBase+'"'),('"--datadir='+$datadir+'"'),
+      ('"--tmpdir='+$directory+'\mysql-tmp"'),('"--init-file='+$directory+'\bootstrap.sql"'),
+      '--bind-address=127.0.0.1','--port=3312','--mysqlx=OFF','--skip-log-bin','--local-infile=OFF','--secure-file-priv=NULL',
+      ('"--pid-file='+$directory+'\mysql.pid"'),('"--log-error='+$directory+'\mysql-error.log"'))
     $script:fakeServer=[pscustomobject]@{ProcessId=1234;ExecutablePath=$executable;CommandLine=('"'+$executable+'" '+($arguments -join ' '));CreationDate=[datetime]'2026-11-20T10:00:00Z'}
     $script:fakeListener=[pscustomobject]@{LocalAddress='127.0.0.1';OwningProcess=1234}; $script:pidValue=1234
     function Listeners { $script:fakeListener }
@@ -199,7 +204,39 @@ test('PowerShell aislado: listener, PID, creación y argumentos deben coincidir 
       $failed=$false; try { & $check | Out-Null } catch { $failed=$true }
       if(!$failed){throw 'Se aceptó un proceso distinto'}
     }
+    $null=Assert-Process
+    # Reproducir las cinco rutas sin comillas observadas en Windows, sin datos reales.
+    $observed='"'+$executable+'" '+(($arguments | ForEach-Object {
+      if($_ -match '^"--(datadir|tmpdir|init-file|pid-file|log-error)='){ $_.Trim('"') } else { $_ }
+    }) -join ' ')
+    $script:fakeServer.CommandLine=$observed
     $record=Assert-Process; $null=Assert-Process $record
+    $script:fakeServer.CommandLine=$observed.Replace('--port=3312','"--port=3312"')
+    $null=Assert-Process
+    $script:fakeServer.CommandLine=$observed
+    foreach($invalidCommand in @(
+      $observed.Replace('--skip-log-bin ',''),
+      ($observed+' --console'),
+      ($observed+' --port=3312'),
+      $observed.Replace('--mysqlx=OFF','--port=3312'),
+      $observed.Replace('--bind-address=127.0.0.1 --port=3312','--port=3312 --bind-address=127.0.0.1'),
+      $observed.Replace('--port=3312','--port=3306'),
+      $observed.Replace('--bind-address=127.0.0.1','--bind-address=0.0.0.0'),
+      $observed.Replace('--mysqlx=OFF','--mysqlx=off'),
+      $observed.Replace('--datadir='+$datadir,'--datadir=C:\otro'),
+      $observed.Replace('--datadir='+$datadir,'--datadir='+$datadir.Replace('[one]','o')),
+      $observed.Replace('"--basedir='+$mysqlBase+'"','--basedir='+$mysqlBase),
+      $observed.Replace('--port=3312','"--port=3312'),
+      $observed.Replace('--port=3312','--port="3312"')
+    )) {
+      $script:fakeServer.CommandLine=$invalidCommand
+      Expect-Rejection { Assert-Process }
+    }
+    foreach($option in @('tmpdir','init-file','pid-file','log-error')) {
+      $script:fakeServer.CommandLine=$observed.Replace('--'+$option+'='+$directory,'--'+$option+'=C:\ajeno')
+      Expect-Rejection { Assert-Process }
+    }
+    $script:fakeServer.CommandLine=$observed
     $script:fakeServer.CreationDate=$script:fakeServer.CreationDate.AddSeconds(1)
     Expect-Rejection { Assert-Process $record }
     $script:fakeServer.CreationDate=$script:fakeServer.CreationDate.AddSeconds(-1)
@@ -207,6 +244,8 @@ test('PowerShell aislado: listener, PID, creación y argumentos deben coincidir 
     $script:fakeListener.LocalAddress='127.0.0.1'; $script:pidValue=5678
     Expect-Rejection { Assert-Process $record }; $script:pidValue=1234
     $script:fakeListener.OwningProcess=5678; Expect-Rejection { Assert-Process $record }; $script:fakeListener.OwningProcess=1234
+    $script:fakeServer.ExecutablePath='C:\otro\mysqld.exe'; Expect-Rejection { Assert-Process $record }
+    $script:fakeServer.ExecutablePath=$executable
     $script:fakeServer.CommandLine+=' --port=3306'; Expect-Rejection { Assert-Process $record }
     'OK'`), 'OK');
 });
