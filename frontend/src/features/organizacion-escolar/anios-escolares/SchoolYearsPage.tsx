@@ -10,6 +10,12 @@ import { useSchoolYearManagement } from './useSchoolYearManagement';
 import SchoolYearForm from './SchoolYearForm';
 import SchoolYearConfirmation from './SchoolYearConfirmation';
 
+function closingAvailableFrom(end: string) {
+  const date = new Date(`${end}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + 1);
+  return new Intl.DateTimeFormat('es-PE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date);
+}
+
 function SchoolYearsContent() {
   const management = useSchoolYearManagement(), [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<{ year: SchoolYear; action: 'abrir' | 'cerrar' } | null>(null);
@@ -23,13 +29,11 @@ function SchoolYearsContent() {
   }
   function refresh() { setSelected(null); setCreating(false); management.refresh(); }
   return <div className="min-w-0 space-y-6">
-    <header className="space-y-2"><h1 className="text-3xl font-bold tracking-tight">Años escolares</h1>
-      <p className="text-sm text-slate-600">Administra los años escolares de Inicial, Primaria y Secundaria.</p></header>
-    <div className="flex flex-wrap gap-3"><Button disabled={disabled || creating || Boolean(selected)} onClick={() => setCreating(true)}>Crear año escolar</Button>
-      <Button variant="secondary" disabled={management.busy || management.loading || Boolean(selected)} onClick={refresh}>Consultar años</Button></div>
-    <p className="text-sm text-slate-600">Las cuentas de usuarios, identidades de estudiantes e historiales se conservan. Para el nuevo año, crea sus secciones y encarga a Subdirección la importación del padrón SIAGIE para registrar las nuevas matrículas; las asignaciones se configuran por separado.</p>
+    <header className="space-y-2"><h1 className="text-3xl font-bold tracking-tight">Años escolares</h1></header>
+    <div className="flex flex-wrap gap-3"><Button disabled={disabled || creating || Boolean(selected)} onClick={() => setCreating(true)}>Crear año escolar</Button></div>
     {management.message && <p role="status" className="rounded-lg bg-sky-soft p-3">{management.message}</p>}
-    {management.error && !selected && <ErrorState message={management.error} />}
+    {management.error && !selected && <><ErrorState message={management.error} />
+      <Button variant="secondary" disabled={management.busy || management.loading} onClick={refresh}>Consultar años</Button></>}
     {creating && <SchoolYearForm disabled={management.busy || management.uncertain || management.loading} busy={management.busy}
       onSave={input => void create(input)} onCancel={() => setCreating(false)} />}
     {management.loading ? <LoadingState message="Cargando años escolares…" /> : !management.error && !management.years.length ? <p>No hay años escolares registrados.</p> : null}
@@ -41,7 +45,7 @@ function SchoolYearsContent() {
       {year.estado === 'PLANIFICADO' && <Button disabled={disabled || creating || Boolean(selected)} onClick={() => setSelected({ year, action: 'abrir' })}>Abrir año</Button>}
       {year.estado === 'ABIERTO' && <><Button variant="secondary" disabled={disabled || creating || Boolean(selected) || peruToday() <= year.fecha_fin}
         onClick={() => setSelected({ year, action: 'cerrar' })}>Cerrar año</Button>
-        <p className="text-sm text-slate-600">El cierre manual está disponible después del {formatCivilDate(year.fecha_fin)}, según la fecha de Lima.</p></>}
+        {peruToday() <= year.fecha_fin && <p className="text-sm text-slate-600">Podrás cerrar el año escolar a partir del {closingAvailableFrom(year.fecha_fin)}.</p>}</>}
       {year.estado === 'CERRADO' && <p className="text-sm text-slate-600">Cerrado. Se conserva la consulta histórica según permisos.</p>}
     </article>)}</div>}
     {selected && <SchoolYearConfirmation {...selected} busy={management.busy} uncertain={management.uncertain} error={management.error}

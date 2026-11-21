@@ -12,7 +12,7 @@ export default function SchoolYearForm({ disabled, busy, onSave, onCancel }: {
   return <form aria-label="Crear año escolar" className="space-y-4 rounded-xl border border-slate-200 bg-white p-5"
     onSubmit={event => { event.preventDefault(); if (!disabled) onSave({ anio: Number(year), fecha_inicio: start, fecha_fin: end }); }}>
     <h2 className="text-xl font-bold">Crear año escolar</h2>
-    <p className="text-sm text-slate-600">Las fechas se configuran una sola vez al crear el año. Delimitan el año escolar; la fecha de matrícula de cada estudiante y los días lectivos se configuran por separado.</p>
+    <p className="text-sm text-slate-600">Indica la fecha de inicio y de finalización del año escolar.</p>
     <fieldset disabled={disabled} className="grid gap-4 sm:grid-cols-3">
       <label htmlFor={`${id}-year`} className="text-sm font-semibold">Año escolar<input id={`${id}-year`} name="anio" type="number" min="2000" max="2200" step="1" required
         className={field} value={year} onChange={event => setYear(event.target.value)} /></label>
@@ -21,7 +21,7 @@ export default function SchoolYearForm({ disabled, busy, onSave, onCancel }: {
       <label htmlFor={`${id}-end`} className="text-sm font-semibold">Fecha de finalización<input id={`${id}-end`} name="fecha_fin" type="date" min={start || '1000-01-01'} max="9999-12-31" required
         className={field} value={end} onChange={event => setEnd(event.target.value)} /></label>
     </fieldset>
-    <p className="text-sm text-slate-600">Se creará en estado PLANIFICADO, sin secciones, matrículas ni sesiones propias.</p>
+    <p className="text-sm text-slate-600">El nuevo año quedará preparado para su apertura.</p>
     <div className="flex flex-wrap gap-3"><Button type="submit" disabled={disabled}>{busy ? 'Guardando…' : 'Crear año'}</Button>
       <Button variant="secondary" disabled={busy} onClick={onCancel}>Cancelar</Button></div>
   </form>;
