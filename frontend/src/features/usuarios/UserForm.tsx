@@ -24,7 +24,7 @@ export default function UserForm({ user, busy, onSave, onCancel }: Props) {
   return <form aria-label={user ? 'Editar usuario' : 'Nuevo usuario'} onSubmit={event => void submit(event)} className="space-y-5 rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
     <h2 className="text-xl font-semibold">{user ? 'Editar usuario' : 'Nuevo usuario'}</h2>
     {error && <ErrorState message={error} />}
-    <fieldset disabled={busy} className="grid min-w-0 gap-5 sm:grid-cols-2">
+    <fieldset disabled={busy} className="grid min-w-0 gap-5 sm:grid-cols-2 [&_label>span[aria-hidden=true]]:hidden">
       <FormField label="Nombres" required maxLength={100} value={draft.nombres} onChange={e => update('nombres', e.target.value)} />
       <FormField label="Apellidos" required maxLength={120} value={draft.apellidos} onChange={e => update('apellidos', e.target.value)} />
       <FormField label="Identificador de usuario" required autoComplete="off" maxLength={60} value={draft.usuario} onChange={e => update('usuario', e.target.value)} />

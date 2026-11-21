@@ -11,6 +11,7 @@ test('Restablecer: confirmación, visualización una vez y ausencia en catálogo
   try {
     await ui.navigate('/login'); await ui.login(); await ui.setRoute('/usuarios'); await ui.wait('Boolean(document.querySelector("[aria-label=\\"Usuarios encontrados\\"]"))');
     await action(ui, 'Restablecer contraseña'); await ui.wait('Boolean(document.querySelector("dialog[open]"))');
+    const reads = await ui.evaluate('usersTest.calls.filter(c=>c.url==="/usuarios" && c.method==="get").length');
     assert.equal(await ui.evaluate('usersTest.calls.filter(c=>c.url.endsWith("restablecer-contrasena")).length'), 0);
     assert.ok(await ui.evaluate('document.querySelector("dialog[open]").textContent.includes("sesiones ya iniciadas")'));
     await ui.click('Confirmar restablecimiento'); await ui.wait('Boolean(document.querySelector("output[aria-label=\\"Contraseña temporal\\"]"))');
@@ -18,6 +19,7 @@ test('Restablecer: confirmación, visualización una vez y ausencia en catálogo
     assert.equal(await ui.evaluate('JSON.stringify(usersTest.users).includes("password_temporal")'), false);
     assert.equal(await ui.evaluate('JSON.stringify({...sessionStorage,...localStorage}).includes("XXXXXXXXXXXXXXXXXXXXXXXX")'), false);
     await ui.click('He guardado la contraseña'); await ui.wait('!document.querySelector("dialog[open]")');
+    await ui.wait(`usersTest.calls.filter(c=>c.url==="/usuarios" && c.method==="get").length > ${reads}`);
     await ui.wait('Boolean(document.querySelector("[aria-label=\\"Usuarios encontrados\\"]"))'); await action(ui, 'Restablecer contraseña');
     await ui.wait('Boolean(document.querySelector("dialog[open]"))'); assert.equal(await ui.evaluate('Boolean(document.querySelector("output"))'), false);
     await ui.click('Cancelar'); assert.equal(await ui.evaluate('usersTest.calls.filter(c=>c.url.endsWith("restablecer-contrasena")).length'), 1);

@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { fixtureUser, usersFixture, userId } from './support/usuariosFixture.mjs';
 
-let vite, api, model, client, Page, Auth, Form, Assignments, navigation;
+let vite, api, model, client, Page, Auth, Form, Assignments, navigation, List;
 const response = (config, data, status = 200) => ({ config, data, status, statusText: 'OK', headers: {} });
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
@@ -19,8 +19,55 @@ before(async () => {
   Assignments = (await vite.ssrLoadModule('/src/features/usuarios/UserAssignments.tsx')).default;
   Auth = (await vite.ssrLoadModule('/src/features/auth/AuthContext.ts')).AuthContext;
   navigation = await vite.ssrLoadModule('/src/app/layout/navigation.ts');
+  List = (await vite.ssrLoadModule('/src/features/usuarios/UsersList.tsx')).default;
 });
 after(async () => { await vite?.close(); });
+
+const cards = (catalog, users = catalog.users) => renderToStaticMarkup(h(List, { users, catalog, busy: false,
+  actorId: catalog.users[0].id, onEdit() {}, onState() {}, onAssignments() {}, onResetPassword() {} }));
+
+test('tarjetas: nombre principal, cargo, estado discreto y acciones conservadas, sin identificadores habituales', () => {
+  const catalog = usersFixture(), html = cards(catalog);
+  assert.match(html, /font-bold">María Pérez/); assert.match(html, /Docente/); assert.match(html, /Auxiliar/);
+  assert.match(html, /Activo/); assert.match(html, /Inactivo/);
+  assert.doesNotMatch(html, /maria\.prueba|admin\.prueba|Secciones vigentes|Sin asignaciones vigentes/);
+  assert.match(html, /Sección asignada: 1.º A · Primaria/);
+  assert.match(html, /Sin secciones asignadas/);
+  for (const action of ['Editar', 'Desactivar', 'Activar', 'Asignaciones', 'Restablecer contraseña']) assert.ok(html.includes(action));
+});
+
+test('homónimos se detectan en todo el catálogo, aunque solo una cuenta esté en la página o filtro', () => {
+  const catalog = usersFixture();
+  catalog.users[2] = { ...catalog.users[2], nombres: '  MARÍA  ', apellidos: 'PÉREZ' };
+  const before = structuredClone(catalog), html = cards(catalog, [catalog.users[1]]);
+  assert.match(html, /maria\.prueba/);
+  assert.equal(model.matchesUser(catalog.users[1], 'maria.prueba'), true);
+  assert.equal(model.matchesUser(catalog.users[1], userId), true);
+  assert.deepEqual(catalog, before);
+});
+
+test('Asignaciones solo aparece para REGISTRADOR, independientemente del cargo visible', () => {
+  for (const rol of ['ADMIN', 'SUBDIRECCION', 'SUPERUSUARIO', 'REGISTRADOR']) {
+    for (const cargo of ['DOCENTE', 'AUXILIAR', null]) {
+      const user = fixtureUser({ rol, cargo }), catalog = { ...usersFixture(), users: [user] };
+      const html = cards(catalog);
+      assert.equal(/>Asignaciones<\/button>/.test(html), rol === 'REGISTRADOR', `${rol}/${cargo}`);
+      for (const label of ['Editar', 'Desactivar', 'Restablecer contraseña']) assert.ok(html.includes(label));
+    }
+  }
+});
+
+test('asignaciones: varias secciones y años identificados, sin mostrar vínculos finalizados o futuros', () => {
+  const catalog = usersFixture(), user = catalog.users[1];
+  const section = { ...catalog.sections[0], id: 'anterior', anio_escolar_id: catalog.years[1].id };
+  catalog.sections.push(section);
+  catalog.assignments.push({ ...catalog.assignments[0], id: 'otra', seccion_id: section.id, fecha_inicio: '2025-01-01' },
+    { ...catalog.assignments[0], id: 'historica', seccion_id: catalog.sections[1].id, fecha_fin: '2025-12-31' },
+    { ...catalog.assignments[0], id: 'futura', seccion_id: catalog.sections[1].id, fecha_inicio: '9999-01-01' });
+  const html = cards(catalog, [user]);
+  assert.match(html, /Secciones asignadas: 1.º A · Primaria · 2026; 1.º A · Primaria · 2025 \(año cerrado\)/);
+  assert.doesNotMatch(html, /Secundaria/);
+});
 
 test('rol y cargo separados; SUBDIRECCION requiere nivel y admite cargo opcional de 30 caracteres', () => {
   const draft = { ...model.initialUserDraft(), nombres: ' Rosa ', apellidos: ' Diaz ', usuario: 'rosa', password: 'inicial-ficticia' };

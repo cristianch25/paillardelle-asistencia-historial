@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { Search } from 'lucide-react';
 import { Navigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import { useNavigationProtection } from '../../shared/navigation/NavigationProtectionContext';
@@ -39,19 +40,22 @@ function AdminUsers({ actorId }: { actorId: string }) {
   const selectStyle = 'mt-2 block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base';
   return <div className="min-w-0 space-y-5">
     <header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-bold">Usuarios</h1>
-      <div className="flex flex-wrap gap-2"><Button variant="secondary" disabled={catalog.busy} onClick={() => open(catalog.refresh)}>Actualizar consulta</Button>
-        <Button disabled={!data || catalog.busy} onClick={() => open(() => setEditor({}))}>Nuevo usuario</Button></div></header>
-    <p className="text-sm text-slate-600">Administración de cuentas. Desactivar una cuenta conserva sus asignaciones y registros históricos.</p>
+      <Button disabled={!data || catalog.busy} onClick={() => open(() => setEditor({}))}>Nuevo usuario</Button></header>
     {catalog.notice && <p role="status" className="rounded-lg bg-sky-soft p-3 text-sm">{catalog.notice}</p>}
     {catalog.loading && <LoadingState message="Cargando usuarios y asignaciones…" />}
     {catalog.error && <ErrorState message={catalog.error} />}
+    {!catalog.loading && !data && <Button variant="secondary" disabled={catalog.busy} onClick={() => open(catalog.refresh)}>Actualizar consulta</Button>}
     {data && (editor ? <UserForm key={editor.user?.id ?? 'new'} user={editor.user} busy={catalog.busy}
       onCancel={() => open(close)} onSave={async draft => { const ok = await catalog.perform(() => saveUser(draft, editor.user)); if (ok) close(); return ok; }} />
       : assigned ? <UserAssignments user={assigned} catalog={data} busy={catalog.busy} onClose={() => open(close)}
         onFinalize={async (assignment, date) => catalog.perform(() => finalizeUserAssignment(assignment, date))}
         onSave={async input => { const ok = await catalog.perform(() => createUserAssignment(input)); if (ok) close(); return ok; }} /> : <>
-        <div className="grid gap-4 sm:grid-cols-3"><FormField label="Buscar por nombre o identificador" type="search" value={text}
-          onChange={e => { setText(e.target.value); setPage(1); }} />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="relative min-w-0 [&_input]:rounded-full [&_input]:border-institutional-700 [&_input]:pl-11 [&_input]:shadow-sm">
+            <FormField label="Buscar por nombre o identificador" type="search" value={text}
+              onChange={e => { setText(e.target.value); setPage(1); }} />
+            <Search aria-hidden="true" className="pointer-events-none absolute bottom-3 left-4 size-5 text-institutional-700" />
+          </div>
           <label className="text-sm font-semibold" htmlFor={`${id}-role`}>Filtrar por rol<select id={`${id}-role`} className={selectStyle} value={role} onChange={e => { setRole(e.target.value); setPage(1); }}>
             <option value="">Todos</option><option value="REGISTRADOR">REGISTRADOR</option><option value="SUBDIRECCION">SUBDIRECCION</option><option value="ADMIN">ADMIN</option>
           </select></label>
@@ -63,7 +67,7 @@ function AdminUsers({ actorId }: { actorId: string }) {
           <Button disabled={catalog.busy} onClick={() => void catalog.perform(() => setUserState(confirm.id, !confirm.activo)).then(ok => { if (ok) setConfirm(null); })}>Confirmar estado</Button>
           <Button variant="secondary" disabled={catalog.busy} onClick={() => setConfirm(null)}>Cancelar</Button>
         </section>}
-        <p role="status" className="text-sm text-slate-600">{users.length} usuarios encontrados · Búsqueda sobre el catálogo completo cargado.</p>
+        <p role="status" className="text-sm text-slate-600">{users.length} usuarios encontrados</p>
         {!users.length ? <EmptyState message="No hay usuarios para estos filtros." /> : <UsersList users={users.slice((currentPage - 1) * 20, currentPage * 20)} catalog={data}
           actorId={actorId} busy={catalog.busy} onEdit={user => open(() => setEditor({ user }))} onState={setConfirm} onAssignments={user => open(() => setAssigned(user))}
           onResetPassword={user => open(() => setPasswordUser(user))} />}
