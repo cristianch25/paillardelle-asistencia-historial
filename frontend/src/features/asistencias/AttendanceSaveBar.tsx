@@ -6,13 +6,16 @@ type Props = {
   conflicts: number;
   validation?: string;
   compact?: boolean;
+  administrativeDetail?: boolean;
   onSave: () => void; onRefresh: () => void;
 };
 export default function AttendanceSaveBar({ count, phase, message, success, disabled, conflicts, onSave, onRefresh,
-  validation = '', compact = false }: Props) {
+  validation = '', compact = false, administrativeDetail = false }: Props) {
   const busy = phase === 'saving' || phase === 'checking-access' || phase === 'refreshing';
   const accessStatus = phase === 'checking-access' || message.startsWith('Acceso a la sesión comprobado.');
-  const visibleMessage = compact && accessStatus ? '' : compact && message.startsWith('Lista consultada.')
+  const routineAccessNotice = phase === 'idle' && conflicts === 0
+    && message === 'Acceso a la sesión comprobado. Las selecciones compatibles se conservan; revisa las diferencias si existen.';
+  const visibleMessage = (administrativeDetail && routineAccessNotice) || (compact && accessStatus) ? '' : compact && message.startsWith('Lista consultada.')
     ? 'Lista actualizada. Revisa los cambios pendientes antes de guardar.' : message;
   return (
     <div aria-label="Guardado de asistencia" aria-busy={busy}

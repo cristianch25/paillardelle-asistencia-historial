@@ -75,7 +75,7 @@ export default function QuickAttendanceDialog({ student, date, onClose, onSaved 
     {draft.phase === 'denied' && <ErrorState message={draft.message} />}
     {draft.base && !row && <ErrorState message="El estudiante ya no está disponible en este padrón." />}
     {row && <>
-      <ul aria-label="Asistencia rápida"><AttendanceStudentRow row={row} quick
+      <ul aria-label="Asistencia rápida"><AttendanceStudentRow row={row} padron={draft.base?.padron} quick
         state={currentState} changed={draft.changes[row.asistencia_id] !== undefined || draftedReason !== undefined}
         editable={writable} disabled={draft.disabled} onSelect={draft.select} /></ul>
 

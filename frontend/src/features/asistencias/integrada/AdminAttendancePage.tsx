@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Search } from 'lucide-react';
 import { useSchoolYears } from '../../organizacion-escolar/anios-escolares/useSchoolYears';
 import { useInitialSchoolYear } from '../../organizacion-escolar/anios-escolares/useInitialSchoolYear';
 import { useNavigationProtection } from '../../../shared/navigation/NavigationProtectionContext';
@@ -36,8 +37,11 @@ export default function AdminAttendancePage() {
   function refreshResults() { setSelection({ key: '', id: '' }); search.retry(); }
   return <div className="min-w-0 space-y-5">
     <h1 className="text-2xl font-bold sm:text-3xl">Asistencias</h1>
-    <FormField label="Buscar estudiante" type="search" autoComplete="off" placeholder="Nombres, apellidos o código" value={text}
+    <div className="relative w-full max-w-2xl [&_label]:text-base [&_label]:font-bold [&_input]:rounded-full [&_input]:border-institutional-700 [&_input]:pl-11 [&_input]:shadow-sm">
+      <Search aria-hidden="true" className="pointer-events-none absolute left-4 top-11 size-5 text-institutional-700" />
+      <FormField label="Buscar estudiante" type="search" autoComplete="off" placeholder="Nombres, apellidos o código" value={text}
       onChange={e => { const value = e.target.value; change(() => { setText(value); setPage(1); search.retry(); if (!value.trim()) cards.retry(); }); }} />
+    </div>
     {years.loading ? <LoadingState message="Cargando años escolares…" /> : years.error ? <>
       <ErrorState message={years.error} /><Button variant="secondary" onClick={years.retry}>Reintentar años escolares</Button>
     </> : <AdminAttendanceFilters years={years.years} value={filters} globalSearch={searching}

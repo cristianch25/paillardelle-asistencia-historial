@@ -1,4 +1,5 @@
 import Button from '../../shared/components/Button';
+import { Search } from 'lucide-react';
 import type { AttendanceDetail, AttendanceState } from './asistencias.types';
 import { draftSummary, type AttendanceChanges } from './attendanceDraft';
 import AttendanceStudentRow from './AttendanceStudentRow';
@@ -21,22 +22,25 @@ type Props = {
   onSearch?: (query: string) => void;
   pendingCount?: number;
   compact?: boolean;
+  administrativeDetail?: boolean;
 };
 
 export default function AsistenciaSessionView({ data, changes = {}, editable = false, disabled = false, updated = [], created = false, onSelect, onMarkPending,
-  reasons = {}, justificationDisabled = disabled, onJustify, query = '', onSearch, pendingCount = 0, compact = false }: Props) {
+  reasons = {}, justificationDisabled = disabled, onJustify, query = '', onSearch, pendingCount = 0, compact = false, administrativeDetail = false }: Props) {
   const canEdit = editable;
   const local = canEdit ? changes : {};
   const counts = Object.keys(local).length ? draftSummary(data.padron, local) : data.resumen;
   const visible = searchCorrectionStudents(data.padron, query);
+  const detailed = administrativeDetail && !compact;
   return (
     <section aria-label="Sesión de asistencia" className="space-y-3">
-      {!compact && <div role="status" className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+      {!compact && !detailed && <div role="status" className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
         <p className="font-semibold">{canEdit ? 'Registro de asistencia' : created ? 'Asistencia iniciada'
           : !data.sesion.id ? 'Lista de estudiantes' : `Sesión ${data.sesion.estado === 'CERRADA' ? 'cerrada' : 'abierta'}`}{!canEdit && !onJustify && ' · Solo consulta'}</p>
       </div>}
-      {canEdit && !compact && <p className="text-xs text-slate-600">Las marcas se guardan solo al pulsar «Guardar cambios». Si sales con cambios sin guardar, se perderán.</p>}
-      <div className="max-w-lg">
+      {canEdit && !compact && !detailed && <p className="text-xs text-slate-600">Las marcas se guardan solo al pulsar «Guardar cambios». Si sales con cambios sin guardar, se perderán.</p>}
+      <div className={detailed ? 'relative w-full max-w-2xl [&_label]:text-base [&_label]:font-bold [&_input]:rounded-full [&_input]:border-institutional-700 [&_input]:pl-11 [&_input]:shadow-sm' : 'max-w-lg'}>
+        {detailed && <Search aria-hidden="true" className="pointer-events-none absolute left-4 top-11 size-5 text-institutional-700" />}
         <FormField label="Buscar estudiante" type="search" value={query} onChange={event => onSearch?.(event.target.value)}
           placeholder="Nombres, apellidos o código" />
         <p role="status" className="mt-2 text-xs text-slate-600">Mostrando {visible.length} de {data.padron.length} estudiantes{!compact && ` · ${pendingCount} ${pendingCount === 1 ? 'cambio sin guardar' : 'cambios sin guardar'}`}</p>
@@ -45,11 +49,11 @@ export default function AsistenciaSessionView({ data, changes = {}, editable = f
         <Button variant="secondary" className="w-full sm:w-auto" disabled={disabled || !counts.pendientes} onClick={onMarkPending}>
           Marcar todos como presentes
         </Button>
-        {!compact && <p className="text-xs text-slate-600">Se aplica a los estudiantes sin marcar elegibles de toda la sección, incluidos los ocultos por la búsqueda, previa confirmación.
+        {!compact && !detailed && <p className="text-xs text-slate-600">Se aplica a los estudiantes sin marcar elegibles de toda la sección, incluidos los ocultos por la búsqueda, previa confirmación.
           {!counts.pendientes && ' No hay estudiantes sin marcar.'}</p>}
       </div>}
       <ul aria-label="Estudiantes y marcas actuales" className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
-        {visible.map(row => <AttendanceStudentRow key={row.asistencia_id} row={row}
+        {visible.map(row => <AttendanceStudentRow key={row.asistencia_id} row={row} padron={data.padron}
           compact={compact} profileContext={compact ? undefined : { yearId: data.sesion.anio_escolar_id, month: data.sesion.fecha.slice(0, 7) }}
           state={local[row.asistencia_id] ?? row.estado} changed={local[row.asistencia_id] !== undefined || reasons[row.asistencia_id] !== undefined}
           editable={canEdit} disabled={disabled} updated={updated.includes(row.asistencia_id)} onSelect={onSelect}

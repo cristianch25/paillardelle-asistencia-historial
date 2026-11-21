@@ -48,9 +48,12 @@ for (const [principal, levels, consulted] of [['PRIMARIA', ['INICIAL', 'PRIMARIA
       await evaluate(`${cards}.querySelector('a').click()`);
       await wait(`Boolean(document.querySelector('[aria-label="Edición autorizada de asistencia"]'))`);
       assert.equal(await evaluate('document.body.textContent.includes("Volver a Asistencias")'), true);
-      for (const width of [1280, 320, 390]) {
+      assert.equal(await evaluate('Boolean(document.querySelector(".lucide-search"))'), true);
+      assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Asistencias · Detalle|Registro de asistencia/);
+      for (const width of [1280, 320, 412]) {
         await ui.command('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: width < 600 });
         assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true);
+        assert.equal(await evaluate(`getComputedStyle(document.querySelector('[aria-label="Totales de asistencia"]')).gridTemplateColumns.split(' ').length`), width >= 768 ? 4 : 2);
       }
       assert.equal(await evaluate('supervisionCorrectionTest.calls.some(e=>["post","put","delete"].includes(e.method))'), false);
     } finally { await ui.close(); }

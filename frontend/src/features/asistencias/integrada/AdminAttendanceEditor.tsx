@@ -15,7 +15,7 @@ export default function AdminAttendanceEditor({ initial, entryId, revalidate }: 
 }) {
   const { session } = useAuth();
   const allowed = session && ['ADMIN', 'SUBDIRECCION'].includes(session.user.rol);
-  const draft = useAttendanceDraft(allowed ? session.user.id : null, initial, false, revalidate, true);
+  const draft = useAttendanceDraft(allowed ? session.user.id : null, initial, false, revalidate, true, !entryId);
   const [query, setQuery] = useState('');
   if (!allowed) return null;
   if (!draft.base) return <ErrorState message={draft.message || 'La asistencia ya no está disponible.'} />;
@@ -24,16 +24,16 @@ export default function AdminAttendanceEditor({ initial, entryId, revalidate }: 
   return <section aria-label="Edición autorizada de asistencia" className="space-y-4">
     <AttendanceReview data={draft.base} changes={draft.changes} conflicts={draft.conflicts} reasons={draft.reasons}
       onResolve={draft.resolve} disabled={draft.busy} />
-    {entry ? <ul className="rounded-xl border border-slate-200 bg-white"><AttendanceStudentRow row={entry}
+    {entry ? <ul className="rounded-xl border border-slate-200 bg-white"><AttendanceStudentRow row={entry} padron={draft.base.padron}
       state={draft.changes[entry.asistencia_id] ?? entry.estado} changed={draft.changes[entry.asistencia_id] !== undefined || draft.reasons[entry.asistencia_id] !== undefined}
       editable={draft.editable} disabled={draft.disabled} onSelect={draft.select} onJustify={draft.justify}
       reason={draft.reasons[entry.asistencia_id]} justificationDisabled={draft.justificationDisabled} /></ul> : <>
-      <SupervisionSummary resumen={draft.base.resumen} />
-      <AsistenciaSessionView data={draft.base} changes={draft.changes} editable={draft.editable} disabled={draft.disabled}
+      <SupervisionSummary resumen={draft.base.resumen} compact />
+      <AsistenciaSessionView administrativeDetail data={draft.base} changes={draft.changes} editable={draft.editable} disabled={draft.disabled}
         reasons={draft.reasons} onJustify={draft.justify} justificationDisabled={draft.justificationDisabled}
         onSelect={draft.select} onMarkPending={draft.markAllPending} query={query} onSearch={setQuery} pendingCount={draft.count} />
     </>}
-    <AttendanceSaveBar count={draft.count} phase={draft.phase} message={draft.message} success={draft.success}
+    <AttendanceSaveBar administrativeDetail={!entryId} count={draft.count} phase={draft.phase} message={draft.message} success={draft.success}
       conflicts={draft.conflicts.length} disabled={draft.saveDisabled} validation={draft.validation}
       onSave={() => void draft.save()} onRefresh={() => void draft.refresh()} />
   </section>;

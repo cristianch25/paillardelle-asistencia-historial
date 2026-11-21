@@ -7,7 +7,7 @@ import type { AttendanceDetail, AttendanceState } from './asistencias.types';
 import { useUnsavedChanges } from '../../shared/navigation/useUnsavedChanges';
 
 export function useAttendanceDraft(accountId: string | null, data: AttendanceDetail | null, checking: boolean,
-  revalidate: () => Promise<void>, allowJustifications = false) {
+  revalidate: () => Promise<void>, allowJustifications = false, bulkIncludesHidden = false) {
   const [editor, dispatch] = useReducer(attendanceEditorReducer, null, () => createAttendanceEditor(accountId, data));
   const key = checking && accountId === editor.accountId ? editor.key : attendanceDraftKey(accountId, data);
   // Un nuevo resultado de apertura reemplaza la base; recuperar foco conserva el mismo resultado.
@@ -43,7 +43,8 @@ export function useAttendanceDraft(accountId: string | null, data: AttendanceDet
     const pending = draftSummary(editor.base.padron, editor.changes).pendientes;
     const message = pending === 1 ? 'Se marcará como presente 1 estudiante sin marcar.'
       : `Se marcarán como presentes ${pending} estudiantes sin marcar.`;
-    if (pending && window.confirm(`${message} Las demás marcas se conservarán. ¿Continuar?`)) dispatch({ type: 'bulk' });
+    const scope = bulkIncludesHidden ? ' También incluye a los estudiantes ocultos por la búsqueda.' : '';
+    if (pending && window.confirm(`${message}${scope} Las demás marcas se conservarán. ¿Continuar?`)) dispatch({ type: 'bulk' });
   }
   return { ...editor, count, busy, editable, disabled, select, markAllPending, ...saving, justify, validation, justificationDisabled,
     saveDisabled: justificationDisabled || Boolean(validation),

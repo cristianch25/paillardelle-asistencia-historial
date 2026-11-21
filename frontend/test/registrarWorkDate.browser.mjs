@@ -26,6 +26,8 @@ test('fecha única: se conserva entre búsqueda, salones, guardado y regreso sin
       assert.equal(await evaluate('document.querySelectorAll("input[type=date]").length'), 0);
       assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Ver perfil|Las marcas se guardan solo|Se aplica a los estudiantes/);
       assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Asistencia del/);
+      assert.equal(await evaluate('Boolean(document.querySelector(".lucide-search"))'), false);
+      assert.equal(await evaluate('document.querySelector("input[type=search]").parentElement.parentElement.className'), 'max-w-lg');
       assert.equal(await evaluate('mobileTest.calls.filter(call => call.url === "/asistencias/sesiones" && call.params?.seccion_id).at(-1).params.fecha'), date);
     }
     try {

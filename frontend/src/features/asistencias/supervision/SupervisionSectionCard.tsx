@@ -1,7 +1,6 @@
 import { educationLevelLabels, formatSectionName } from '../../organizacion-escolar/secciones/sectionPresentation';
 import type { SupervisionSection } from './supervision.types';
 import { Link } from 'react-router';
-import SupervisionSummary from './SupervisionSummary';
 
 const situations = {
   ABIERTA: { label: 'Sesión abierta', style: 'border-sky-200 bg-sky-50 text-sky-900' },
@@ -10,9 +9,9 @@ const situations = {
 };
 
 export default function SupervisionSectionCard({ item }: { item: SupervisionSection }) {
-  const { seccion, situacion, es_lectivo, resumen } = item;
+  const { seccion, situacion, es_lectivo } = item;
   const situation = situations[situacion];
-  return <li className="min-w-0 space-y-4 break-words rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+  return <li className="flex min-w-0 flex-col gap-3 break-words rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
     <header className="space-y-1">
       <p className="text-sm text-slate-600">{educationLevelLabels[seccion.nivel]}</p>
       <h2 className="text-lg font-semibold text-institutional-950">{formatSectionName(seccion)}</h2>
@@ -25,12 +24,10 @@ export default function SupervisionSectionCard({ item }: { item: SupervisionSect
         {es_lectivo ? 'Fecha lectiva' : 'Fecha no lectiva'}
       </p>
     </div>
-    {resumen === null ? <p className="text-sm leading-6 text-slate-600">
-      {situacion === 'SIN_REGISTRO' ? 'No hay sesión registrada para esta fecha.' : 'Resumen no disponible.'}
-    </p> : <SupervisionSummary resumen={resumen} />}
+    {situacion === 'SIN_REGISTRO' && <p className="mt-auto text-sm leading-6 text-slate-600">No hay sesión registrada para esta fecha.</p>}
     {situacion !== 'SIN_REGISTRO' && item.sesion_id !== null && <Link to={`/asistencias/supervision/${item.sesion_id}`}
       aria-label={`Ver detalle de ${formatSectionName(seccion)}`}
-      className="inline-flex min-h-11 items-center rounded-lg px-3 py-2 text-sm font-semibold text-institutional-800 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-institutional-700">
+      className="mt-auto inline-flex min-h-11 items-center justify-center self-start rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-institutional-950 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-institutional-700">
       Ver detalle
     </Link>}
   </li>;

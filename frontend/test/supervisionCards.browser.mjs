@@ -10,7 +10,7 @@ test('7A.2: tarjetas, filtros rápidos, móvil y solo lectura',
     const { evaluate, command, wait, click } = ui;
     const rows = `Array.from(document.querySelectorAll('ul[aria-label="Secciones de supervisión"] > li'))`;
     const mainCalls = `supervisionTest.calls.filter(c => c.params?.limit === 20)`;
-    const fields = `document.querySelector('[aria-label="Filtros de supervisión"]').querySelectorAll('select, input')`;
+    const fields = `document.querySelector('[aria-label="Filtros de asistencias"]').querySelectorAll('select, input')`;
     async function change(index, value) {
       await evaluate(`(() => { const e = ${fields}[${index}];
         Object.getOwnPropertyDescriptor(e.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype, 'value').set.call(e, ${JSON.stringify(value)});
@@ -20,26 +20,34 @@ test('7A.2: tarjetas, filtros rápidos, móvil y solo lectura',
       await command('Emulation.setDeviceMetricsOverride', { width: 320, height: 812, deviceScaleFactor: 1, mobile: true });
       await ui.navigate('/login'); await ui.login();
       await evaluate('supervisionTest.cards = true'); await ui.setRoute('/asistencias/supervision');
-      await wait(`Boolean(document.querySelector('[aria-label="Filtros de supervisión"]'))`);
+      await wait(`Boolean(document.querySelector('[aria-label="Filtros de asistencias"]'))`);
       await change(0, '9007199254740993'); await wait(`${rows}.length === 3`);
-      await t.test('abierta/cerrada/sin registro, lectividad y cinco totales sin peticiones individuales', async () => {
+      await t.test('abierta/cerrada/sin registro y lectividad, sin contadores ni peticiones individuales', async () => {
         const texts = await evaluate(`${rows}.map(row => row.textContent)`);
-        assert.match(texts[0], /Sesión abierta.*Fecha lectiva.*Total de estudiantes30.*Faltas1.*Tardanzas2.*Pendientes3.*Presentes24/);
-        assert.match(texts[1], /Sesión cerrada.*Fecha no lectiva.*Total de estudiantes32.*Faltas3.*Tardanzas1.*Pendientes0.*Presentes28/);
+        assert.match(texts[0], /Sesión abierta.*Fecha lectiva.*Ver detalle/);
+        assert.match(texts[1], /Sesión cerrada.*Fecha no lectiva.*Ver detalle/);
         assert.match(texts[2], /Sin registro.*Fecha no lectiva.*No hay sesión registrada/);
-        assert.doesNotMatch(texts[2], /Faltas|Pendientes|Total de estudiantes/);
+        for (const text of texts) assert.doesNotMatch(text, /Faltas|Tardanzas|Presentes|Pendientes|Total de estudiantes/);
+        assert.equal(await evaluate(`${rows}[2].querySelector('a') === null`), true);
+        assert.equal(await evaluate(`${rows}[0].querySelector('a').getAttribute('href')`), '/asistencias/supervision/9007199254741995');
         assert.equal(await evaluate(`${mainCalls}.length`), 1);
         assert.equal(await evaluate('supervisionTest.calls.every(c => ["/anios-escolares", "/asistencias/sesiones"].includes(c.url) && c.method === "get")'), true);
       });
-      await t.test('320 px: tarjetas legibles y enlaces de detalle sin controles de escritura ni desbordamiento', async () => {
+      await t.test('escritorio y móvil: tarjetas uniformes y enlaces con borde, sin desbordamiento', async () => {
+        for (const width of [1280, 412, 320]) {
+          await command('Emulation.setDeviceMetricsOverride', { width, height: 915, deviceScaleFactor: 1, mobile: width < 600 });
         const layout = await evaluate(`({ width: document.documentElement.scrollWidth,
-          cards: ${rows}.map(row => { const r = row.getBoundingClientRect(); return { left: r.left, right: r.right, width: r.width }; }),
+          cards: ${rows}.map(row => { const r = row.getBoundingClientRect(); return { left: r.left, right: r.right, width: r.width, height: r.height }; }),
           controls: ${rows}.some(row => row.querySelector('button,input,select')) })`);
-        assert.ok(layout.width <= 320); assert.ok(layout.cards.every(card => card.left >= 0 && card.right <= 320 && card.width > 200));
+        assert.ok(layout.width <= width); assert.ok(layout.cards.every(card => card.left >= 0 && card.right <= width && card.width > 200));
         assert.equal(layout.controls, false);
-        await evaluate(`${rows}[0].scrollIntoView({ block: 'start' })`);
+        assert.equal(await evaluate(`${rows}.some(row => row.querySelector('dl'))`), false);
+        assert.equal(await evaluate(`getComputedStyle(${rows}[0].querySelector('a')).borderStyle`), 'solid');
+        if (width === 1280) assert.ok(Math.max(...layout.cards.map(c=>c.height))-Math.min(...layout.cards.map(c=>c.height)) <= 24);
+        await evaluate('window.scrollTo(0,0)');
         const screenshot = await command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
-        await writeFile('node_modules/.tmp/supervision-cards-320.png', Buffer.from(screenshot.data, 'base64'));
+        await writeFile(`node_modules/.tmp/supervision-cards-${width}.png`, Buffer.from(screenshot.data, 'base64'));
+        }
       });
       await t.test('cambios rápidos de fecha/nivel ocultan tarjetas previas e ignoran conteos tardíos', async () => {
         await evaluate('supervisionTest.hold = true'); await change(1, '2026-11-12');
@@ -58,7 +66,7 @@ test('7A.2: tarjetas, filtros rápidos, móvil y solo lectura',
         await click('Cerrar sesión'); await wait('location.pathname === "/login"');
         await evaluate('supervisionTest.account = "7"; supervisionTest.role = "SUBDIRECCION"; supervisionTest.level = "SECUNDARIA"; supervisionTest.hold = false; supervisionTest.cards = false');
         await ui.login(); await ui.setRoute('/asistencias/supervision');
-        await wait(`Boolean(document.querySelector('[aria-label="Filtros de supervisión"]'))`);
+        await wait(`Boolean(document.querySelector('[aria-label="Filtros de asistencias"]'))`);
         await evaluate('supervisionTest.pending.shift()()');
         await wait(`${rows}.length === 1`);
         assert.doesNotMatch(await evaluate('document.body.textContent'), /Total de estudiantes|Sesión abierta|Sesión cerrada/);

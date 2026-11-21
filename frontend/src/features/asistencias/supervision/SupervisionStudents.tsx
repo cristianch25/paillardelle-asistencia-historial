@@ -20,7 +20,7 @@ export default function SupervisionStudents({ padron }: { padron: AttendanceEntr
     <p role="status" className="text-sm text-slate-600">{visible.length} {visible.length === 1 ? 'estudiante' : 'estudiantes'} · {filters.find(([, value]) => value === filter)![0]}</p>
     {visible.length === 0 ? <EmptyState message="No hay estudiantes para el filtro seleccionado." />
       : <ul aria-label="Estudiantes de la sesión" className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
-        {visible.map(row => <AttendanceStudentRow key={row.asistencia_id} row={row} state={row.estado} changed={false} editable={false} />)}
+        {visible.map(row => <AttendanceStudentRow key={row.asistencia_id} row={row} padron={padron} state={row.estado} changed={false} editable={false} />)}
       </ul>}
   </section>;
 }

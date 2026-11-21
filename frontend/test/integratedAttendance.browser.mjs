@@ -26,6 +26,8 @@ test('ADMIN Asistencias: tarjetas/búsqueda/perfil, filtros y guardado existente
       await wait(`location.pathname === '/asistencias/supervision' && Boolean(${filter})`);
       await change(`${filter}.querySelector('input[type=date]')`, '2026-11-15'); await wait(`Boolean(${cards})`);
       await t.test('URL compatible y menú único; vacío muestra tarjetas sin búsqueda global', async () => {
+        assert.equal(await evaluate(`parseFloat(getComputedStyle(${globalSearch}).borderRadius) >= ${globalSearch}.getBoundingClientRect().height / 2`), true);
+        assert.equal(await evaluate(`Boolean(${globalSearch}.parentElement.parentElement.querySelector('.lucide-search'))`), true);
         assert.equal(await evaluate(`${searchCalls}.length`), 0);
         const labels = await evaluate(`Array.from(document.querySelector('nav[aria-label="Navegación principal"]').querySelectorAll('a')).map(a => a.textContent)`);
         assert.equal(labels.filter(label => label === 'Asistencias').length, 1);
@@ -35,6 +37,11 @@ test('ADMIN Asistencias: tarjetas/búsqueda/perfil, filtros y guardado existente
       await t.test('búsqueda sustituye tarjetas, sin resultados y limpieza conserva filtros', async () => {
         await change(`${filter}.querySelectorAll('select')[1]`, 'INICIAL'); await wait(`Boolean(${cards})`);
         const year = await evaluate(`${filter}.querySelector('select').value`);
+        await evaluate("supervisionCorrectionTest.server.padron[0].estudiante.codigo_estudiante='PRUEBA-001'");
+        await change(globalSearch, 'PRUEBA-001'); await wait(`${rows}.length === 1`);
+        assert.match(await evaluate(`${rows}[0].textContent`), /PRUEBA-001/);
+        assert.equal(await evaluate(`${searchCalls}.at(-1).params.q`), 'PRUEBA-001');
+        await click('Limpiar búsqueda'); await wait(`Boolean(${cards})`);
         await change(globalSearch, 'Estudiante 1'); await wait(`${rows}.length === 1`);
         assert.equal(await evaluate(`Boolean(${cards})`), false);
         assert.deepEqual(Object.keys(await evaluate(`${searchCalls}.at(-1).params`)).sort(), ['fecha', 'limit', 'page', 'q']);
@@ -69,6 +76,42 @@ test('ADMIN Asistencias: tarjetas/búsqueda/perfil, filtros y guardado existente
         await evaluate(`${cards}.querySelector('a').click()`);
         await wait(`Boolean(document.querySelector('[aria-label="Edición autorizada de asistencia"]'))`);
         assert.match(await evaluate('document.body.textContent'), /Inicial.*CREATIVOS/);
+        assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Asistencias · Detalle|Registro de asistencia/);
+        assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Se aplica a los estudiantes sin marcar|No hay estudiantes sin marcar/);
+        const totals = `document.querySelector('[aria-label="Totales de asistencia"]')`;
+        assert.deepEqual(await evaluate(`Array.from(${totals}.querySelectorAll('dd')).map(e => Number(e.textContent))`), [5, 1, 2, 1, 1]);
+        for (const width of [1280, 412, 320]) {
+          await ui.command('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: width < 600 });
+          assert.equal(await evaluate('document.documentElement.scrollWidth <= window.innerWidth'), true);
+          assert.equal(await evaluate(`getComputedStyle(${totals}).gridTemplateColumns.split(' ').length`), width >= 768 ? 4 : 2);
+          assert.equal(await evaluate(`parseFloat(getComputedStyle(${globalSearch}).borderRadius) >= ${globalSearch}.getBoundingClientRect().height / 2`), true);
+        }
+        await ui.command('Emulation.setFocusEmulationEnabled', { enabled: true });
+        await evaluate(`${globalSearch}.focus()`);
+        assert.equal(await evaluate(`${globalSearch}.labels[0].textContent`), 'Buscar estudiante');
+        await ui.command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
+        await ui.command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
+        assert.equal(await evaluate('document.activeElement.textContent.trim()'), 'Marcar todos como presentes');
+        await ui.command('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9, modifiers: 8 });
+        await ui.command('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9, modifiers: 8 });
+        assert.equal(await evaluate(`document.activeElement === ${globalSearch} && ${globalSearch}.matches(':focus-visible')`), true);
+        assert.equal(await evaluate(`getComputedStyle(${globalSearch}).outlineStyle`), 'solid');
+        await change(globalSearch, 'Estudiante 2');
+        await wait(`document.querySelectorAll('[aria-label="Sesión de asistencia"] ul > li').length === 1`);
+        assert.match(await evaluate('document.body.textContent'), /Mostrando 1 de 5 estudiantes/);
+        await change(globalSearch, 'NO EXISTE');
+        await wait('document.body.textContent.includes("No hay estudiantes que coincidan con la búsqueda")');
+        await evaluate('window.bulkConfirmations=[]; window.confirm = message => { bulkConfirmations.push(message); return false; }'); await click('Marcar todos como presentes');
+        assert.match(await evaluate('bulkConfirmations.at(-1)'), /También incluye a los estudiantes ocultos por la búsqueda.*Las demás marcas se conservarán/);
+        assert.equal(await evaluate('document.body.textContent.includes("0 cambios sin guardar")'), true);
+        await evaluate('window.confirm = () => true'); await click('Marcar todos como presentes');
+        await wait('document.body.textContent.includes("1 cambio sin guardar")');
+        await click('Guardar cambios'); await wait('document.body.textContent.includes("Cambios guardados correctamente")');
+        assert.equal(await evaluate(`${writes}.at(-1).body.cambios[0].estado`), 'PRESENTE');
+        assert.equal(await evaluate('supervisionCorrectionTest.server.resumen.pendientes'), 0);
+        assert.equal(await evaluate(`${ui.button('Marcar todos como presentes')}.disabled`), true);
+        await change(globalSearch, '');
+        await wait(`document.querySelectorAll('[aria-label="Sesión de asistencia"] ul > li').length === 5`);
         await evaluate(`document.querySelectorAll('[aria-label="Sesión de asistencia"] ul > li')[1].querySelector('button').click()`);
         await click('Guardar cambios'); await wait('document.body.textContent.includes("Cambios guardados correctamente")');
         assert.equal(await evaluate(`${writes}.at(-1).body.cambios.length`), 1);

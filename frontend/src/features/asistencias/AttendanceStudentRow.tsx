@@ -4,6 +4,7 @@ import FormField from '../../shared/components/FormField';
 import { justificationError } from './attendanceDraft';
 import StudentProfileButton from '../estudiantes/perfil/StudentProfileButton';
 import AttendanceHistoryButton from './historial/AttendanceHistoryButton';
+import { correctionStudentName, hasStudentNamesake } from './supervision/correctionStudentSearch';
 
 const states = [
   { value: 'PRESENTE', label: 'Presente', Icon: Check, selected: 'border-emerald-700 bg-emerald-50 text-emerald-900' },
@@ -20,20 +21,22 @@ type Props = {
   onJustify?: (id: string, reason: string | undefined) => void;
   quick?: boolean;
   compact?: boolean;
+  padron?: AttendanceEntry[];
 };
 
 export default function AttendanceStudentRow({ row, state, changed, editable, disabled, updated, onSelect,
-  reason, onJustify, justificationDisabled = disabled, profileContext, quick = false, compact = false }: Props) {
-  const name = [row.estudiante.apellido_paterno, row.estudiante.apellido_materno, row.estudiante.nombres].filter(Boolean).join(' ');
+  reason, onJustify, justificationDisabled = disabled, profileContext, quick = false, compact = false, padron = [row] }: Props) {
+  const name = correctionStudentName(row);
+  const showCode = row.estudiante.codigo_estudiante && hasStudentNamesake(row, padron);
   const persisted = row.justificada, checked = persisted || reason !== undefined;
   const value = persisted ? row.motivo_justificacion ?? '' : reason;
   return (
     <li className={quick ? 'flex flex-col gap-3 p-3 sm:p-4'
       : `grid ${compact ? 'gap-2 p-2 sm:p-3' : 'gap-3 p-3 sm:p-4'} md:grid-cols-[minmax(0,1fr)_28rem] md:items-center md:gap-x-5`}>
       <div className="min-w-0">
-        <p className={`break-words font-medium ${compact ? 'text-sm' : ''}`}>{name}</p>
+        <p className={`break-words font-semibold leading-snug ${compact ? 'text-base' : 'text-lg'}`}>{name}</p>
         {quick && <p className="text-sm text-slate-600">Estado actual: <strong>{states.find(item => item.value === row.estado)?.label}</strong></p>}
-        {row.estudiante.codigo_estudiante && <p className="mt-1 break-words text-xs text-slate-600">Código: {row.estudiante.codigo_estudiante}</p>}
+        {showCode && <p className="mt-1 break-words text-xs text-slate-600">Código: {row.estudiante.codigo_estudiante}</p>}
         {changed && <p className="mt-1 text-xs font-semibold text-amber-800">Sin guardar</p>}
         {updated && <p className="mt-1 text-xs text-slate-600">Actualizado en la consulta</p>}
       </div>
