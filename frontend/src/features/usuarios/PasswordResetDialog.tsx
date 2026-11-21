@@ -5,7 +5,8 @@ import { useUnsavedChanges } from '../../shared/navigation/useUnsavedChanges';
 import { resetUserPassword, uncertainUserFailure, userFailure } from './usuarios.api';
 import type { ManagedUser } from './usuarios.types';
 
-export default function PasswordResetDialog({ user, onClose }: { user: ManagedUser; onClose: () => void }) {
+type ResetUser = Pick<ManagedUser, 'id' | 'usuario' | 'nombres' | 'apellidos' | 'rol'>;
+export default function PasswordResetDialog({ user, onClose }: { user: ResetUser; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null), running = useRef(false), mounted = useRef(true);
   const [busy, setBusy] = useState(false), [secret, setSecret] = useState(''), [error, setError] = useState(''), [uncertain, setUncertain] = useState(false);
   useUnsavedChanges(`password-reset:${user.id}`, false, busy);
@@ -34,7 +35,9 @@ export default function PasswordResetDialog({ user, onClose }: { user: ManagedUs
     </> : <>
       <p>Se reemplazará la contraseña por una nueva generada al azar. {user.rol === 'ADMIN'
         ? 'Los datos de la cuenta se conservarán.' : 'Los datos de la cuenta y sus asignaciones se conservarán.'}</p>
-      <p className="text-sm text-slate-600">Las sesiones ya iniciadas seguirán vigentes hasta su vencimiento. No se exigirá cambiar la contraseña al iniciar sesión.</p>
+      <p className="text-sm text-slate-600">{user.rol === 'ADMIN'
+        ? 'El titular deberá cambiar la contraseña antes de acceder a funciones institucionales. Los JWT anteriores no se revocan: su acceso quedará restringido mientras el cambio esté pendiente.'
+        : 'Las sesiones ya iniciadas seguirán vigentes hasta su vencimiento. No se exigirá cambiar la contraseña al iniciar sesión.'}</p>
       {error && <ErrorState message={error} />}
       <div className="flex flex-wrap gap-3">{uncertain ? <Button onClick={onClose}>Actualizar consulta</Button> : <>
         <Button disabled={busy} onClick={() => void reset()}>{busy ? 'Restableciendo…' : 'Confirmar restablecimiento'}</Button>

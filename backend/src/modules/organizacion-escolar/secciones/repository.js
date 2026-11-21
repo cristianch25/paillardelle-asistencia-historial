@@ -1,3 +1,4 @@
+import { assertPasswordChanged } from '../../auth/auth.access.js';
 import { getPool } from '../../../config/database.js';
 import { inTransaction } from '../../../shared/transaction.js';
 import { updateSection } from './update.repository.js';
@@ -68,8 +69,9 @@ export function createSeccionesRepository(poolProvider = getPool) {
       return inTransaction(poolProvider(), async connection => {
         // Orden de escritura: actor, año; sin adquirir otros usuarios después.
         const [actors] = await connection.execute(
-          'SELECT id, rol, activo, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId],
+          'SELECT id, rol, activo, debe_cambiar_password, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId],
         );
+        assertPasswordChanged(actors[0]);
         const [years] = await connection.execute(
           'SELECT id, estado FROM anios_escolares WHERE id = ? LIMIT 1 FOR UPDATE', [data.anio_escolar_id],
         );

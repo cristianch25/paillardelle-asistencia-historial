@@ -8,6 +8,10 @@ puerto temporal sin iniciar el servidor habitual al importar la aplicación.
 
 ## Estado y referencias vigentes
 
+La aprobación posterior del 20/11/2026 incorpora el cambio obligatorio de contraseña
+ADMIN descrito a continuación. 008 está preparada y no aplicada, igual que 007.
+El código nuevo requiere esa columna; no desplegarlo contra el esquema anterior.
+
 Estado actual: autorización SUPERUSUARIO de etapa 2 guardada en `b9dba6c`;
 herramienta local de etapa 3 preparada con mocks, según el contrato siguiente.
 007 continúa **NO aplicada**. Los párrafos de etapas anteriores que siguen son
@@ -42,6 +46,150 @@ las precisiones aprobadas de SUPERUSUARIO etapa 1, enlazados en el
 [README principal](../README.md#referencias-funcionales-vigentes). V2 y la adenda
 6C-A y los TXT V4–V7 son antecedentes históricos; no conceden permisos contrarios a V8 ni
 acreditan implementación de asistencia, justificaciones o bitácora.
+
+## Contraseña inicial o temporal obligatoria de ADMIN
+
+Desarrolla D49/RN-49/RF-24 V8 con un único booleano de usuarios, sin nuevas tablas,
+version_sesion ni cambios de JWT. La migración 008 da false a cuentas existentes.
+Solo el servidor marca true para altas y restablecimientos ADMIN; POST/PATCH
+administrativos no aceptan el campo. Otros roles no heredan esta restricción.
+
+Login y `/auth/me` devuelven el indicador público booleano. `authenticate` bloquea
+por defecto las demás operaciones autenticadas con 403 y código específico
+`PASSWORD_CHANGE_REQUIRED`; únicamente `/auth/me` y `/auth/cambiar-contrasena`
+usan su excepción. Login y salud siguen siendo rutas públicas. Cerrar sesión
+es local. No se confunde el 403 con JWT inválido ni se atribuye revocación.
+
+La misma política se comprueba en las lecturas actuales del actor bajo los
+bloqueos que ya tenían usuarios/asignaciones/supervisión, años, secciones,
+calendario, estudiantes/contactos, matrículas/movimientos, asistencia e importación.
+Se conserva el orden de adquisición y no se añade lógica de negocio a
+shared/transaction.js. Una escritura que adquirió el actor antes que un reset
+puede finalizar antes de él; si el reset confirmó primero, la lectura bloqueada
+revalida y rechaza antes de efectos institucionales. No se cancelan respuestas
+ya emitidas o lecturas que comenzaron antes del restablecimiento.
+
+El cambio propio exige cuenta activa, contraseña actual correcta, nueva de
+mínimo ocho caracteres/máximo 72 bytes UTF-8 y confirmación. Durante la obligación
+se compara también la nueva con el hash actual y se rechaza reutilizarla. Se
+actualizan hash, false y auditoría juntos en la conexión bloqueada; fallos de
+auditoría revierten y COMMIT incierto descarta la conexión sin reintentar.
+Solo se auditan indicadores, nunca contraseñas, hashes ni tokens.
+
+Frontend: guardia previa a menús y módulos, pantalla mínima con formulario de
+cambio propio reutilizado, salida solo mediante logout y consulta de `/auth/me`
+tras confirmar. Si falla esa consulta, no habilita acceso ni vuelve a escribir.
+Ante 403 específico de una sesión vigente retira los módulos; una respuesta
+antigua de perfil no puede retirar una restricción posterior. F5 reconstruye el
+estado con `/me`, no con un booleano guardado en sessionStorage. El indicador
+solo se retira del frontend tras una nueva respuesta de perfil verificada.
+
+Los JWT anteriores siguen siendo válidos hasta vencer, sujetos a estado y permisos
+actuales. Mientras true no acceden a funciones institucionales; después de retirar
+la obligación pueden recuperar acceso. No es revocación inmediata ni recuperación
+de sesiones. Un reset posterior a un cambio vuelve a establecer true.
+
+Archivos principales: nuevo `src/modules/auth/auth.access.js`; autenticación en
+`auth.repository.js`, `auth.service.js`, `auth.routes.js`, middleware de autenticación
+y error seguro; usuarios en su servicio, repositorio y repositorio
+de password. Los repositorios institucionales afectados únicamente amplían la
+lectura del actor y aplican esa política bajo su bloqueo existente.
+Frontend: `RequiredPasswordChange.tsx` nuevo, `ProtectedRoute`, formulario de
+cambio propio, API/tipos/ciclo de sesión y cliente HTTP; textos de alta/reset ADMIN
+y retirada del perfil académico abierto mientras la cuenta está restringida.
+La herramienta local SUPERUSUARIO permanece intacta y utiliza el default false.
+
+Pruebas nuevas: backend `auth.required-password.test.js` y
+`auth.required-password.transactions.test.js`; frontend `requiredPassword.test.mjs`,
+`requiredPassword.browser.mjs` y su arnés. Incluyen altas, cuentas existentes,
+restablecimientos, rechazo de reutilización, API directa, escrituras bajo bloqueo,
+concurrencia reset/cambio, auditoría/rollback/COMMIT incierto, F5 y perfil pendiente.
+Se adaptaron fixtures y expectativas de las pruebas previas al nuevo contrato.
+Toda la evidencia usa mocks, conexiones simuladas y HTTP aislado; no equivale a
+integración con MySQL real. SQL y despliegue requieren autorización separada.
+
+Resultados: 1103 pruebas backend, 313 frontend y 38 comprobaciones de navegador
+aprobadas, excluyendo archivos de integración MySQL y bloqueando conexiones MySQL
+en la suite backend. TypeScript, build y ESLint focalizado correctos.
+
+Implementación afectada por encima de 100 líneas: usuarios/service (129) y
+usuarios/repository (123), matrículas/reingreso (119) y cambio de sección (111),
+secciones/repository (103), ChangePasswordDialog (136) y authSessionLifecycle (110).
+Se conservan responsabilidades cohesivas y los protocolos existentes; ninguno
+supera 150 líneas. Los otros repositorios solo añaden lectura del indicador y
+comprobación del actor, sin refactorizaciones de sus reglas académicas.
+
+Revisión focalizada previa al commit: se retiró la comprobación adicional del
+listado de asistencia READ ONLY, que ya queda protegido por el middleware, y la
+duplicación dentro de la autorización de cuentas sobre el mismo actor que ya
+comprueban sus repositorios bloqueados. Se conservan las revalidaciones previas
+a escrituras para cerrar la carrera con un reset. Esos dos archivos vuelven
+a coincidir con HEAD; el inventario pasa de 57 a 55 archivos, sin ampliar alcance.
+La comparación normalizada de los 14 repositorios transversales restantes contra
+f789745 confirma que solo cambian importación de la política, proyección del actor
+y comprobación del indicador; reglas y SQL académico permanecen idénticos.
+Revisión: 374 pruebas focalizadas aprobadas con mocks y conexiones MySQL bloqueadas,
+incluidas rutas normales de los tres roles no sujetos al cambio obligatorio.
+
+### Inventario de archivos de esta entrega
+
+Rutas relativas a la raiz del proyecto; nuevos indicados expresamente.
+
+- `README.md`
+- `backend/README.md`
+- `backend/src/middlewares/authenticate.js`
+- `backend/src/middlewares/error-handler.js`
+- `backend/src/modules/asistencias/context.repository.js`
+- `backend/src/modules/auth/auth.access.js` (nuevo)
+- `backend/src/modules/auth/auth.repository.js`
+- `backend/src/modules/auth/auth.routes.js`
+- `backend/src/modules/auth/auth.service.js`
+- `backend/src/modules/estudiantes/phone.repository.js`
+- `backend/src/modules/importaciones/confirmation.repository.js`
+- `backend/src/modules/matriculas/reingreso.repository.js`
+- `backend/src/modules/matriculas/repository.js`
+- `backend/src/modules/matriculas/section-change.repository.js`
+- `backend/src/modules/matriculas/withdraw.repository.js`
+- `backend/src/modules/organizacion-escolar/anios-escolares/repository.js`
+- `backend/src/modules/organizacion-escolar/calendario-lectivo/write.repository.js`
+- `backend/src/modules/organizacion-escolar/secciones/repository.js`
+- `backend/src/modules/organizacion-escolar/secciones/update.repository.js`
+- `backend/src/modules/usuarios/usuarios.asignaciones.finalize.repository.js`
+- `backend/src/modules/usuarios/usuarios.asignaciones.repository.js`
+- `backend/src/modules/usuarios/usuarios.password.repository.js`
+- `backend/src/modules/usuarios/usuarios.repository.js`
+- `backend/src/modules/usuarios/usuarios.service.js`
+- `backend/src/modules/usuarios/usuarios.supervision.repository.js`
+- `backend/test-support/usuarios-update-pool.js`
+- `backend/test/anios-escolares.create.repository.test.js`
+- `backend/test/auth.required-password.test.js` (nuevo)
+- `backend/test/auth.required-password.transactions.test.js` (nuevo)
+- `backend/test/usuarios.create.repository.test.js`
+- `backend/test/usuarios.create.security.test.js`
+- `backend/test/usuarios.superusuario.http.test.js`
+- `docs/database/migrations/008_admin_password_temporal.sql` (nuevo)
+- `docs/database/migrations/README.md`
+- `docs/requisitos/PAILLARDELLE_DECISIONES_v8.txt`
+- `docs/requisitos/PAILLARDELLE_IMPACTO_v8.txt`
+- `docs/requisitos/PAILLARDELLE_REGLAS_NEGOCIO_v8.txt`
+- `docs/requisitos/PAILLARDELLE_REQUERIMIENTOS_v8.txt`
+- `docs/requisitos/PAILLARDELLE_TRAZABILIDAD_v7_v8.md`
+- `frontend/src/features/auth/ChangePasswordDialog.tsx`
+- `frontend/src/features/auth/ProtectedRoute.tsx`
+- `frontend/src/features/auth/RequiredPasswordChange.tsx` (nuevo)
+- `frontend/src/features/auth/auth.api.ts`
+- `frontend/src/features/auth/auth.types.ts`
+- `frontend/src/features/auth/authSessionLifecycle.ts`
+- `frontend/src/features/estudiantes/perfil/StudentProfileProvider.tsx`
+- `frontend/src/features/usuarios/AdminAccountForm.tsx`
+- `frontend/src/features/usuarios/AdminAccountsPage.tsx`
+- `frontend/src/features/usuarios/PasswordResetDialog.tsx`
+- `frontend/src/features/usuarios/README.md`
+- `frontend/src/shared/api/httpClient.ts`
+- `frontend/test/requiredPassword.browser.mjs` (nuevo)
+- `frontend/test/requiredPassword.test.mjs` (nuevo)
+- `frontend/test/support/authHarness.jsx`
+- `frontend/test/support/requiredPasswordHarness.jsx` (nuevo)
 
 ## Herramienta local de alta inicial SUPERUSUARIO — etapa 3
 

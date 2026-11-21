@@ -65,7 +65,7 @@ test('V8: matriz HTTP de cuatro roles en PATCH, estado, contraseña y niveles', 
   }
   for (const actor of ['1', '9']) for (const target of ['3', '4']) {
     assert.equal((await request(actor, 'PATCH', `/usuarios/${target}`, { rol: 'ADMIN' })).status, 403);
-    assert.equal((await request(actor, 'PATCH', `/usuarios/${target}`, { rol: 'SUPERUSUARIO' })).status, 400);
+    assert.equal((await request(actor, 'PATCH', `/usuarios/${target}`, { rol: 'SUPERUSUARIO' })).status, actor === '1' ? 403 : 400);
   }
   assert.equal((await request('9', 'PATCH', '/usuarios/1/estado', { activo: false, rol: 'ADMIN' })).status, 400);
   assert.equal((await request('9', 'PATCH', '/usuarios/1', { rol: 'ADMIN' })).status, 403);

@@ -1,9 +1,11 @@
+import { assertPasswordChanged } from '../auth/auth.access.js';
 import { inTransaction } from '../../shared/transaction.js';
 
 export function finalizeAssignment(pool, data, actorId, hooks, columns, publicRow) {
   return inTransaction(pool, async connection => {
     await connection.execute('SELECT id FROM usuarios WHERE rol = ? AND activo = ? ORDER BY id FOR UPDATE', ['ADMIN', 1]);
-    const [actors] = await connection.execute('SELECT id, rol, activo FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId]);
+    const [actors] = await connection.execute('SELECT id, rol, activo, debe_cambiar_password FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId]);
+    assertPasswordChanged(actors[0]);
     hooks.authorizeActor(actors[0] ?? null);
     // Localizar sin bloquear la asignación antes de usuario/año/sección.
     const [locations] = await connection.execute('SELECT usuario_id, seccion_id FROM asignaciones WHERE id = ? LIMIT 1', [data.id]);

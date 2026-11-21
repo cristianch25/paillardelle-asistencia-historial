@@ -1,10 +1,12 @@
+import { assertPasswordChanged } from '../../auth/auth.access.js';
 import { inTransaction } from '../../../shared/transaction.js';
 
 export function updateSection(pool, context, id, actorId, decide, getToday) {
   return inTransaction(pool, async connection => {
     // Mismo protocolo que matrícula/asignaciones: actor, año, sección, dependencias.
     const [actors] = await connection.execute(
-      'SELECT id, rol, activo, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId]);
+      'SELECT id, rol, activo, debe_cambiar_password, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId]);
+    assertPasswordChanged(actors[0]);
     const { section, year } = await context(id, connection);
     // Autorizar antes de consultar dependencias; las lecturas actuales evitan snapshots obsoletos.
     const change = await decide(actors[0] ?? null, year, section, connection);

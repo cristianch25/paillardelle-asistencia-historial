@@ -1,3 +1,4 @@
+import { assertPasswordChanged } from '../../auth/auth.access.js';
 import { getPool } from '../../../config/database.js';
 import { inTransaction } from '../../../shared/transaction.js';
 
@@ -20,8 +21,9 @@ export function createAniosEscolaresRepository(poolProvider = getPool) {
     return inTransaction(poolProvider(), async connection => {
       // Orden común con calendario: actor, año; ningún otro usuario después del año.
       const [actors] = await connection.execute(
-        'SELECT id, rol, activo FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId],
+        'SELECT id, rol, activo, debe_cambiar_password FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId],
       );
+      assertPasswordChanged(actors[0]);
       authorize(actors[0] ?? null);
       const [current] = await connection.execute(
         `SELECT ${columns} FROM anios_escolares WHERE id = ? LIMIT 1 FOR UPDATE`, [id],
@@ -50,8 +52,9 @@ export function createAniosEscolaresRepository(poolProvider = getPool) {
       return inTransaction(poolProvider(), async connection => {
         // Lectura actual tras esperar el bloqueo; se mantiene hasta COMMIT/ROLLBACK.
         const [actors] = await connection.execute(
-          'SELECT id, rol, activo FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId],
+          'SELECT id, rol, activo, debe_cambiar_password FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId],
         );
+        assertPasswordChanged(actors[0]);
         authorize(actors[0] ?? null);
         const [result] = await connection.execute(
           `INSERT INTO anios_escolares (anio, fecha_inicio, fecha_fin, estado) VALUES (?, ?, ?, ?)`,

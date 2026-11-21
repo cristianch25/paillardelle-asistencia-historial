@@ -7,6 +7,7 @@ import { accountRoles, authorizeAccountCreation, authorizeAccountOperation } fro
 import { validatePagination } from '../../shared/query-validation.js';
 import { createSupervisionService } from './usuarios.supervision.service.js';
 import { createPasswordResetService } from './usuarios.password.service.js';
+import { requiresPasswordChange } from '../auth/auth.access.js';
 
 export function publicUser(user) {
   return {
@@ -19,6 +20,7 @@ export function publicUser(user) {
     nivel_asignado: user.nivel_asignado,
     puede_escanear_qr: Boolean(user.puede_escanear_qr),
     puede_usar_bitacora: Boolean(user.puede_usar_bitacora),
+    debe_cambiar_password: requiresPasswordChange(user),
   };
 }
 
@@ -92,6 +94,7 @@ export function createUsuariosService({ repository = createUsuariosRepository(),
     },
     async create(body, actorId) {
       const data = validateNewUser(body);
+      if (data.rol === 'ADMIN') data.debe_cambiar_password = true;
       if (await repository.findByUsername(data.usuario)) {
         throw new HttpError(409, 'El identificador de usuario ya está registrado.');
       }

@@ -4,6 +4,7 @@ type HttpSession = { token: string; signal: AbortSignal };
 type SessionAccess = {
   current: () => HttpSession | null;
   unauthorized: (token: string) => void;
+  passwordChangeRequired?: (token: string) => void;
 };
 let sessionAccess: SessionAccess | undefined;
 
@@ -24,6 +25,11 @@ httpClient.interceptors.request.use(config => {
 });
 
 httpClient.interceptors.response.use(response => response, (error: unknown) => {
+  if (axios.isAxiosError(error) && error.response?.status === 403 && error.response.data?.code === 'PASSWORD_CHANGE_REQUIRED') {
+    const session = sessionAccess?.current();
+    if (session && error.config?.headers.get('Authorization') === `Bearer ${session.token}`
+      && error.config.signal === session.signal) sessionAccess?.passwordChangeRequired?.(session.token);
+  }
   if (axios.isAxiosError(error) && error.response?.status === 401) {
     const session = sessionAccess?.current();
     if (session && error.config?.headers.get('Authorization') === `Bearer ${session.token}`

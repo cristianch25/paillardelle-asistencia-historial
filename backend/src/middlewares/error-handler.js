@@ -1,9 +1,11 @@
 import { HttpError } from '../shared/http-error.js';
+import { PASSWORD_CHANGE_REQUIRED } from '../modules/auth/auth.access.js';
 
 export function errorHandler(error, _req, res, _next) {
   if (error instanceof HttpError) {
     if (error.status === 401) res.set('WWW-Authenticate', 'Bearer');
-    return res.status(error.status).json({ error: error.message });
+    return res.status(error.status).json({ error: error.message,
+      ...(error.code === PASSWORD_CHANGE_REQUIRED ? { code: PASSWORD_CHANGE_REQUIRED } : {}) });
   }
   if (error.type === 'entity.parse.failed') {
     return res.status(400).json({ error: 'JSON no válido.' });

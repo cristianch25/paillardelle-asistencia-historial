@@ -20,7 +20,7 @@ test('alta: actor bloqueado, INSERT y auditoría en una conexión y transacción
   assert.equal(events[0], 'begin');
   assert.deepEqual(events.slice(-2), ['commit', 'release']);
   const sql = events.filter(item => item.sql);
-  assert.equal(sql[0].sql, 'SELECT id, rol, activo FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE');
+  assert.equal(sql[0].sql, 'SELECT id, rol, activo, debe_cambiar_password FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE');
   assert.deepEqual(sql[0].params, ['1']);
   assert.deepEqual(sql[1].params, [2026, payload.fecha_inicio, payload.fecha_fin, 'PLANIFICADO']);
   assert.deepEqual(sql[2].params, [year.id]);

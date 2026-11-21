@@ -12,6 +12,8 @@ export async function getCurrentUser(signal: AbortSignal) {
   if (!user || typeof user.id !== 'string' || !['ADMIN', 'SUBDIRECCION', 'REGISTRADOR', 'SUPERUSUARIO'].includes(user.rol)) {
     throw new Error('Perfil de autenticación inválido.');
   }
+  if (user.rol === 'ADMIN' && typeof user.debe_cambiar_password !== 'boolean') throw new Error('Estado de contraseña inválido.');
+  user.debe_cambiar_password = user.rol === 'ADMIN' && user.debe_cambiar_password === true;
   return user;
 }
 

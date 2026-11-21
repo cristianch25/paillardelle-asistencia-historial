@@ -31,5 +31,6 @@ function ProfileHost({ children, compact }: { children: ReactNode; compact: bool
 }
 export default function StudentProfileProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
-  return session ? <ProfileHost key={`${session.user.id}:${session.user.rol}:${session.expiresAt}`} compact={session.user.rol === 'REGISTRADOR'}>{children}</ProfileHost> : children;
+  const restricted = session?.user.rol === 'ADMIN' && session.user.debe_cambiar_password;
+  return session && !restricted ? <ProfileHost key={`${session.user.id}:${session.user.rol}:${session.expiresAt}`} compact={session.user.rol === 'REGISTRADOR'}>{children}</ProfileHost> : children;
 }

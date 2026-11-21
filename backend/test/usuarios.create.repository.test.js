@@ -10,7 +10,7 @@ const data = { nombres: 'Nombre', apellidos: 'Ficticio', usuario: 'cuenta_fictic
 function fixture(failAt) {
   const events = [];
   const row = { ...data, id: '9007199254740993', cargo: null, nivel_asignado: null,
-    activo: 1, puede_escanear_qr: 0, puede_usar_bitacora: 0,
+    activo: 1, debe_cambiar_password: 0, puede_escanear_qr: 0, puede_usar_bitacora: 0,
     created_at: '2026-01-01 00:00:00', updated_at: '2026-01-01 00:00:00' };
   const connection = {
     async beginTransaction() { events.push('begin'); },

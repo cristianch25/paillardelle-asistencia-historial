@@ -1,3 +1,30 @@
+## Migración 008 — contraseña inicial/temporal ADMIN, PREPARADA, NO APLICADA
+
+`008_admin_password_temporal.sql` añade únicamente
+`usuarios.debe_cambiar_password BOOLEAN NOT NULL DEFAULT FALSE`, autorizado el
+20/11/2026 para D49/RN-49/RF-24 V8. No añade tablas, otros campos, índices ni
+restricciones; no modifica SQL v1 o 002–007. Todas las cuentas existentes quedan
+con false; no cambia sus hashes, roles o estados ni infiere temporalidad previa.
+
+Requiere MySQL 8.4 LTS y esquema v1 + 002–007. **007 y 008 siguen preparadas,
+no aplicadas en esta etapa.** El backend ampliado requiere 008 antes de usarse
+contra una base real; no hay fallback a un indicador ausente ni migración automática.
+Las nuevas altas ADMIN y sus restablecimientos marcan true desde servidor; el
+cambio propio válido retira la obligación junto al hash y auditoría en transacción.
+Los permisos de otros roles y la estructura de JWT se conservan.
+
+Antes de una futura ejecución: autorización separada, identificación de instancia
+y base, SHOW CREATE TABLE usuarios, comprobación de 007 y ausencia de la columna,
+respaldo y ensayo de restauración/migración en copia autorizada. Coordinar escritores
+y despliegue para no mezclar versiones que desconozcan el indicador. Si una
+precondición difiere, detenerse. Un único ALTER con commit implícito, no idempotente;
+no reintentar automáticamente ni asumir reversión con ROLLBACK.
+
+Después, en una verificación autorizada, comprobar la única columna añadida,
+false para todas las cuentas originales y conservación de filas/IDs, hashes,
+roles, estados, claves, índices y demás restricciones. Las pruebas de esta etapa
+usan exclusivamente mocks y HTTP aislado; no inspeccionan ni modifican MySQL real.
+
 ## Migración 007 — SUPERUSUARIO etapa 1, PREPARADA, NO APLICADA
 
 `007_superusuario.sql` está preparada para revisión el 20/11/2026;

@@ -54,7 +54,7 @@ function AdminAccounts() {
       </ul>}
       <Pagination pagination={catalog.data.pagination} onPageChange={page => refresh(page)} />
     </>)}
-    {passwordUser && <PasswordResetDialog user={{ ...passwordUser, cargo: null, nivel_asignado: null, puede_escanear_qr: false, puede_usar_bitacora: false }}
+    {passwordUser && <PasswordResetDialog user={passwordUser}
       onClose={() => { setPasswordUser(null); catalog.refresh(); }} />}
   </div>;
 }

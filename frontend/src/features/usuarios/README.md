@@ -1,5 +1,30 @@
 # Usuarios — interfaces por rol
 
+## Contraseña inicial/temporal ADMIN obligatoria — 20/11/2026
+
+D49/RN-49/RF-24 V8 precisados posteriormente: el alta y restablecimiento ADMIN
+establecen `debe_cambiar_password` desde servidor. Antes de acceder a módulos,
+ProtectedRoute muestra la pantalla obligatoria y reutiliza el cambio propio.
+La contraseña actual debe ser correcta y, durante la obligación, distinta de la
+nueva. Después de éxito se actualiza `/auth/me`; fallos de perfil no habilitan
+acceso ni vuelven a enviar la escritura. Ante COMMIT incierto solo se permite
+consultar el perfil o cerrar sesión. F5 vuelve a consultar al servidor.
+
+Un 403 `PASSWORD_CHANGE_REQUIRED` durante una sesión existente retira módulos
+institucionales y perfiles académicos abiertos. Respuestas antiguas de `/me`
+no pueden anular una restricción posterior; su retiro exige una consulta nueva.
+No se cambia JWT ni almacenamiento: sigue guardando solo token y vencimiento.
+Los JWT anteriores quedan restringidos mientras true y pueden recuperar acceso
+tras el cambio hasta vencer; no se revocan inmediatamente. Otros roles conservados.
+El cliente no ofrece edición directa del indicador.
+
+008 está preparada, NO aplicada, y el backend nuevo la requiere antes de uso real.
+Las cuentas originales quedan false sin alterar sus contraseñas ni estados.
+El pendiente de diseño de temporalidad conservado en los apartados históricos
+siguientes queda resuelto por esta aprobación; no acredita aplicación SQL.
+Pruebas: 313 frontend, 1103 backend y 38 de navegador aprobadas con mocks;
+TypeScript, build y ESLint focalizado correctos, sin conexiones MySQL reales.
+
 ## SUPERUSUARIO etapa 4 — 20/11/2026
 
 Implementa la interfaz autorizada de D48/RN-48/RF-23 V8. `/administradores` es

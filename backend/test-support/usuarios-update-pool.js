@@ -32,21 +32,22 @@ export function updatePool(initial = [testUser('1'), testUser('2'), testUser('3'
       let levelsSnapshot;
       let committed = false;
       const releaseLock = () => { unlock?.(); unlock = undefined; };
+      async function acquireLock() {
+        if (unlock) return;
+        const previous = tail;
+        tail = new Promise(resolve => { unlock = resolve; });
+        events.push('lock-wait'); await previous; events.push('lock-acquired');
+        snapshot = structuredClone([...users]); auditCount = audits.length;
+        levelsSnapshot = structuredClone([...additional]);
+        if (state.failAt === 'deadlock') throw Object.assign(new Error(), { code: 'ER_LOCK_DEADLOCK' });
+        if (state.failAt === 'timeout') throw Object.assign(new Error(), { code: 'ER_LOCK_WAIT_TIMEOUT' });
+      }
       return {
         async beginTransaction() { events.push('begin'); },
         async execute(sql, params) {
           events.push({ sql, params });
+          if (sql.endsWith('FOR UPDATE')) await acquireLock();
           if (sql.startsWith('SELECT id FROM usuarios WHERE rol')) {
-            const previous = tail;
-            tail = new Promise(resolve => { unlock = resolve; });
-            events.push('lock-wait');
-            await previous;
-            events.push('lock-acquired');
-            snapshot = structuredClone([...users]);
-            auditCount = audits.length;
-            levelsSnapshot = structuredClone([...additional]);
-            if (state.failAt === 'deadlock') throw Object.assign(new Error(), { code: 'ER_LOCK_DEADLOCK' });
-            if (state.failAt === 'timeout') throw Object.assign(new Error(), { code: 'ER_LOCK_WAIT_TIMEOUT' });
             return [[...users.values()].filter(user => user.rol === 'ADMIN' && user.activo).map(({ id }) => ({ id }))];
           }
           if (sql.includes('FROM asignaciones a')) {

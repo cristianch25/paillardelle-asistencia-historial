@@ -12,8 +12,8 @@ export function createAuthRoutes(service = createAuthService()) {
     next();
   });
   router.post('/login', json({ limit: '8kb' }), controller.login);
-  router.get('/me', authenticate(service), controller.me);
-  router.post('/cambiar-contrasena', authenticate(service), json({ limit: '4kb' }), controller.changePassword);
+  router.get('/me', authenticate(service, { allowPasswordChange: true }), controller.me);
+  router.post('/cambiar-contrasena', authenticate(service, { allowPasswordChange: true }), json({ limit: '4kb' }), controller.changePassword);
 
   return router;
 }

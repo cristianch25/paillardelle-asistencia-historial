@@ -13,6 +13,7 @@ const expiredNotice = 'Tu sesión ha vencido. Inicia sesión nuevamente.';
 export function createAuthSessionLifecycle() {
   let state: AuthSnapshot = { session: null, notice: '', initialization: 'checking', restoreError: '' };
   let active: Request | null = null, stopExpiration = () => {};
+  let latestProfileCheck: object | null = null;
   const listeners = new Set<() => void>();
   function publish(next: Partial<AuthSnapshot>) {
     state = { ...state, ...next }; listeners.forEach(listener => listener());
@@ -85,14 +86,22 @@ export function createAuthSessionLifecycle() {
   async function verifySession() {
     const request = active;
     if (!request?.token || !state.session) return;
+    const check = {}; latestProfileCheck = check;
     const user = await getCurrentUser(request.controller.signal);
     checkCurrent(request);
+    if (latestProfileCheck !== check) return;
     publish({ session: { user, expiresAt: request.expiresAt! } });
   }
   function connect() {
     const disconnect = connectHttpSession({
       current: () => active?.token ? { token: active.token, signal: active.controller.signal } : null,
       unauthorized: token => { if (active?.token === token) endSession('La sesión ya no es válida. Inicia sesión nuevamente.'); },
+      passwordChangeRequired: token => {
+        if (active?.token === token && state.session?.user.rol === 'ADMIN') {
+          latestProfileCheck = null;
+          publish({ session: { ...state.session, user: { ...state.session.user, debe_cambiar_password: true } } });
+        }
+      },
     });
     return () => { disconnect(); cancel(); };
   }

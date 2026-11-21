@@ -9,6 +9,7 @@ export type AuthUser = {
   nivel_asignado: 'INICIAL' | 'PRIMARIA' | 'SECUNDARIA' | null;
   puede_escanear_qr: boolean;
   puede_usar_bitacora: boolean;
+  debe_cambiar_password: boolean;
 };
 export type LoginCredentials = { usuario: string; password: string };
 export type LoginResponse = {

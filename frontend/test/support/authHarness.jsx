@@ -40,7 +40,7 @@ httpClient.defaults.adapter = async config => {
     if (controls.meStatus) throw new AxiosError('Detalle privado simulado', controls.meStatus === 'timeout' ? 'ECONNABORTED' : '', config,
       null, ['network', 'timeout'].includes(controls.meStatus) ? undefined : { config, status: Number(controls.meStatus) });
     result = { user: { id: '9007199254740993', nombres: controls.userName, apellidos: 'Prueba', usuario: 'simulado',
-      rol: 'REGISTRADOR', cargo: 'DOCENTE', nivel_asignado: 'INICIAL', puede_escanear_qr: false, puede_usar_bitacora: false } };
+      rol: 'REGISTRADOR', cargo: 'DOCENTE', nivel_asignado: 'INICIAL', puede_escanear_qr: false, puede_usar_bitacora: false, debe_cambiar_password: false } };
   } else if (config.url === '/secciones/') result = { secciones: [], pagination: { page: 1, limit: 100, has_more: false } };
   else if (config.url === '/anios-escolares') result = { anios_escolares: [], pagination: { page: 1, limit: 100, has_more: false } };
   else throw new Error('Solicitud no prevista por la prueba de autenticación');

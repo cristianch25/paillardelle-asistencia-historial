@@ -1,3 +1,4 @@
+import { assertPasswordChanged } from '../../auth/auth.access.js';
 import { getPool } from '../../../config/database.js';
 import { inTransaction } from '../../../shared/transaction.js';
 import { readInsertedId } from '../../../shared/inserted-id.js';
@@ -59,8 +60,9 @@ export function createCalendarWriter(poolProvider = getPool) {
     change(scope, actorId, authorize, decide) {
       return inTransaction(poolProvider(), async connection => {
         const [actors] = await connection.execute(
-          'SELECT id, rol, activo, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId],
+          'SELECT id, rol, activo, debe_cambiar_password, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId],
         );
+        assertPasswordChanged(actors[0]);
         // Actor y adicionales antes del año. No adquirir otros usuarios después.
         const levels = scope.niveles ?? [scope.nivel];
         for (const level of levels) await authorize(actors[0] ?? null, level, true, connection);

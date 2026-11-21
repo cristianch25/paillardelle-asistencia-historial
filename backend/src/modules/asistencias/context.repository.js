@@ -1,3 +1,4 @@
+import { assertPasswordChanged } from '../auth/auth.access.js';
 import { getPool } from '../../config/database.js';
 import { inTransaction } from '../../shared/transaction.js';
 import { HttpError } from '../../shared/http-error.js';
@@ -8,7 +9,8 @@ export function createAttendanceContext(poolProvider = getPool) {
     transact(locator, actorId, sections, authorize, work) {
       return inTransaction(poolProvider(), async connection => {
         const [actors] = await connection.execute(
-          'SELECT id, rol, activo, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId]);
+          'SELECT id, rol, activo, debe_cambiar_password, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId]);
+        assertPasswordChanged(actors[0]);
         requireActor(actors[0], false, true);
         let location = locator;
         if (locator.id) {

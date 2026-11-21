@@ -115,7 +115,8 @@ test('V8: SUPERUSUARIO crea ADMIN con actor bloqueado y auditoría atómica sin 
     assert.equal(state.events.length, 1);
     if (persisted) {
       assert.deepEqual(state.audits[0].slice(0, 4), ['1', 'CREAR_USUARIO', 'usuarios', '9']);
-      assert.equal(/password|HASH|ClaveFicticia/.test(state.audits[0][5]), false);
+      assert.equal(/"(?:password|password_hash|password_temporal)"|HASH|ClaveFicticia/.test(state.audits[0][5]), false);
+      assert.equal(JSON.parse(state.audits[0][5]).debe_cambiar_password, true);
     }
     if (failAt?.startsWith('commit')) assert.equal(state.events[0].at(-1), 'destroy');
   }

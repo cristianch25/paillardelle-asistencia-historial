@@ -25,7 +25,7 @@ export default function AdminAccountForm({ busy, onSave, onCancel }: Props) {
     {error && <ErrorState message={error} />}
     {review ? <section aria-label="Confirmar creación de ADMIN" className="space-y-3">
       <p>¿Crear la cuenta <strong>{draft.usuario}</strong> para {draft.nombres} {draft.apellidos} con rol ADMIN?</p>
-      <p className="text-sm text-slate-600">Tendrá las funciones institucionales de ADMIN. Entrega la contraseña inicial al titular por un medio seguro.</p>
+      <p className="text-sm text-slate-600">Deberá cambiar la contraseña inicial antes de acceder a funciones institucionales de ADMIN. Entrégala al titular por un medio seguro.</p>
     </section> : <fieldset disabled={busy} className="grid gap-5 sm:grid-cols-2">
       {(['nombres', 'apellidos', 'usuario'] as const).map(key => <FormField key={key}
         label={{ nombres: 'Nombres', apellidos: 'Apellidos', usuario: 'Identificador de usuario' }[key]}

@@ -1,13 +1,14 @@
 import { getPool } from '../../config/database.js';
 import { inTransaction } from '../../shared/transaction.js';
 import { reconcileSupervision } from './usuarios.supervision.repository.js';
+import { assertPasswordChanged } from '../auth/auth.access.js';
 
 const columns = `id, nombres, apellidos, usuario, rol, cargo, nivel_asignado,
-  puede_escanear_qr, puede_usar_bitacora, activo, created_at, updated_at`;
+  puede_escanear_qr, puede_usar_bitacora, activo, debe_cambiar_password, created_at, updated_at`;
 const publicFields = columns.split(',').map(field => field.trim());
 const insertColumns = ['nombres', 'apellidos', 'usuario', 'password_hash', 'rol',
-  'cargo', 'nivel_asignado', 'puede_escanear_qr', 'puede_usar_bitacora', 'activo'];
-const updateColumns = insertColumns.filter(field => field !== 'password_hash');
+  'cargo', 'nivel_asignado', 'puede_escanear_qr', 'puede_usar_bitacora', 'activo', 'debe_cambiar_password'];
+const updateColumns = insertColumns.filter(field => !['password_hash', 'debe_cambiar_password'].includes(field));
 
 function publicRow(row) {
   return Object.fromEntries(publicFields.map(key => [key, row[key]]));
@@ -57,6 +58,7 @@ export function createUsuariosRepository(poolProvider = getPool) {
           'SELECT id FROM usuarios WHERE rol = ? AND activo = ? ORDER BY id FOR UPDATE', ['ADMIN', 1],
         );
         const actor = await selectUser(connection, actorId, true);
+        assertPasswordChanged(actor);
         const current = id === actorId ? actor : await selectUser(connection, id, true);
         let assignments = [];
         if (current && (Object.hasOwn(patch, 'rol') || Object.hasOwn(patch, 'nivel_asignado'))) {
@@ -92,7 +94,9 @@ export function createUsuariosRepository(poolProvider = getPool) {
     create(data, actorId, authorize) {
       return inTransaction(poolProvider(), async connection => {
         // Lectura actual y bloqueo del actor hasta COMMIT/ROLLBACK, antes del alta.
-        authorize(await selectUser(connection, actorId, true));
+        const actor = await selectUser(connection, actorId, true);
+        assertPasswordChanged(actor);
+        authorize(actor);
         const fields = insertColumns.filter(field => Object.hasOwn(data, field));
         const [result] = await connection.execute(
           `INSERT INTO usuarios (${fields.join(', ')}) VALUES (${fields.map(() => '?').join(', ')})`,

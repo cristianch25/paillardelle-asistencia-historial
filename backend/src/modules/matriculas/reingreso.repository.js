@@ -1,10 +1,12 @@
+import { assertPasswordChanged } from '../auth/auth.access.js';
 import { inTransaction } from '../../shared/transaction.js';
 import { readInsertedId } from '../../shared/inserted-id.js';
 import { HttpError } from '../../shared/http-error.js';
 
 async function actor(connection, id) {
   const [rows] = await connection.execute(
-    'SELECT id, rol, activo, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [id]);
+    'SELECT id, rol, activo, debe_cambiar_password, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [id]);
+  assertPasswordChanged(rows[0]);
   return rows[0] ?? null;
 }
 

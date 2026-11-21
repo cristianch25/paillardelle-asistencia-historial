@@ -1,3 +1,4 @@
+import { assertPasswordChanged } from '../auth/auth.access.js';
 import { getPool } from '../../config/database.js';
 import { inTransaction } from '../../shared/transaction.js';
 import { readInsertedId } from '../../shared/inserted-id.js';
@@ -24,7 +25,8 @@ export function createConfirmationRepository(poolProvider = getPool) {
         catch (error) { try { connection.destroy(); } catch { /* preservar error */ } throw error; }
       } };
       return inTransaction(pool, async connection => {
-        const [actors] = await connection.execute('SELECT id, rol, activo, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId]);
+        const [actors] = await connection.execute('SELECT id, rol, activo, debe_cambiar_password, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId]);
+        assertPasswordChanged(actors[0]);
         return work(connection, actors[0] ?? null);
       });
     },

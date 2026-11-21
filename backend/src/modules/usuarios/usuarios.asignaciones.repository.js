@@ -1,3 +1,4 @@
+import { assertPasswordChanged } from '../auth/auth.access.js';
 import { getPool } from '../../config/database.js';
 import { inTransaction } from '../../shared/transaction.js';
 import { readInsertedId } from '../../shared/inserted-id.js';
@@ -47,7 +48,8 @@ export function createAssignmentsRepository(poolProvider = getPool) {
       return inTransaction(poolProvider(), async connection => {
         // Mismo prefijo de bloqueos que edición de usuarios, incluso sin asignaciones previas.
         await connection.execute('SELECT id FROM usuarios WHERE rol = ? AND activo = ? ORDER BY id FOR UPDATE', ['ADMIN', 1]);
-        const [actors] = await connection.execute('SELECT id, rol, activo FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId]);
+        const [actors] = await connection.execute('SELECT id, rol, activo, debe_cambiar_password FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId]);
+        assertPasswordChanged(actors[0]);
         hooks.authorizeActor(actors[0] ?? null);
         const [targets] = await connection.execute(
           'SELECT id, rol, activo, nivel_asignado FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [data.usuario_id],

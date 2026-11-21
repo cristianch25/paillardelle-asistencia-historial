@@ -5,6 +5,7 @@ import { AuthError, unauthorized } from './auth.errors.js';
 import { createAuthRepository } from './auth.repository.js';
 import { createTokenService } from './auth.tokens.js';
 import { hashPassword, isValidPassword } from '../../shared/passwords.js';
+import { requiresPasswordChange } from './auth.access.js';
 
 function validateChangePasswordData(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -59,9 +60,12 @@ export function createAuthService({
     async changePassword(userId, body) {
       if (!userId) throw unauthorized();
       const { password_actual, password_nueva } = validateChangePasswordData(body);
-      await repository.changePassword(userId, async currentHash => {
+      await repository.changePassword(userId, async (currentHash, user) => {
         const matches = await bcrypt.compare(password_actual, currentHash);
         if (!matches) throw new AuthError(400, 'Contraseña actual incorrecta.');
+        if (requiresPasswordChange(user) && await bcrypt.compare(password_nueva, currentHash)) {
+          throw new AuthError(400, 'La nueva contraseña debe ser distinta de la contraseña actual.');
+        }
         return hashPassword(password_nueva);
       });
       return { message: 'Contraseña cambiada correctamente.' };

@@ -6,6 +6,35 @@ manual de padrones con revisión, sin sincronización automática.
 
 ## Estado del proyecto
 
+20/11/2026 — contraseña inicial/temporal obligatoria de ADMIN, según aprobación
+posterior de D49/RN-49/RF-24 V8. Preparada
+[008](docs/database/migrations/008_admin_password_temporal.sql), **NO APLICADA**;
+007 continúa sin aplicar. El backend nuevo requiere 008 antes de utilizarse con
+una base real. No se conecta a MySQL ni se ejecuta DDL desde arranque o pruebas.
+
+Un único indicador `debe_cambiar_password`, false para cuentas originales,
+se establece en true al crear o restablecer ADMIN. Hasta cambiar su contraseña,
+solo permite `/auth/me`, cambio propio y cierre local de sesión. Las demás API
+autenticadas responden 403 `PASSWORD_CHANGE_REQUIRED`; las escrituras revalidan
+también bajo los bloqueos del actor existentes, sin alterar permisos académicos.
+Hash, indicador false y auditoría se confirman juntos; durante la obligación no
+se admite reutilizar la contraseña actual. El cliente no administra el indicador.
+
+La interfaz obliga al cambio antes de montar menús o módulos, reutiliza el
+formulario existente y actualiza el perfil con `/auth/me`. Un fallo de perfil
+mantiene la restricción; sus botones solo repiten lecturas. COMMIT incierto no
+anuncia éxito ni reenvía cambios automáticamente. No se incorporan version_sesion
+ni nuevos claims JWT: un token previo queda limitado mientras el indicador sea
+true y puede recuperar acceso tras el cambio hasta su vencimiento, sin revocación.
+SUBDIRECCION, REGISTRADOR y SUPERUSUARIO conservan su comportamiento.
+
+Validación exclusivamente con mocks y HTTP aislado: 1103 pruebas backend,
+313 de frontend y 38 de navegador aprobadas; TypeScript, build y ESLint focalizado
+correctos. Sin acceso a MySQL, migraciones aplicadas, cuentas reales o despliegue.
+
+Cambios, protocolo y alcance: [autenticación backend](backend/README.md#contraseña-inicial-o-temporal-obligatoria-de-admin).
+Los bloques siguientes conservan el contexto histórico de sus etapas.
+
 20/11/2026 — SUPERUSUARIO, etapa 4: interfaz web en `/administradores`, con
 navegación técnica exclusiva, reconocimiento del rol en autenticación/perfil y
 cambio de contraseña propia mediante el flujo existente. Consulta paginada solo

@@ -1,5 +1,20 @@
 # Trazabilidad V7 → V8 — BORRADOR NO APROBADO
 
+## Contraseña ADMIN obligatoria — precisión aprobada 20/11/2026
+
+D49/RN-49/RF-24 se concretan con una única columna booleana en usuarios, default
+false para todas las cuentas existentes, sin alterar sus contraseñas/roles/estados.
+008 posterior a 007 está **PREPARADA, NO APLICADA**; no se modifica 007 ni SQL v1.
+Alta y reset ADMIN establecen true desde servidor. Mientras true: `/auth/me`,
+cambio propio y logout local; demás operaciones autenticadas 403 con código
+específico, incluida revalidación transaccional del actor. Cambio obligatorio
+rechaza reutilización y confirma hash, false y auditoría juntos. Pantalla previa
+a módulos y comprobación nueva de perfil; otros tres roles conservados.
+No version_sesion ni cambios de JWT: los previos pueden recuperar acceso tras
+retirar la obligación hasta vencer. Sin revocación inmediata, ejecución SQL ni
+cuentas reales. Resuelve el diseño pendiente de temporalidad conservado como
+antecedente en los bloques anteriores de los TXT; no certifica integración.
+
 ## Precisión aprobada: SUPERUSUARIO etapa 1 — 20/11/2026
 
 V8 fue adoptada el 16/11/2026 según AGENTS.md. Los rótulos y clasificaciones
