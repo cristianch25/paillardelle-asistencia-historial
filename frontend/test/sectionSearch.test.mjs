@@ -77,6 +77,23 @@ test('vacío es definitivo; fallo intermedio rechaza todo sin reintentos ni entr
   await assert.rejects(api.getSectionSearchCatalog('1', () => true), /red/); assert.equal(calls, 2);
 });
 
+test('cambiar de año consulta solo su catálogo; un año vacío no reutiliza secciones ni modifica históricos', async () => {
+  const catalogs = { '1': sectionCatalog(3, '1'), '2': sectionCatalog(2, '2'), '3': [] };
+  const before = structuredClone(catalogs), calls = [];
+  http.defaults.adapter = async config => {
+    assert.equal(config.method, 'get');
+    calls.push(config.params.anio_escolar_id);
+    return catalogResponse(config, catalogs[config.params.anio_escolar_id]);
+  };
+  for (const id of ['1', '2', '3', '1']) {
+    const rows = await api.getSectionSearchCatalog(id, () => true);
+    assert.equal(rows.length, catalogs[id].length);
+    assert.ok(rows.every(section => section.anio_escolar_id === id));
+  }
+  assert.deepEqual(calls, ['1', '2', '3', '1']);
+  assert.deepEqual(catalogs, before);
+});
+
 test('carga obsoleta se detiene antes de pedir páginas restantes', async () => {
   let calls = 0, current = false;
   http.defaults.adapter = async config => { calls++; current = false; return catalogResponse(config); };

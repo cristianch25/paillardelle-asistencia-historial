@@ -4,12 +4,46 @@ import { createServer } from 'vite';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { studentProfileResponse } from './support/studentProfileFixture.mjs';
-let vite, View, api, http;
+let vite, View, api, http, History, Profile;
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   View = (await vite.ssrLoadModule('/src/features/estudiantes/perfil/StudentProfileView.tsx')).default;
   api = await vite.ssrLoadModule('/src/features/estudiantes/perfil/profile.api.ts');
   http = (await vite.ssrLoadModule('/src/shared/api/httpClient.ts')).httpClient;
+  History = (await vite.ssrLoadModule('/src/features/estudiantes/perfil/StudentDailyHistory.tsx')).default;
+  Profile = (await vite.ssrLoadModule('/src/features/estudiantes/perfil/StudentProfile.tsx')).default;
+});
+
+test('sin año de origen el perfil conserva el selector en lugar de fijar un contexto supuesto', () => {
+  const html = renderToStaticMarkup(h(Profile, { selection: { studentId: '1' } }));
+  assert.match(html, /Año escolar|Selecciona un año/);
+  assert.match(html, /<select/); assert.match(html, /Mes del perfil/);
+});
+
+const history = data => renderToStaticMarkup(h(History, { days: data.dias, today: '2026-11-21', formatSection: section => section.letra }));
+const rowDates = html => [...html.matchAll(/<th scope="row"[^>]*>([^<]+)<\/th>/g)].map(match => match[1]);
+test('mes actual: hoy primero, orden descendente y futuro desplegable sin alterar estados ni resumen', () => {
+  const data = studentProfileResponse(), original = structuredClone(data), html = history(data);
+  const [elapsed, future] = html.split('<details');
+  assert.equal(rowDates(elapsed)[0], '21/11/2026');
+  assert.equal(rowDates(elapsed).at(-1), '01/11/2026');
+  assert.equal(rowDates(elapsed).length, 21);
+  assert.equal(rowDates(future)[0], '30/11/2026'); assert.equal(rowDates(future).length, 9);
+  assert.match(future, /Fechas posteriores a hoy/);
+  assert.doesNotMatch(future, /Pendiente/);
+  for (const state of ['Presente', 'Tardanza', 'Falta', 'Pendiente', 'Sin sesión', 'Sin marca individual', 'Fuera de vigencia', 'Aviso vigente']) assert.ok(html.includes(state));
+  assert.deepEqual(data, original);
+});
+
+test('mes anterior completo comienza por el último día; la columna Sección depende de los IDs reales del mes', () => {
+  const data = studentProfileResponse('1', '1', '2026-10');
+  const html = history(data);
+  assert.equal(rowDates(html)[0], '31/10/2026'); assert.equal(rowDates(html).length, 31);
+  assert.doesNotMatch(html, /<details|>Sección<\/th>/);
+  data.dias[10].seccion = { ...data.dias[10].seccion, id: '3', letra: 'OTRA SECCIÓN' };
+  const moved = history(data);
+  assert.match(moved, />Sección<\/th>/); assert.match(moved, /OTRA SECCIÓN/);
+  assert.equal(rowDates(moved).length, 31);
 });
 after(async () => { await vite?.close(); });
 test('perfil: historial de solo consulta y celular editable sin controles de corrección de asistencia', () => {

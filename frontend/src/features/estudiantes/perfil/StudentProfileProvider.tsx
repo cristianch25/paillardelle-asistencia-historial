@@ -24,8 +24,8 @@ function ProfileHost({ children, compact }: { children: ReactNode; compact: bool
         <h2 className="min-w-0 flex-1 text-xl font-bold">{compact ? 'Perfil del estudiante' : 'Perfil individual'}</h2>
         <Button variant="secondary" disabled={phoneBusy} aria-label={compact ? 'Cerrar perfil' : undefined} className="shrink-0" onClick={close}>
           {compact ? <X aria-hidden="true" className="size-5" /> : 'Volver'}</Button>
-      </header>{!compact && <p className="text-sm text-slate-600">Se muestran datos guardados. Al volver se conservan los cambios pendientes de la vista anterior.</p>}
-      <StudentProfile key={selection.studentId} selection={selection} compact={compact} phoneBusy={phoneBusy} onPhoneBusy={setBusy} /></div>}
+      </header>
+      <StudentProfile key={`${selection.studentId}:${selection.yearId ?? ''}:${selection.month ?? ''}`} selection={selection} compact={compact} phoneBusy={phoneBusy} onPhoneBusy={setBusy} /></div>}
     </dialog>
   </StudentProfileContext.Provider>;
 }

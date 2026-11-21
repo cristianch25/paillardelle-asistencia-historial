@@ -24,6 +24,7 @@ test('7B.0B: catálogo administrativo, búsqueda completa, acciones directas y a
         assert.doesNotMatch(await evaluate(`${results}.textContent`), /Sección seleccionada|Seleccionar|Seleccionada/);
         assert.ok(await evaluate(`${rows}.every(row => row.querySelectorAll('button').length === 3 && row.querySelector('button').textContent === 'Ver estudiantes')`));
         assert.doesNotMatch(await evaluate(`${results}.textContent`), /Asistencia diaria/);
+        assert.doesNotMatch(await evaluate(`${rows}.map(row => row.textContent).join(' ')`), /Año escolar:|2026 · ABIERTO/);
       });
       await t.test('búsqueda flexible y paginación local sin HTTP por pulsación', async () => {
         const count = await evaluate(`${calls}.length`);
@@ -61,12 +62,15 @@ test('7B.0B: catálogo administrativo, búsqueda completa, acciones directas y a
         assert.equal(await evaluate('sectionSearchTest.calls.some(c => c.method !== "get")'), false);
         assert.equal(await evaluate(`${rows}.length`), 1);
       });
-      await t.test('320 px: nombres y acciones legibles, filtros etiquetados y sin desbordamiento', async () => {
-        assert.ok(await evaluate('document.documentElement.scrollWidth <= 320'));
-        const heights = await evaluate(`Array.from(document.querySelectorAll('input[type=search], select, ul[aria-label="Secciones disponibles"] button')).map(e => e.getBoundingClientRect().height)`);
-        assert.ok(heights.every(height => height >= 44));
-        const screenshot = await command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
-        await writeFile('node_modules/.tmp/sections-search-320.png', Buffer.from(screenshot.data, 'base64'));
+      await t.test('escritorio, 412 y 320 px: tarjetas y acciones legibles sin desbordamiento', async () => {
+        for (const width of [1440, 412, 320]) {
+          await command('Emulation.setDeviceMetricsOverride', { width, height: 915, deviceScaleFactor: 1, mobile: width < 600 });
+          assert.ok(await evaluate(`document.documentElement.scrollWidth <= ${width}`));
+          const heights = await evaluate(`Array.from(document.querySelectorAll('input[type=search], select, ul[aria-label="Secciones disponibles"] button')).map(e => e.getBoundingClientRect().height)`);
+          assert.ok(heights.every(height => height >= 44));
+          const screenshot = await command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
+          await writeFile(`node_modules/.tmp/sections-search-${width}.png`, Buffer.from(screenshot.data, 'base64'));
+        }
       });
       await t.test('una sección revocada no permite navegar ni abrir asistencia aunque aún figure en el catálogo', async () => {
         await evaluate('sectionSearchTest.disappear = true'); await click('Ver estudiantes');

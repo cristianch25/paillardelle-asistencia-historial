@@ -3,11 +3,11 @@ import { test } from 'node:test';
 import { authBrowser } from './support/authBrowser.mjs';
 import { hasEdge } from './support/edgeBrowser.mjs';
 
-test('Celular: edición, vista previa, confirmación, no-op, conflicto y borrador intacto en móvil', { skip: !hasEdge, timeout: 120000 }, async t => {
+test('Celular: edición, vista previa, confirmación, no-op, conflicto y búsqueda intacta en móvil', { skip: !hasEdge, timeout: 120000 }, async t => {
   const ui = await authBrowser('studentProfileHarness.jsx'), { evaluate, wait, click } = ui;
   const modal = `document.querySelector('dialog[open][aria-label="Perfil individual del estudiante"]')`;
   const editor = `${modal}.querySelector('[aria-label="Celular del apoderado"]')`;
-  const rows = `document.querySelectorAll('ul[aria-label="Estudiantes y marcas actuales"] > li')`;
+  const open = `document.querySelector('[aria-label="Coincidencias de mis estudiantes"] [role="button"]')`;
   const patchCount = `profileTest.calls.filter(c => c.method === 'patch').length`;
   const close = () => evaluate(`${modal}.querySelector('[aria-label="Cerrar perfil"]').click()`);
   async function input(value) {
@@ -18,12 +18,11 @@ test('Celular: edición, vista previa, confirmación, no-op, conflicto y borrado
   }
   try {
     await ui.navigate('/login'); await wait('Boolean(window.profileTest)'); await ui.login(); await ui.setRoute('/asistencias');
-    await wait(`Boolean(document.querySelector('button[aria-label^="Asistencia diaria de 4"]'))`);
-    await evaluate(`document.querySelector('button[aria-label^="Asistencia diaria de 4"]').click()`);
+    await wait('Boolean(document.querySelector("input[type=date]"))');
     await evaluate(`(() => { const e = document.querySelector('input[type=date]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(e, '2026-11-13'); e.dispatchEvent(new Event('change', { bubbles: true })); })()`);
-    await wait(`${rows}.length === 4`);
-    await evaluate(`Array.from(${rows}[0].querySelectorAll('button')).find(b => b.textContent === 'Tardanza').click()`);
-    await evaluate(`Array.from(${rows}[0].querySelectorAll('button')).find(b => b.textContent === 'Ver perfil').click()`); await wait(`Boolean(${editor})`);
+    await evaluate(`(() => { const e = document.querySelector('input[type=search]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(e, 'Ana'); e.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+    await wait(`Boolean(${open})`);
+    await evaluate(`${open}.click()`); await wait(`Boolean(${editor})`);
     await t.test('Cancelar e inválidos no escriben; prefijo se normaliza en vista previa compartida', async () => {
       await edit('800000002'); await click('Guardar número'); await wait(`${editor}.textContent.includes('nueve dígitos')`);
       assert.equal(await evaluate('profileTest.phone.writes'), 0);
@@ -58,12 +57,12 @@ test('Celular: edición, vista previa, confirmación, no-op, conflicto y borrado
       assert.equal(await evaluate(`Boolean(${editor}.querySelector('input'))`), false);
       await evaluate('profileTest.phone.confirmStatus = null'); await click('Consultar número actual'); await wait(`Boolean(${editor}.querySelector('[aria-label="Editar celular"]'))`);
       assert.equal(await evaluate(patchCount), count); await close(); await wait(`!${modal}`);
-      assert.match(await evaluate(`${rows}[0].textContent`), /Sin guardar/);
-      assert.equal(await evaluate(`${rows}[0].querySelector('[aria-pressed=true]').textContent`), 'Tardanza');
+      assert.equal(await evaluate('document.querySelector("input[type=search]").value'), 'Ana');
+      assert.equal(await evaluate('document.querySelector("input[type=date]").value'), '2026-11-13');
       assert.equal(await evaluate('navigationTest.calls.some(c => c.method === "patch")'), false);
     });
     await t.test('resultado aplicado sin confirmación se consulta, sin reenvío ni éxito ficticio', async () => {
-      await evaluate(`Array.from(${rows}[0].querySelectorAll('button')).find(b => b.textContent === 'Ver perfil').click()`); await wait(`Boolean(${editor})`);
+      await evaluate(`${open}.click()`); await wait(`Boolean(${editor})`);
       await edit('900000006'); await click('Guardar número'); await wait(`${editor}.textContent.includes('Confirmas el cambio')`);
       await evaluate('profileTest.phone.confirmStatus = 500; profileTest.phone.applyBeforeError = true'); await click('Confirmar cambio');
       await wait(`${editor}.textContent.includes('No se pudo confirmar')`);
@@ -76,7 +75,7 @@ test('Celular: edición, vista previa, confirmación, no-op, conflicto y borrado
     });
     await t.test('sin apoderado no se ofrece creación ni edición', async () => {
       await evaluate('profileTest.phone.noGuardian = true');
-      await evaluate(`Array.from(${rows}[0].querySelectorAll('button')).find(b => b.textContent === 'Ver perfil').click()`);
+      await evaluate(`${open}.click()`);
       await wait(`${modal}.textContent.includes('Sin apoderado vinculado')`);
       assert.equal(await evaluate(`${modal}.querySelectorAll('input, [aria-label="Editar celular"]').length`), 0);
     });

@@ -129,6 +129,8 @@ test('tarjetas directas ofrecen asistencia y estudiantes por sección sin selecc
   assert.equal((markup.match(/>Asistencia diaria<\/button>/g) ?? []).length, 2);
   assert.equal((markup.match(/>Ver estudiantes<\/button>/g) ?? []).length, 2);
   assert.doesNotMatch(markup, />Seleccionar<|Sección seleccionada|disabled=/);
+  assert.doesNotMatch(markup, /Año escolar:|2026|ABIERTO/);
+  assert.match(markup, /Activa/);
   const unavailable = renderToStaticMarkup(createElement(List, { sections, years: [], checking: false, onOpen() {} }));
   assert.equal((unavailable.match(/disabled=""/g) ?? []).length, 4);
 });

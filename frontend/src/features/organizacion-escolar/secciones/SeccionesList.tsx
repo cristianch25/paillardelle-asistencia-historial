@@ -16,13 +16,14 @@ export default function SeccionesList({ sections, years, selectedId, checking, o
       {sections.map(section => {
         const year = years?.find(item => item.id === section.anio_escolar_id);
         return (
-        <li key={section.id} className="min-w-0 rounded-lg border border-slate-200 bg-white p-5">
+        <li key={section.id} className="min-w-0 rounded-lg border border-slate-300 bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-institutional-800">{educationLevelLabels[section.nivel]}</p>
           <h2 className="mt-2 break-words text-xl font-bold">{formatName(section)}</h2>
           {!compact && <dl className="mt-4 space-y-2 text-sm text-slate-600">
-            {year && <div><dt className="inline font-medium">Año escolar: </dt><dd className="inline">{year.anio} · {year.estado}</dd></div>}
             {section.turno && <div><dt className="inline font-medium">Turno: </dt><dd className="inline break-words">{section.turno}</dd></div>}
-            <div><dt className="inline font-medium">Estado: </dt><dd className="inline">{section.activo ? 'Activa' : 'Inactiva'}</dd></div>
+            <div><dt className="sr-only">Estado</dt><dd className={`inline-flex rounded-md border px-2 py-0.5 text-xs font-medium ${section.activo
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-100 text-slate-600'}`}>
+              {section.activo ? 'Activa' : 'Inactiva'}</dd></div>
           </dl>}
           {renderSummary?.(section)}
           {onOpen ? <div className="mt-4 flex flex-col gap-2">

@@ -12,8 +12,9 @@ Accesos: ADMIN desde el resultado seleccionado de búsqueda de Asistencias;
 ADMIN/SUBDIRECCION desde seguimiento mensual; listados autorizados de estudiantes;
 REGISTRADOR desde cada fila de asistencia diaria. No se sustituye el editor diario.
 
-Un solo StudentProfile ofrece año y mes (inicialmente los de la vista de origen,
-o el helper de año automático existente), identidad, sección actual e históricos,
+Un solo StudentProfile ofrece mes y hereda el año válido de la vista de origen,
+sin mostrar el selector de año en ese caso. Sin contexto válido conserva el
+selector y el helper de año automático existente. Mantiene identidad, sección actual e históricos,
 apoderado actual autorizado, resumen y hasta 31 filas diarias. Sin asistencia
 masiva de otros estudiantes, corrección de asistencia ni eventos técnicos.
 El backend decide permisos; el frontend distingue apoderado no autorizado y
@@ -21,6 +22,11 @@ ausencia de vínculo. El contacto es el actual, no histórico del mes consultado
 
 PENDIENTE se distingue de SIN_ASISTENCIA, SIN_SESION y FUERA_DE_VIGENCIA.
 Lectividad se muestra como dato independiente sin convertir ausencias en faltas.
+`StudentDailyHistory` presenta las fechas transcurridas en orden descendente;
+las posteriores a hoy permanecen completas en un desplegable separado. No cambia
+estados, justificaciones ni resumen. La columna Sección solo aparece si los IDs
+reales del historial del mes incluyen más de una sección; se conserva el apartado
+de secciones del período y la sección actual. La fecha de referencia es Lima.
 Los cambios de mes invalidan consultas previas; cerrar el perfil impide que una
 respuesta tardía lo reabra. Cambiar usuario/rol o perder la sesión retira el perfil.
 Los resultados reflejan datos guardados; no incorporan el borrador de la asistencia.

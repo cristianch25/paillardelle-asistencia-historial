@@ -19,16 +19,17 @@ export default function StudentProfile({ selection, compact = false, phoneBusy =
   const [chosen, setChosen] = useState({ yearId: selection.month ? selection.yearId ?? '' : '', month: selection.month ?? '' });
   useInitialSchoolYear(years.years, !years.loading && !years.error, yearId, setYear);
   const year = years.years.find(row => row.id === yearId);
+  const fixedYear = Boolean(selection.yearId && years.years.some(row => row.id === selection.yearId));
   const month = chosen.yearId === yearId && chosen.month !== undefined ? chosen.month : initialStatisticsDate(peruToday(), year).slice(0, 7);
   const range = statisticsRange('mes', `${month}-01`, year);
   const query = useStudentProfileData(selection.studentId, yearId, month, Boolean(year && !range.error && !years.loading && !years.error));
   const style = 'mt-2 block min-h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2';
   return <div className="space-y-4">
     {!compact && <div className="grid gap-3 sm:grid-cols-2">
-      <label htmlFor={`${id}-year`} className="text-sm font-semibold">Año escolar
+      {!fixedYear && <label htmlFor={`${id}-year`} className="text-sm font-semibold">Año escolar
         <select id={`${id}-year`} value={yearId} className={style} disabled={phoneBusy || years.loading || Boolean(years.error)} onChange={e => setYear(e.target.value)}>
           <option value="">Selecciona un año</option>{years.years.map(row => <option key={row.id} value={row.id}>{row.anio} · {row.estado}</option>)}
-        </select></label>
+        </select></label>}
       <label htmlFor={`${id}-month`} className="text-sm font-semibold">Mes del perfil
         <input id={`${id}-month`} type="month" value={month} disabled={phoneBusy} className={style} min={year?.fecha_inicio.slice(0, 7)} max={year?.fecha_fin.slice(0, 7)}
           aria-invalid={Boolean(year && range.error)} onChange={e => setChosen({ yearId, month: e.target.value })} /></label>

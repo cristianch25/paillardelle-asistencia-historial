@@ -6,9 +6,8 @@ import { AuthContext } from '../../auth/AuthContext';
 import Button from '../../../shared/components/Button';
 import GuardianPhoneEditor from './GuardianPhoneEditor';
 import ReingresoDialog from '../../matriculas/ReingresoDialog';
+import StudentDailyHistory from './StudentDailyHistory';
 
-const labels = { PRESENTE: 'Presente', TARDANZA: 'Tardanza', FALTA: 'Falta', PENDIENTE: 'Pendiente',
-  SIN_SESION: 'Sin sesión', SIN_ASISTENCIA: 'Sin marca individual', FUERA_DE_VIGENCIA: 'Fuera de vigencia o sin contexto autorizado' };
 const name = (section: NonNullable<StudentProfile['contexto']['seccion_actual']>) => `${educationLevelLabels[section.nivel]} · ${formatSectionName(section)}`;
 export default function StudentProfileView({ data, compact = false, onBusyChange, onReload }: {
   data: StudentProfile; compact?: boolean; onBusyChange?: (busy: boolean) => void; onReload?: () => void;
@@ -72,17 +71,7 @@ export default function StudentProfileView({ data, compact = false, onBusyChange
       <p className="text-xs text-slate-600">Faltas justificadas: {data.resumen.faltas_justificadas} · Tardanzas justificadas: {data.resumen.tardanzas_justificadas}.</p>
       {!data.resumen.total && <p className="text-sm">No hay marcas individuales registradas en este mes y ámbito.</p>}
     </section>
-    <div className="max-w-full overflow-x-auto"><table className="w-full min-w-[32rem] text-left text-sm">
-      <caption className="py-2 text-left font-semibold">Historial diario del mes</caption>
-      <thead><tr>{['Fecha', 'Sección', 'Estado', 'Justificación vigente'].map(label => <th key={label} className="p-2" scope="col">{label}</th>)}</tr></thead>
-      <tbody>{data.dias.map(day => <tr key={day.fecha} className="border-t border-slate-200 align-top">
-        <th scope="row" className="p-2 font-normal">{formatCivilDate(day.fecha)}</th>
-        <td className="p-2">{day.seccion ? name(day.seccion) : '—'}</td>
-        <td className="p-2">{day.estado ? labels[day.estado] : labels[day.situacion as Exclude<typeof day.situacion, 'CON_REGISTRO'>]}
-          {day.es_lectivo === false && <span className="block text-xs text-slate-600">Día no lectivo</span>}</td>
-        <td className="max-w-xs break-words p-2">{day.justificada ? day.motivo_justificacion || 'Justificada' : '—'}</td>
-      </tr>)}</tbody>
-    </table></div>
+    <StudentDailyHistory days={data.dias} formatSection={name} />
     {showReingreso && isRetired && lastSection && (
       <ReingresoDialog
         studentName={[data.estudiante.apellido_paterno, data.estudiante.apellido_materno, data.estudiante.nombres].filter(Boolean).join(' ')}
