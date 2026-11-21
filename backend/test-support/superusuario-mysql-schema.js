@@ -37,7 +37,10 @@ export async function assertUserSchema(c, stage) {
     ON tc.CONSTRAINT_SCHEMA=cc.CONSTRAINT_SCHEMA AND tc.CONSTRAINT_NAME=cc.CONSTRAINT_NAME
     WHERE cc.CONSTRAINT_SCHEMA=DATABASE() AND tc.TABLE_NAME='usuarios' AND cc.CONSTRAINT_NAME='chk_usuario_nivel'`);
   assert.equal(checks.length, 1); assert.equal(checks[0].enforced, 'YES');
-  const expression = checks[0].clause.replace(/_utf8mb4/gi, '').replace(/[`()\s]/g, '').toUpperCase();
+  // CHECK_CLAUSE puede representar los delimitadores SQL como \'. Conservar
+  // el contenido de literales: sus espacios/backticks/parentesis no son formato.
+  const expression = checks[0].clause.replace(/\\'/g, "'")
+    .replace(/'(?:''|[^'])*'|_utf8mb4(?=')|[`()\s]/gi, token => token.startsWith("'") ? token : '').toUpperCase();
   assert.equal(expression, "ROL<>'SUBDIRECCION'ORNIVEL_ASIGNADOISNOTNULL");
 }
 export async function fingerprint(c) {

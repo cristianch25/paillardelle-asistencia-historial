@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { open, readFile, writeFile } from 'node:fs/promises';
+import { open, readFile, writeFile, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { hashPassword } from '../../src/shared/passwords.js';
-import { locations, password, openVerified } from '../../test-support/matriculas-mysql-safety.js';
+import { locations, password, openVerified, assertRunnerGrants, verifyOwnedProcess } from '../../test-support/matriculas-mysql-safety.js';
+import { assertEmpty006, assertSeeded006 } from '../../test-support/superusuario-mysql-base006.js';
 import { sqlFiles, statements, digest, fingerprint, assertUserSchema, seedOriginalAccounts,
   fixturePassword, upgradeConnection } from '../../test-support/superusuario-mysql-schema.js';
 
@@ -21,6 +22,43 @@ export async function readRecord(manifest, name, count) {
 }
 export const adminCredentials = () => ({ user: 'root', password: password(process.env.MATRICULAS_MYSQL_ADMIN_PASSWORD) });
 export const runnerCredentials = () => ({ user: 'superusuario_runner', password: password(process.env.SUPERUSUARIO_MYSQL_PASSWORD) });
+
+export async function assertPartialMarkers(manifest, inspect = lstat) {
+  const directory = directoryOf(manifest);
+  const lock = await inspect(path.join(directory, 'prepare.lock'));
+  assert.ok(lock.isFile() && !lock.isSymbolicLink() && lock.size === 0);
+  for (const file of ['base.json', 'ready.json', 'upgrade.lock', 'suite.lock', 'resume.lock']) {
+    try { await inspect(path.join(directory, file)); throw new Error('Marcador previo: detenerse.'); }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+}
+async function finishBase(c, manifest, files, validate = async () => {}) {
+  const runner = runnerCredentials();
+  await seedOriginalAccounts(c, await hashPassword(fixturePassword));
+  await c.query(`CREATE USER 'superusuario_runner'@'127.0.0.1' IDENTIFIED BY '${runner.password}'`);
+  await c.query("GRANT SELECT, INSERT, UPDATE ON `asistencia\\_paillardelle`.* TO 'superusuario_runner'@'127.0.0.1'");
+  assertRunnerGrants((await c.query("SHOW GRANTS FOR 'superusuario_runner'@'127.0.0.1'"))[0], manifest);
+  await validate(c, files);
+  await save(manifest, 'base.json', { uuid: manifest.uuid, schema: manifest.schema,
+    hashes: files.slice(0, 6).map(digest), baseline: await fingerprint(c) });
+}
+export async function resumeBase(manifest, expectedUuid, {
+  inspect = assertPartialMarkers, connect = openVerified, validate = assertEmpty006,
+  mark = marker, finish = (c, m, f) => finishBase(c, m, f, assertSeeded006), filesProvider = sqlFiles,
+  revalidate = verifyOwnedProcess,
+} = {}) {
+  assert.equal(manifest.uuid, expectedUuid);
+  const admin = adminCredentials(), runner = runnerCredentials(), files = await filesProvider();
+  assert.notEqual(admin.password, runner.password);
+  await inspect(manifest);
+  const c = await connect(manifest, admin);
+  try {
+    await validate(c, files);
+    await revalidate(manifest);
+    await mark(manifest, 'resume.lock');
+    await finish(c, manifest, files);
+  } finally { await c.end(); }
+}
 
 export async function prepareBase(manifest) {
   const admin = adminCredentials(), runner = runnerCredentials(), files = await sqlFiles();
@@ -42,11 +80,7 @@ export async function prepareBase(manifest) {
       const [[row]] = await c.query(`SELECT COUNT(*) n FROM ${table}`);
       assert.equal(Number(row.n), table === 'configuracion_sistema' ? 2 : 0);
     }
-    await seedOriginalAccounts(c, await hashPassword(fixturePassword));
-    await c.query(`CREATE USER 'superusuario_runner'@'127.0.0.1' IDENTIFIED BY '${runner.password}'`);
-    await c.query("GRANT SELECT, INSERT, UPDATE ON `asistencia\\_paillardelle`.* TO 'superusuario_runner'@'127.0.0.1'");
-    await save(manifest, 'base.json', { uuid: manifest.uuid, schema: manifest.schema,
-      hashes: files.slice(0, 6).map(digest), baseline: await fingerprint(c) });
+    await finishBase(c, manifest, files);
   } finally { await c.end(); }
 }
 export async function upgrade(manifest) {

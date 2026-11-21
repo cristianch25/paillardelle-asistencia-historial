@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { sqlFiles, fingerprint, upgradeConnection } from '../test-support/superusuario-mysql-schema.js';
+import { sqlFiles, fingerprint, upgradeConnection, assertUserSchema } from '../test-support/superusuario-mysql-schema.js';
 
 function connection({ corruptData = false, corruptStructure = false, removeCheck = false } = {}) {
   let stage = 6;
@@ -47,4 +47,37 @@ test('baseline distinto: no ejecuta ningún ALTER', async () => {
   const c = connection();
   await assert.rejects(upgradeConnection(c, await sqlFiles(), { data: 'ajeno', structure: 'ajeno' }));
   assert.equal(c.calls.filter(sql => sql.startsWith('ALTER TABLE')).length, 0);
+});
+
+const originalCheck = "((`rol` <> _utf8mb4'SUBDIRECCION') or (`nivel_asignado` is not null))";
+function checkConnection(clause) {
+  const c = connection(), execute = c.execute.bind(c);
+  c.execute = sql => sql.includes('CHECK_CONSTRAINTS')
+    ? Promise.resolve([[{ clause, enforced: 'YES' }]]) : execute(sql);
+  return c;
+}
+for (const [format, clause] of [
+  ['SQL simple', "rol <> 'SUBDIRECCION' OR nivel_asignado IS NOT NULL"],
+  ['metadatos sin escapes', originalCheck],
+  ['metadatos reales con comillas escapadas', originalCheck.replaceAll("'", "\\'")],
+]) test(`chk_usuario_nivel reconoce ${format} sin DDL ni DML`, async () => {
+  const c = checkConnection(clause);
+  await assertUserSchema(c, 6);
+  assert.equal(c.calls.length, 0);
+});
+for (const changed of [
+  originalCheck.replace('SUBDIRECCION', 'REGISTRADOR'),
+  originalCheck.replace('SUBDIRECCION', 'SUB DIRECCION'),
+  originalCheck.replace('SUBDIRECCION', 'SUB(DIRECCION)'),
+  originalCheck.replace('SUBDIRECCION', 'SUB`DIRECCION'),
+  originalCheck.replace('SUBDIRECCION', 'SUB_utf8mb4DIRECCION'),
+  originalCheck.replace(' or ', ' and '),
+  originalCheck.replace('is not null', 'is null'),
+  originalCheck.replace('<>', '='),
+  originalCheck.replace('nivel_asignado', 'otro_nivel'),
+  originalCheck + ' OR TRUE',
+]) test(`chk_usuario_nivel rechaza expresión alterada: ${changed}`, async () => {
+  for (const clause of [changed, changed.replaceAll("'", "\\'")]) {
+    await assert.rejects(assertUserSchema(checkConnection(clause), 6));
+  }
 });

@@ -121,6 +121,85 @@ Validación focalizada de esta ampliación: 59 pruebas con mocks aprobadas, con
 MySQL bloqueado. Incluyen registro existente, cambio de PID/creación/UUID,
 cambios durante publicación, fallo de ACL y rechazo de sobrescritura concurrente.
 
+## Preparación interrumpida después de 006 — continuación protegida
+
+Estado inspeccionado únicamente en lectura: 20 tablas InnoDB/utf8mb4_0900_ai_ci,
+165 columnas, 20 PK, 25 UNIQUE, 30 FK y 22 CHECK habilitados. Sus nombres coinciden
+con v1 + 002–006. Tablas vacías salvo las dos configuraciones iniciales false;
+usuarios y runner SQL ausentes, `prepare.lock` presente y `base.json` ausente.
+El fallo ocurrió en assertUserSchema, antes de fixtures/runner/registro final.
+CHECK_CLAUSE devolvió delimitadores escapados como `\'`; el verificador corregido
+ya reconoce esa representación, conservando el contenido de los literales.
+
+**No repetir prepare ni retirar prepare.lock.** La inspección anterior no sustituye
+una comparación completa de definiciones ni autoriza continuar por sí solo.
+La acción explícita `resume-base` completa únicamente la cola pendiente y exige
+el UUID esperado, además de todos los controles normales del arnés.
+
+Secuencia exacta para una continuación expresamente autorizada:
+
+1. Revalidar manifiesto/auto.cnf/launch, PID y creación originales, ejecutable,
+   argumentos, rutas sin redirecciones y listener. Conectar solo mediante
+   openVerified a 127.0.0.1:3312; comprobar nuevamente UUID/datadir/base/versión,
+   modo estricto, FK habilitadas e identidad administrativa. Sin fallback a .env.
+2. Exigir prepare.lock existente, ausencia de base.json, upgrade.lock, ready.json,
+   suite.lock y cualquier marcador de continuación previo. Comprobar únicamente
+   el esquema canónico y los internos; ningún usuario de aplicación o runner SQL
+   previo. Verificar todas las filas: cero salvo las dos configuraciones iniciales
+   exactas. Una divergencia detiene el procedimiento sin borrar ni reparar nada.
+3. **Antes de cualquier fixture o registro final**, revisar SHOW CREATE TABLE de
+   las 20 tablas contra el resultado aprobado de SQL v1 y 002–006: cada columna,
+   tipo/ENUM/orden/nulabilidad/default/columna generada, PK/UNIQUE, índices, FK con
+   columnas y acciones, CHECK con su expresión y ENFORCED, motor y colación.
+   Los conteos y nombres anteriores son controles auxiliares: no bastan por sí solos.
+   Comprobar ampliaciones de 002, periodos de 003, sesiones/contextos/versiones de
+   004, motivos y justificación FALTA/TARDANZA de 005, ausencia de chk_hist_motivo
+   de 006, chk_usuario_nivel original habilitado, ENUM de tres roles y ausencia de
+   debe_cambiar_password. Rechazar tablas/vistas/triggers/rutinas/eventos adicionales.
+   Fijar la huella estructural revisada y hashes de los seis SQL; no validar una
+   estructura comparando una huella recién calculada únicamente consigo misma.
+   `test-support/superusuario-mysql-base006.js` contiene las huellas fijadas tras
+   revisar las 20 definiciones de MySQL 8.4.13 contra las fuentes aprobadas.
+   Solo omite el contador de tabla AUTO_INCREMENT; conserva los atributos de
+   columna. Otra representación/versión que no coincida exige revisión, no aceptación automática.
+4. Solo si todo coincide, crear un marcador exclusivo de continuación mediante
+   CreateNew/wx, conservando prepare.lock. Revalidar identidad inmediatamente antes
+   de escribir. Una ejecución o fallo previo impide repetir automáticamente la cola.
+5. Ejecutar únicamente la cola pendiente: seedOriginalAccounts con las cinco cuentas
+   ficticias, crear superusuario_runner si sigue ausente y conceder exclusivamente
+   SELECT/INSERT/UPDATE sobre el esquema literal escapado. Reutilizar las credenciales
+   temporales conservadas sin mostrarlas; no usar cuentas ni secretos institucionales.
+   No ejecutar CREATE DATABASE, CREATE TABLE, ALTER, DROP ni los SQL de v1–006.
+6. Comprobar fixtures, grants con assertRunnerGrants, esquema 006 y conservación de
+   la estructura revisada/configuraciones. Crear base.json exclusivamente con wx y
+   el formato existente: uuid, schema, hashes de v1–006 y baseline calculado después
+   de los fixtures. El baseline contiene resúmenes, no contraseñas ni hashes bcrypt
+   en claro. Conservar ambos marcadores como evidencia y detenerse antes de 007/008.
+
+Un error durante esa cola puede dejar resultados parciales (CREATE USER/GRANT no
+forman una transacción conjunta con filas y archivos). Conservar evidencia y
+credenciales; no eliminar marcadores, reinsertar fixtures ni recrear base.json a ciegas.
+
+Desde `backend/`, con las dos credenciales temporales ya conservadas en el entorno
+del proceso y sin cargar `.env`:
+
+```powershell
+node scripts/superusuario-mysql.mjs resume-base <run> --allow-temporary-mysql-3312 --expected-uuid=<uuid-esperado>
+```
+
+La acción conserva `prepare.lock`, crea `resume.lock` con wx y solo registra
+`base.json` después de validar estructura, cinco fixtures exactos, configuraciones
+y privilegios del runner. No repite v1 ni 002–006. Si concluye sin errores y existe
+autorización para migrar, ejecutar una sola vez la acción `upgrade` documentada:
+verifica el baseline antes de 007 y la conservación después de cada migración;
+solo entonces registra `ready.json`. Un fallo detiene la secuencia sin reintento.
+
+Pruebas focalizadas de continuación, sin conexiones MySQL:
+
+```powershell
+node --import ./test-support/deny-mysql.js --test test/superusuario.mysql-resume.test.js test/superusuario.mysql-schema.test.js test/superusuario.mysql-preparation.test.js
+```
+
 ## Cobertura preparada
 
 Conservación de cuentas al migrar; alta local/auditoría atómica; bloqueo concurrente

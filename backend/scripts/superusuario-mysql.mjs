@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { loadManifest, profileOf, superuserActivation, openVerified, verifyOwnedProcess,
   shutdownVerified, assertRunnerGrants } from '../test-support/matriculas-mysql-safety.js';
 import { assertUserSchema, fingerprint } from '../test-support/superusuario-mysql-schema.js';
-import { prepareBase, upgrade, marker, readRecord, adminCredentials, runnerCredentials } from './lib/superusuario-mysql-prepare.js';
+import { prepareBase, resumeBase, upgrade, marker, readRecord, adminCredentials, runnerCredentials } from './lib/superusuario-mysql-prepare.js';
 
 const backend = fileURLToPath(new URL('../', import.meta.url));
 export function suiteEnvironment(manifest, runner, source = process.env) {
@@ -29,13 +29,16 @@ export async function main(args = process.argv.slice(2), {
   manifestLoader = loadManifest, verifyProcess = verifyOwnedProcess, shutdown = shutdownVerified,
 } = {}) {
   const [action, run, approval, ...extra] = args;
-  assert.equal(approval, '--allow-temporary-mysql-3312'); assert.equal(extra.length, 0);
-  assert.ok(['prepare', 'upgrade', 'verify-server', 'verify', 'run', 'shutdown'].includes(action));
+  assert.equal(approval, '--allow-temporary-mysql-3312');
+  if (action === 'resume-base') assert.match(extra[0] ?? '', /^--expected-uuid=[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/);
+  assert.equal(extra.length, action === 'resume-base' ? 1 : 0);
+  assert.ok(['prepare', 'resume-base', 'upgrade', 'verify-server', 'verify', 'run', 'shutdown'].includes(action));
   const manifest = await manifestLoader(run, 'superusuario');
   assert.equal(profileOf(manifest), 'superusuario');
   await verifyProcess(manifest);
   if (action === 'shutdown') return shutdown(manifest, adminCredentials());
   if (action === 'prepare') return prepareBase(manifest);
+  if (action === 'resume-base') return resumeBase(manifest, extra[0].slice('--expected-uuid='.length));
   if (action === 'upgrade') return upgrade(manifest);
   if (action === 'verify-server') {
     const c = await openVerified(manifest, adminCredentials(), null);
