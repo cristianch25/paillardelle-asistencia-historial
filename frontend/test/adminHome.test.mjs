@@ -6,7 +6,7 @@ import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { dailyRows, dailyYear } from './support/adminHomeFixture.mjs';
 
-let vite, summary, api, http, View, Home, Auth, dates;
+let vite, summary, api, http, View, Home, Auth, dates, access;
 const date = '2026-11-17';
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
@@ -17,6 +17,7 @@ before(async () => {
   Home = (await vite.ssrLoadModule('/src/features/inicio/HomePage.tsx')).default;
   Auth = (await vite.ssrLoadModule('/src/features/auth/AuthContext.ts')).AuthContext;
   dates = await vite.ssrLoadModule('/src/shared/dates/civilDate.ts');
+  access = await vite.ssrLoadModule('/src/features/asistencias/supervision/supervisionAccess.ts');
 });
 after(async () => { await vite?.close(); });
 
@@ -26,18 +27,15 @@ test('ABIERTA/CERRADA reales suman estados; SIN_REGISTRO permanece separado de p
   assert.equal(result.registered, 2); assert.equal(result.unregistered, 1);
   assert.equal(result.levels[0].counts.total, 10); assert.equal(result.levels[1].counts.total, 8);
   assert.equal(result.levels[2].counts, null); assert.equal(result.levels[2].lective, false);
-  assert.match(renderToStaticMarkup(h(View, { data: result })), /Fecha no lectiva/);
+  assert.match(renderToStaticMarkup(h(View, { data: result })), /No corresponde registrar asistencia en Secundaria/);
 });
 
-test('presentación compacta: cuatro tarjetas y salones registrados aunque tengan pendientes', () => {
+test('ADMIN mantiene cuatro tarjetas, sin bloque por nivel ni contadores de salones', () => {
   const result = summary.summarizeDay(dailyRows(230), dailyYear.id);
   const html = renderToStaticMarkup(h(View, { data: result })), text = html.replace(/<[^>]*>/g, '');
   assert.match(text, /Presentes9Tardanzas3Faltas3Pendientes3/);
-  assert.match(text, /Asistencia registrada por nivelInicial:1\/77Primaria:1\/77Secundaria:Fecha no lectiva0\/76/);
-  assert.match(text, /Salones con asistencia registrada: 2/);
-  assert.match(text, /Salones sin asistencia registrada: 228/);
-  assert.match(text, /Total institucional: 2\/230 salones$/);
-  assert.match(text, /aunque tenga estudiantes pendientes/);
+  assert.doesNotMatch(text, /Asistencia registrada por nivel|Salones con|Salones sin|Total institucional/);
+  assert.match(text, /No corresponde registrar asistencia en Secundaria/);
   assert.doesNotMatch(text, /SIN_REGISTRO|sesiones|Con sesión|Total de estudiantes/);
 });
 
@@ -47,7 +45,11 @@ test('futuro/no lectivo/sin secciones no inventan faltas ni totales de asistenci
     assert.equal(result.counts, null); assert.equal(result.registered, 0); assert.equal(result.unregistered, 3);
     const html = renderToStaticMarkup(h(View, { data: result }));
     assert.equal((html.match(/Sin datos/g) ?? []).length, 4);
-    assert.match(html.replace(/<[^>]*>/g, ''), /Total institucional: 0\/3 salones/);
+    assert.doesNotMatch(html, /Salones sin asistencia registrada|0\/3/);
+    if (date === '2026-11-14') {
+      assert.match(html, /Fecha no lectiva. No corresponde registrar asistencia/);
+      assert.doesNotMatch(html, /No hay asistencia registrada/);
+    }
   }
   const empty = summary.summarizeDay([], dailyYear.id);
   assert.ok(empty.levels.every(level => level.counts === null && level.lective === null));
@@ -104,10 +106,50 @@ test('fallo intermedio, invalidación, paginación errónea y duplicados nunca p
   await assert.rejects(api.getDailySummary(dailyYear.id, '2026-02-30', () => true)); assert.equal(calls, 1);
 });
 
-test('Inicio de SUBDIRECCION y REGISTRADOR se conserva; fecha inicial corresponde a Lima', () => {
-  for (const rol of ['SUBDIRECCION', 'REGISTRADOR']) {
+test('Inicio genérico conserva datos de cuenta sin repetir rol/nivel; fecha inicial corresponde a Lima', () => {
+  for (const rol of ['REGISTRADOR', 'SUPERUSUARIO']) {
     const html = renderToStaticMarkup(h(Auth.Provider, { value: { session: { user: { rol, nombres: 'Rosa', apellidos: 'Prueba', usuario: 'rosa', nivel_asignado: 'PRIMARIA' } } } }, h(Home)));
     assert.match(html, /Tu cuenta/); assert.match(html, /Bienvenido\/a/); assert.doesNotMatch(html, /Resumen diario institucional/);
+    assert.match(html, /Nombre completo|Usuario/);
+    assert.doesNotMatch(html, /Identificación|Nivel principal:|Fecha consultada|America\/Lima/);
   }
   assert.equal(dates.peruToday(new Date('2026-11-18T04:59:59Z')), '2026-11-17');
+});
+
+test('SUBDIRECCION reutiliza el resumen con la matriz RN-06, sin ampliarla por adicionales', () => {
+  for (const [principal, expected] of [['INICIAL', ['INICIAL']], ['PRIMARIA', ['INICIAL', 'PRIMARIA']], ['SECUNDARIA', ['SECUNDARIA']]]) {
+    const levels = access.supervisionLevels({ rol: 'SUBDIRECCION', nivel_asignado: principal,
+      niveles_adicionales: ['INICIAL', 'PRIMARIA', 'SECUNDARIA'] });
+    assert.deepEqual(levels, expected);
+    const data = summary.summarizeDay(dailyRows(230).filter(row => levels.includes(row.seccion.nivel)), dailyYear.id);
+    const html = renderToStaticMarkup(h(View, { data, levels }));
+    assert.equal((html.match(/aria-label="Resumen de /g) ?? []).length, levels.length);
+    assert.doesNotMatch(html, /Conteos de asistencia|Salones sin asistencia registrada/);
+    assert.match(html, /registradas|secciones autorizadas/);
+    const noLective = summary.summarizeDay(dailyRows(230, '2026-11-14').filter(row => levels.includes(row.seccion.nivel)), dailyYear.id);
+    const nonLectiveHtml = renderToStaticMarkup(h(View, { data: noLective, levels }));
+    assert.match(nonLectiveHtml, /No corresponde registrar asistencia/);
+    assert.doesNotMatch(nonLectiveHtml, /0\/|Total autorizado|No hay asistencia registrada/);
+    assert.equal((nonLectiveHtml.match(/Fecha no lectiva/g) ?? []).length, 1);
+    assert.doesNotMatch(nonLectiveHtml, /secciones registradas|puede tener estudiantes pendientes/);
+  }
+});
+
+test('distintivo informativo muestra 2/3 reales, sin convertir el registro en marcas completas', () => {
+  const rows = dailyRows();
+  for (const row of rows) { row.seccion.nivel = 'PRIMARIA'; row.es_lectivo = true; }
+  const data = summary.summarizeDay(rows, dailyYear.id);
+  const html = renderToStaticMarkup(h(View, { data, levels: ['INICIAL', 'PRIMARIA'] }));
+  assert.equal(data.registered, 2); assert.equal(data.sections, 3); assert.equal(data.counts.pendientes, 3);
+  assert.match(html, /aria-label="2 de 3 secciones registradas"/);
+  assert.match(html.replace(/<[^>]*>/g, ''), /2\/3registradas/);
+  assert.doesNotMatch(html, /Una sección con registro puede tener estudiantes pendientes|Total autorizado/);
+  assert.doesNotMatch(html, /<button|Un salón cuenta como registrado/);
+});
+
+test('respuesta con niveles fuera del alcance no publica conteos ni información de otros niveles', () => {
+  const html = renderToStaticMarkup(h(View, { data: summary.summarizeDay(dailyRows(), dailyYear.id), levels: ['INICIAL'] }));
+  assert.match(html, /role="alert"/);
+  assert.match(html, /fuera del ámbito/);
+  assert.doesNotMatch(html, /Conteos de asistencia|Resumen de Primaria|Resumen de Secundaria|secciones con registro/);
 });

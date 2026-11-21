@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
-import { Link } from 'react-router';
+import { useNavigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
-import { peruToday, formatCivilDate } from '../../shared/dates/civilDate';
+import { peruToday } from '../../shared/dates/civilDate';
 import FormField from '../../shared/components/FormField';
 import Button from '../../shared/components/Button';
 import ErrorState from '../../shared/components/ErrorState';
@@ -12,9 +12,12 @@ import { supervisionDateError } from '../asistencias/supervision/supervisionDate
 import { useDailySummary } from './useDailySummary';
 import DailySummaryView from './DailySummaryView';
 import { useInitialSchoolYear } from '../organizacion-escolar/anios-escolares/useInitialSchoolYear';
+import { supervisionLevels } from '../asistencias/supervision/supervisionAccess';
 
 export default function AdminHomePage() {
   const { session } = useAuth();
+  const navigate = useNavigate();
+  const subdirection = session?.user.rol === 'SUBDIRECCION';
   const [fecha, setFecha] = useState(peruToday), [yearId, setYear] = useState('');
   const years = useSchoolYears(), id = useId();
   useInitialSchoolYear(years.years, !years.loading && !years.error, yearId, setYear);
@@ -22,10 +25,7 @@ export default function AdminHomePage() {
   const query = useDailySummary(yearId, fecha, Boolean(year && !years.loading && !years.error && !dateError));
   return <div className="min-w-0 space-y-6">
     <header className="space-y-2"><p className="text-sm font-semibold text-institutional-800">I.E. Enrique Paillardelle · Tacna</p>
-      <h1 className="text-2xl font-bold sm:text-3xl">Inicio · Resumen diario de asistencia</h1>
-      <p className="text-sm text-slate-600">Bienvenida/o, {session?.user.nombres}. Fecha consultada: {formatCivilDate(fecha)} · America/Lima.</p>
-      <Link className="inline-flex min-h-11 items-center font-semibold text-institutional-800 underline underline-offset-4"
-        to="/asistencias/supervision">Ir a supervisión de asistencia</Link>
+      <h1 className="text-2xl font-bold sm:text-3xl">Resumen diario de asistencia</h1>
     </header>
     <section aria-label="Filtros del resumen diario" className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2">
       <label htmlFor={`${id}-year`} className="text-sm font-semibold">Año escolar
@@ -42,12 +42,16 @@ export default function AdminHomePage() {
       <ErrorState message={years.error} /><Button variant="secondary" onClick={years.retry}>Reintentar años escolares</Button>
     </> : !years.years.length ? <EmptyState message="No hay años escolares disponibles." />
       : !yearId ? <EmptyState message="Selecciona un año escolar para consultar el resumen diario." /> : null}
-    {query.loading && <LoadingState message="Consultando todas las secciones…" />}
+    <div aria-label="Acciones de asistencia" className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+      {query.data && <Button variant="secondary" className="w-full sm:w-auto" onClick={query.retry}>Actualizar resumen</Button>}
+      <Button variant="secondary" className="w-full sm:w-auto" onClick={() => navigate('/asistencias/supervision')}>
+        {subdirection ? 'Ir a Asistencias' : 'Ir a supervisión de asistencia'}
+      </Button>
+    </div>
+    {query.loading && <LoadingState message="Consultando asistencia…" />}
     {query.error && <><ErrorState message={query.error} /><Button variant="secondary" onClick={query.retry}>Reintentar resumen</Button></>}
     {query.data && <>
-      <Button variant="secondary" onClick={query.retry}>Actualizar resumen</Button>
-      <DailySummaryView data={query.data} />
-      <p className="text-xs text-slate-600">Incluye secciones activas e inactivas del listado autorizado. Las páginas se consultan sucesivamente; los datos pueden cambiar durante la consulta.</p>
+      <DailySummaryView data={query.data} levels={subdirection && session ? supervisionLevels(session.user) : undefined} />
     </>}
   </div>;
 }

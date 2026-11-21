@@ -1,5 +1,4 @@
 import { useAuth } from '../auth/AuthContext';
-import { primaryLevelLabel, userIdentityLabel } from '../auth/userPresentation';
 import { lazy, Suspense } from 'react';
 import LoadingState from '../../shared/components/LoadingState';
 
@@ -8,8 +7,8 @@ const AdminHomePage = lazy(() => import('./AdminHomePage'));
 export default function HomePage() {
   const { session } = useAuth();
   if (!session) return null;
-  if (session.user.rol === 'ADMIN') return <Suspense fallback={<LoadingState message="Cargando inicio…" />}>
-    <AdminHomePage key={`${session.user.id}:${session.expiresAt}`} />
+  if (session.user.rol === 'ADMIN' || session.user.rol === 'SUBDIRECCION') return <Suspense fallback={<LoadingState message="Cargando inicio…" />}>
+    <AdminHomePage key={`${session.user.id}:${session.user.rol}:${session.user.nivel_asignado}:${session.expiresAt}`} />
   </Suspense>;
   return (
     <div>
@@ -26,11 +25,9 @@ export default function HomePage() {
           <span aria-hidden="true" className="h-5 w-1 rounded-full bg-accent-yellow" />
           <h2 id="account-title" className="text-lg font-semibold">Tu cuenta</h2>
         </div>
-        <dl className="mt-6 grid gap-6 text-sm sm:grid-cols-2 xl:grid-cols-3">
+        <dl className="mt-6 grid gap-6 text-sm sm:grid-cols-2">
           <div><dt className="text-slate-500">Nombre completo</dt><dd className="mt-2 break-words font-medium">{session.user.nombres} {session.user.apellidos}</dd></div>
           <div><dt className="text-slate-500">Usuario</dt><dd className="mt-2 break-words font-medium">{session.user.usuario}</dd></div>
-          <div><dt className="text-slate-500">Identificación</dt><dd className="mt-2 font-medium">{userIdentityLabel(session.user)}</dd>
-            {primaryLevelLabel(session.user) && <dd className="mt-2 text-slate-600">{primaryLevelLabel(session.user)}</dd>}</div>
         </dl>
       </section>
     </div>
