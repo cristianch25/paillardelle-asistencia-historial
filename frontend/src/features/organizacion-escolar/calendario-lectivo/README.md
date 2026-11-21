@@ -9,12 +9,21 @@ nivel y muestra «Diferente por nivel» cuando sus estados difieren, sin atribui
 el bloqueo de Inicial a Secundaria. El editor exige elegir el estado común si
 el día es mixto y explica que cualquier conflicto impide cambiar todo el conjunto.
 
-SUBDIRECCION con alcance único no ve selector. El conjunto Inicial/Primaria solo
+SUBDIRECCION con alcance único no ve selector ni bloque descriptivo de nivel. El conjunto Inicial/Primaria solo
 se ofrece cuando ambos niveles ya están explícitamente autorizados en este
-módulo; si falta Inicial, la pantalla informa que requiere esa autorización.
+módulo. Si existen varios alcances autorizados, conserva el selector de nivel
+junto al mes para no retirar acciones disponibles.
 No se conceden adicionales ni se aplica la matriz especial de asistencia.
-Un solo año se utiliza automáticamente y no muestra selector, incluido un año
-PLANIFICADO futuro; con varios años se conserva la selección.
+SUBDIRECCION no muestra ni permite cambiar año: reutiliza `useInitialSchoolYear`
+(año calendario actual en Lima; si falta, ABIERTO más reciente). Un año actual
+CERRADO sigue siendo de consulta; sin candidato se muestra un estado vacío.
+ADMIN conserva los filtros: un solo año se utiliza automáticamente, incluido un
+PLANIFICADO futuro, y con varios años mantiene el selector.
+
+El título capitaliza solo la primera letra («Noviembre de 2026»). Las flechas
+conservan «Mes anterior»/«Mes siguiente» y los límites del año. La leyenda usa
+lenguaje sencillo; se retira «Sin asistencia» por duplicar «No lectivo», sin
+ocultar excepciones, descripciones ni estados diferentes por nivel.
 
 El acceso «Asistencia diaria» sigue sirviendo para consultar. Dentro de esa
 pantalla, un día no lectivo indica «Consultar sesión existente», desactiva marcas

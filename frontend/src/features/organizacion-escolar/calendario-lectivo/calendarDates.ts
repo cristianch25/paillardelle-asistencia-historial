@@ -17,7 +17,7 @@ export function moveMonth(month: string, step: number) {
 }
 export function shiftedMonth(month: string, step: number) { return new Date(moveMonth(month, step)).toISOString().slice(0, 7); }
 export const monthTitle = (month: string) => new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric', timeZone: 'UTC' })
-  .format(new Date(`${month}-01T00:00:00Z`));
+  .format(new Date(`${month}-01T00:00:00Z`)).replace(/^./, first => first.toLocaleUpperCase('es-PE'));
 
 // Solo coloca fechas en una cuadrícula; la lectividad siempre procede de la API.
 export function monthCells(month: string) {

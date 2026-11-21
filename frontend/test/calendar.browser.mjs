@@ -32,14 +32,19 @@ for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) test(`Calendario vi
     await edit('03/03/2026', false); await wait('document.body.textContent.includes("tiene sesiones de asistencia")'); await click('Cancelar');
     assert.ok(await evaluate(`Boolean(document.querySelector('button[aria-label="03/03/2026: Lectivo"]'))`));
     await evaluate(`document.querySelector('button[aria-label="Mes siguiente"]').click()`);
-    await wait('document.body.textContent.includes("abril de 2026")');
+    await wait('document.body.textContent.includes("Abril de 2026")');
+    assert.equal(await evaluate('document.querySelector(\'button[aria-label="Mes siguiente"]\').disabled'), true);
     await evaluate(`document.querySelector('button[aria-label="Mes anterior"]').click()`);
     await wait(`Boolean(document.querySelector('button[aria-label="10/03/2026: No lectivo · Feriado"]'))`);
-    for (const width of [1440, 320]) {
-      await ui.command('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile: width === 320 });
+    assert.equal(await evaluate('document.querySelector(\'button[aria-label="Mes anterior"]\').disabled'), true);
+    assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Sin asistencia|Las excepciones del nivel prevalecen/);
+    for (const width of [1440, 412, 320]) {
+      await ui.command('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile: width < 600 });
       assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'));
       if (width === 1440) { const shot = await ui.command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
         await writeFile(`node_modules/.tmp/calendar-${role}.png`, Buffer.from(shot.data, 'base64')); }
+      if (width === 412) { const shot = await ui.command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
+        await writeFile(`node_modules/.tmp/calendar-${role}-412.png`, Buffer.from(shot.data, 'base64')); }
     }
     assert.equal(await evaluate('calendarTest.calls.filter(c=>c.method === "put").length'), 3);
     if (role === 'ADMIN') {
@@ -51,7 +56,8 @@ for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) test(`Calendario vi
   } finally { await ui.close(); }
 });
 
-for (const [principal, allowed, label] of [['SECUNDARIA', ['SECUNDARIA'], 'Secundaria'], ['PRIMARIA', ['INICIAL', 'PRIMARIA'], 'Inicial y Primaria']]) {
+for (const [principal, allowed, label] of [['INICIAL', ['INICIAL'], 'Inicial'], ['SECUNDARIA', ['SECUNDARIA'], 'Secundaria'],
+  ['PRIMARIA', ['PRIMARIA'], 'Primaria'], ['PRIMARIA', ['INICIAL', 'PRIMARIA'], 'Inicial y Primaria']]) {
   test(`Alcance único ${label}: sin selectores redundantes`, { skip: !hasEdge, timeout: 90000 }, async () => {
     const ui = await authBrowser('calendarHarness.jsx');
     try {
@@ -60,7 +66,10 @@ for (const [principal, allowed, label] of [['SECUNDARIA', ['SECUNDARIA'], 'Secun
       await ui.login(); await ui.setRoute('/calendario');
       await ui.wait(`document.querySelectorAll('section[aria-label^="Calendario de"] button').length === 31`);
       assert.equal(await ui.evaluate('document.querySelectorAll("select").length'), 0);
-      assert.ok((await ui.evaluate('document.body.textContent')).includes(label));
+      const content = await ui.evaluate('document.querySelector("#main-content").textContent');
+      assert.ok(!content.includes(label));
+      assert.doesNotMatch(content, /Año escolar|autorización adicional explícita|Consulta los días de clase/);
+      assert.ok(await ui.evaluate(`calendarTest.calls.filter(c => c.url === '/calendario-lectivo').every(c => ${JSON.stringify(allowed)}.includes(c.params.nivel))`));
     } finally { await ui.close(); }
   });
 }
@@ -87,5 +96,43 @@ test('Con varios años conserva selector y carga el año elegido', { skip: !hasE
     await ui.evaluate(`(() => {const input=document.querySelector('select'); input.value='11'; input.dispatchEvent(new Event('change',{bubbles:true}));})()`);
     await ui.wait('document.body.textContent.includes("Año cerrado")');
     await ui.wait(`calendarTest.calls.some(call => call.url === '/calendario-lectivo' && call.params.anio_escolar_id === '11')`);
+  } finally { await ui.close(); }
+});
+
+test('SUBDIRECCION: año actual automático con varios años, sin selector ni cambio de año al navegar', { skip: !hasEdge, timeout: 90000 }, async () => {
+  const ui = await authBrowser('calendarHarness.jsx');
+  try {
+    await ui.navigate('/login'); await ui.wait('Boolean(window.calendarTest)');
+    await ui.evaluate("Object.assign(calendarTest,{role:'SUBDIRECCION',principal:'SECUNDARIA',allowed:['SECUNDARIA'],multipleYears:true})");
+    await ui.login(); await ui.setRoute('/calendario');
+    await ui.wait(`document.querySelectorAll('section[aria-label^="Calendario de"] button').length === 31`);
+    assert.equal(await ui.evaluate('document.querySelectorAll("select").length'), 0);
+    assert.equal(await ui.evaluate('document.querySelector("#main-content h2").textContent'), 'Marzo de 2026');
+    assert.equal(await ui.evaluate('getComputedStyle(document.querySelector("#main-content h2")).textTransform'), 'none');
+    await ui.evaluate('document.querySelector(\'button[aria-label="Mes siguiente"]\').click()');
+    await ui.wait('document.querySelector("#main-content h2").textContent === "Abril de 2026"');
+    assert.ok(await ui.evaluate("calendarTest.calls.every(c => c.params?.anio_escolar_id === '10')"));
+  } finally { await ui.close(); }
+});
+
+test('SUBDIRECCION: usa el ABIERTO más reciente si falta el año actual; sin candidato no consulta calendario', { skip: !hasEdge, timeout: 90000 }, async () => {
+  const ui = await authBrowser('calendarHarness.jsx');
+  try {
+    await ui.navigate('/login'); await ui.wait('Boolean(window.calendarTest)');
+    await ui.evaluate(`Object.assign(calendarTest,{role:'SUBDIRECCION',principal:'INICIAL',allowed:['INICIAL'],years:[
+      {id:'20',anio:2025,estado:'ABIERTO',fecha_inicio:'2025-03-01',fecha_fin:'2025-04-30'},
+      {id:'19',anio:2024,estado:'ABIERTO',fecha_inicio:'2024-03-01',fecha_fin:'2024-04-30'},
+      {id:'21',anio:2027,estado:'PLANIFICADO',fecha_inicio:'2027-03-01',fecha_fin:'2027-04-30'}]})`);
+    await ui.login(); await ui.setRoute('/calendario');
+    await ui.wait(`document.querySelectorAll('section[aria-label^="Calendario de"] button').length === 31`);
+    assert.ok(await ui.evaluate("calendarTest.calls.every(c => c.params?.anio_escolar_id === '20')"));
+    for (const [anio, estado] of [[2025, 'CERRADO'], [2027, 'PLANIFICADO']]) {
+      await ui.setRoute('/inicio');
+      await ui.evaluate(`calendarTest.calls=[];calendarTest.years=[{id:'30',anio:${anio},estado:'${estado}',fecha_inicio:'${anio}-03-01',fecha_fin:'${anio}-04-30'}]`);
+      await ui.setRoute('/calendario');
+      await ui.wait('document.body.textContent.includes("No hay un año escolar vigente o abierto disponible")');
+      assert.equal(await ui.evaluate('calendarTest.calls.length'), 0);
+      assert.equal(await ui.evaluate('document.querySelectorAll("#main-content select").length'), 0);
+    }
   } finally { await ui.close(); }
 });

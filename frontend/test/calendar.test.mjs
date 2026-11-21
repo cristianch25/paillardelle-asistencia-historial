@@ -39,6 +39,7 @@ test('mes civil, navegación entre años y límites del año sin calcular lectiv
   const cells = dates.monthCells('2026-03'); assert.equal(cells[6], '2026-03-01'); assert.equal(cells.filter(Boolean).length, 31);
   assert.equal(dates.shiftedMonth('2026-12', 1), '2027-01'); assert.equal(dates.shiftedMonth('2026-01', -1), '2025-12');
   assert.deepEqual(dates.monthRange('2026-03', { fecha_inicio: '2026-03-05', fecha_fin: '2026-03-20' }), { desde: '2026-03-05', hasta: '2026-03-20' });
+  assert.equal(dates.monthTitle('2026-11'), 'Noviembre de 2026');
 });
 test('cuadrícula amplia respeta sábado lectivo y día ordinario no lectivo del servidor', () => {
   const html = renderToStaticMarkup(h(Grid, { month: '2026-03', disabled: false, onSelect() {}, days: [
@@ -47,6 +48,8 @@ test('cuadrícula amplia respeta sábado lectivo y día ordinario no lectivo del
   ] }));
   assert.match(html, /07\/03\/2026: Lectivo/); assert.match(html, /10\/03\/2026: No lectivo/);
   assert.match(html, /grid-cols-7/); assert.match(html, /sm:min-h-32/);
+  assert.doesNotMatch(html, /Sin asistencia/);
+  assert.match(html, /Recuperación|Feriado|Excepción/);
 });
 test('niveles se comprueban en calendario, no se infieren del perfil ni de secciones', async () => {
   const calls = [];

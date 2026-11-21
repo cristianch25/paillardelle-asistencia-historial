@@ -21,7 +21,6 @@ export default function CalendarMonthGrid({ month, days, disabled, onSelect }: {
         className={`flex min-h-24 min-w-0 flex-col items-start justify-start border-b border-r border-slate-200 p-1.5 text-left transition hover:ring-2 hover:ring-inset hover:ring-institutional-700 focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-institutional-700 disabled:cursor-default sm:min-h-32 sm:p-3 ${day.es_lectivo ? 'bg-emerald-50' : 'bg-slate-100/70'}`}>
         <span className={`inline-flex size-7 items-center justify-center rounded-full text-sm font-bold sm:size-8 ${date === today ? 'bg-institutional-800 text-white' : 'text-slate-800'}`}>{Number(date.slice(-2))}</span>
         <span className={`mt-2 block break-words text-[10px] font-semibold leading-tight sm:text-xs ${day.es_lectivo ? 'text-emerald-800' : 'text-slate-500'}`}>{label}</span>
-        {!mixed && !day.es_lectivo && <span className="mt-1 hidden text-xs font-medium text-slate-600 sm:block">Sin asistencia</span>}
         {exception && <span className="mt-1 block text-[10px] font-semibold text-institutional-800 sm:text-xs">Excepción</span>}
         {day.descripcion && <span className="mt-1 hidden break-words text-xs text-slate-600 sm:line-clamp-2">{day.descripcion}</span>}
       </button>;

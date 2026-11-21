@@ -3,14 +3,14 @@ import { AxiosError } from 'axios';
 import { httpClient } from '../../src/shared/api/httpClient';
 
 const previous = httpClient.defaults.adapter;
-const state = { role: 'ADMIN', principal: 'PRIMARIA', allowed: ['PRIMARIA', 'SECUNDARIA'], calls: [], exceptions: {}, closed: false, multipleYears: false };
+const state = { role: 'ADMIN', principal: 'PRIMARIA', allowed: ['PRIMARIA', 'SECUNDARIA'], calls: [], exceptions: {}, closed: false, multipleYears: false, years: null };
 window.calendarTest = state;
 httpClient.defaults.adapter = async config => {
   const fail = (status, error) => { throw new AxiosError('detalle privado', '', config, null, { status, data: { error } }); };
   if (config.url === '/auth/me') {
     const response = await previous(config); Object.assign(response.data.user, { rol: state.role, nivel_asignado: state.principal }); return response;
   }
-  if (config.url === '/anios-escolares') return { config, status: 200, data: { anios_escolares: [...(state.multipleYears ? [{ id: '11', anio: 2025, estado: 'CERRADO', fecha_inicio: '2025-03-01', fecha_fin: '2025-04-30' }] : []), { id: '10', anio: 2026,
+  if (config.url === '/anios-escolares') return { config, status: 200, data: { anios_escolares: state.years ?? [...(state.multipleYears ? [{ id: '11', anio: 2025, estado: 'CERRADO', fecha_inicio: '2025-03-01', fecha_fin: '2025-04-30' }] : []), { id: '10', anio: 2026,
     estado: state.closed ? 'CERRADO' : 'ABIERTO', fecha_inicio: '2026-03-01', fecha_fin: '2026-04-30' }], pagination: { page: 1, limit: 100, has_more: false } } };
   if (!config.url.startsWith('/calendario-lectivo') && config.url !== '/periodos-lectivos') return previous(config);
   state.calls.push({ url: config.url, method: config.method, params: config.params });
