@@ -15,7 +15,7 @@ const navigation: readonly NavigationItem[] = [
   { label: 'Administradores', path: '/administradores', icon: Users, roles: ['SUPERUSUARIO'] },
   { label: 'Inicio', path: '/inicio', icon: House, roles: ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'] },
   { label: 'Usuarios', path: '/usuarios', icon: Users, roles: ['ADMIN'] },
-  { label: 'Auditoría', path: '/auditoria', icon: ShieldCheck, roles: ['ADMIN'] },
+  { label: 'Historial de actividades', path: '/auditoria', icon: ShieldCheck, roles: ['ADMIN'] },
   { label: 'Años escolares', path: '/anios-escolares', icon: CalendarDays, roles: ['ADMIN'] },
   { label: 'Estadísticas', path: '/estadisticas', icon: ChartColumn, roles: ['ADMIN', 'SUBDIRECCION'] },
   { label: 'Calendario escolar', path: '/calendario', icon: CalendarDays, roles: ['ADMIN', 'SUBDIRECCION'] },

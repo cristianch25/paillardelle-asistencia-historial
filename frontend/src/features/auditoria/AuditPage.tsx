@@ -9,28 +9,7 @@ import Pagination from '../../shared/components/Pagination';
 import { apiErrorMessage } from '../../shared/api/apiError';
 import { getAuditLog } from './auditoria.api';
 import type { AuditResponse } from './auditoria.types';
-
-const AUDIT_ACTIONS = [
-  { value: '', label: 'Todas las operaciones' },
-  { value: 'CAMBIAR_PASSWORD', label: 'Cambiar contraseña' },
-  { value: 'RESTABLECER_PASSWORD', label: 'Restablecer contraseña' },
-  { value: 'CREAR_USUARIO', label: 'Crear usuario' },
-  { value: 'ACTUALIZAR_USUARIO', label: 'Actualizar usuario' },
-  { value: 'CREAR_ASIGNACION', label: 'Asignar docente' },
-  { value: 'FINALIZAR_ASIGNACION', label: 'Finalizar asignación' },
-  { value: 'RETIRAR_MATRICULA', label: 'Retirar matrícula' },
-  { value: 'CAMBIO_SECCION', label: 'Cambiar sección' },
-  { value: 'REINGRESAR_MATRICULA', label: 'Reingresar estudiante' },
-  { value: 'CREAR_MATRICULA', label: 'Matricular estudiante' },
-  { value: 'CREAR_ANIO_ESCOLAR', label: 'Crear año escolar' },
-  { value: 'ACTUALIZAR_ANIO_ESCOLAR', label: 'Actualizar año escolar' },
-  { value: 'CREAR_SECCION', label: 'Crear sección' },
-  { value: 'ACTUALIZAR_SECCION', label: 'Actualizar sección' },
-  { value: 'IMPORTAR_PADRON', label: 'Importar padrón' },
-  { value: 'ABRIR_SESION_ASISTENCIA', label: 'Creación de sesión de asistencia' },
-  { value: 'CERRAR_SESION_ASISTENCIA', label: 'Cierre de sesión de asistencia' },
-  { value: 'ACTUALIZAR_TELEFONO_APODERADO', label: 'Actualizar teléfono' },
-];
+import { activityName, activityDetail, responsibleName, responsibleRole, auditActionOptions } from './auditPresentation';
 
 function formatAuditTime(iso: string) {
   try {
@@ -80,8 +59,7 @@ export default function AuditPage() {
     <div className="min-w-0 space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Auditoría administrativa</h1>
-          <p className="mt-1 text-sm text-slate-600">Registro histórico de operaciones del sistema. Consulta de solo lectura.</p>
+          <h1 className="text-2xl font-bold">Historial de actividades</h1>
         </div>
         <Button variant="secondary" disabled={loading} onClick={() => void loadData(page, accion)}>
           Actualizar
@@ -90,33 +68,33 @@ export default function AuditPage() {
 
       <div className="flex flex-wrap items-center gap-3">
         <label htmlFor="filtro-accion" className="text-sm font-semibold text-slate-700">
-          Tipo de operación:
+          Filtrar por actividad
         </label>
         <select id="filtro-accion" value={accion}
           onChange={e => { setAccion(e.target.value); setPage(1); }}
-          className="min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-2">
-          {AUDIT_ACTIONS.map(a => (
+          className="min-h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-institutional-700 sm:w-auto">
+          {auditActionOptions.map(a => (
             <option key={a.value} value={a.value}>{a.label}</option>
           ))}
         </select>
       </div>
 
-      {loading && <LoadingState message="Cargando registros de auditoría…" />}
+      {loading && <LoadingState message="Cargando actividades…" />}
       {error && <ErrorState message={error} />}
 
       {!loading && !error && data && (
         data.registros.length === 0 ? (
-          <EmptyState message="No se encontraron registros de auditoría para el criterio seleccionado." />
+          <EmptyState message="No se encontraron actividades para el criterio seleccionado." />
         ) : (
           <div className="space-y-4">
             <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-              <table className="w-full text-left text-sm text-slate-800">
+              <table className="w-full min-w-[40rem] text-left text-sm text-slate-800">
                 <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-600">
                   <tr>
                     <th scope="col" className="px-4 py-3">Fecha y hora</th>
-                    <th scope="col" className="px-4 py-3">Usuario responsable</th>
-                    <th scope="col" className="px-4 py-3">Operación</th>
-                    <th scope="col" className="px-4 py-3">Descripción</th>
+                    <th scope="col" className="px-4 py-3">Responsable</th>
+                    <th scope="col" className="px-4 py-3">Actividad</th>
+                    <th scope="col" className="px-4 py-3">Detalle</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -124,15 +102,15 @@ export default function AuditPage() {
                     <tr key={r.id} className="hover:bg-slate-50/80">
                       <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-600">{formatAuditTime(r.fecha_hora)}</td>
                       <td className="px-4 py-3">
-                        <p className="font-semibold text-slate-900">{r.usuario.nombre_completo}</p>
-                        <p className="text-xs text-slate-500">@{r.usuario.usuario} · <span className="font-medium text-slate-700">{r.usuario.rol}</span></p>
+                        <p className="break-words font-semibold text-slate-900" title={r.accion === 'CREAR_SUPERUSUARIO_LOCAL' ? 'Alta realizada mediante la herramienta local' : 'Nombre actual de la cuenta responsable'}>{responsibleName(r.usuario)}</p>
+                        {r.usuario.rol && <p className="mt-1 text-xs text-slate-600" title="Rol actual de la cuenta">{responsibleRole(r.usuario.rol)}</p>}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-block rounded-md bg-sky-50 px-2 py-1 text-xs font-medium text-sky-800 border border-sky-200">
-                          {r.accion_nombre}
+                        <span className="font-semibold text-institutional-950">
+                          {activityName(r)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-slate-700">{r.descripcion}</td>
+                      <td className="break-words px-4 py-3 text-slate-700">{activityDetail(r)}</td>
                     </tr>
                   ))}
                 </tbody>
