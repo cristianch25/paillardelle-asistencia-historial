@@ -7,13 +7,12 @@ import { AxiosError } from 'axios';
 import { MemoryRouter } from 'react-router';
 
 // Contratos aislados: adaptadores en memoria, sin cuentas, JWT ni MySQL.
-let vite, client, yearsApi, sectionsApi, Filters, List, presentation, MySections, SelectionProvider, Auth;
+let vite, client, yearsApi, sectionsApi, List, presentation, MySections, SelectionProvider, Auth;
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   client = (await vite.ssrLoadModule('/src/shared/api/httpClient.ts')).httpClient;
   yearsApi = await vite.ssrLoadModule('/src/features/organizacion-escolar/anios-escolares/aniosEscolares.api.ts');
   sectionsApi = await vite.ssrLoadModule('/src/features/organizacion-escolar/secciones/secciones.api.ts');
-  Filters = (await vite.ssrLoadModule('/src/features/organizacion-escolar/secciones/SeccionesFilters.tsx')).default;
   List = (await vite.ssrLoadModule('/src/features/organizacion-escolar/secciones/SeccionesList.tsx')).default;
   presentation = await vite.ssrLoadModule('/src/features/organizacion-escolar/secciones/sectionPresentation.ts');
   MySections = (await vite.ssrLoadModule('/src/features/organizacion-escolar/secciones/MisSeccionesPage.tsx')).default;
@@ -101,17 +100,11 @@ test('fallos HTTP no se convierten en resultados vacíos ni generan reintentos',
   }
 });
 
-test('filtros no preseleccionan año; Inicial ofrece grupos 4/5 y las tres opciones de estado', () => {
-  const markup = renderToStaticMarkup(createElement(Filters, {
-    years: [], yearId: '', filters: { nivel: 'INICIAL', grado: '', activo: '' },
-    onYearChange() {}, onFiltersChange() {},
-  }));
-  assert.match(markup, /value="" selected="">Selecciona un año/);
-  assert.match(markup, /value="4"/);
-  assert.match(markup, /value="5"/);
-  assert.doesNotMatch(markup, /value="6"/);
-  assert.match(markup, /value="true"/);
-  assert.match(markup, /value="false"/);
+test('grados y edades mantienen los valores usados por los formularios actuales', () => {
+  assert.deepEqual(presentation.gradesForLevel('INICIAL'), [4, 5]);
+  assert.deepEqual(presentation.gradesForLevel('PRIMARIA'), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(presentation.gradesForLevel('SECUNDARIA'), [1, 2, 3, 4, 5]);
+  assert.deepEqual(presentation.gradesForLevel(''), []);
 });
 
 test('lista conserva nombres completos, grupo, turno y estado, sin acciones de asistencia', () => {
@@ -153,28 +146,5 @@ test('nombres de sección conservan el grado y nombre completos para los tres ni
     }));
     assert.ok(markup.includes(`>${expected}</h2>`));
     assert.doesNotMatch(markup, /<dt[^>]*>Grado:|<dt[^>]*>Grupo:/);
-  }
-});
-
-test('etiquetas y opciones de grado/edad son legibles sin cambiar los valores de los filtros', () => {
-  for (const [nivel, label, options] of [
-    ['INICIAL', 'Edad', ['value="4">4 años', 'value="5">5 años']],
-    ['PRIMARIA', 'Grado', ['value="1">1.º', 'value="6">6.º']],
-    ['SECUNDARIA', 'Grado', ['value="1">1.º', 'value="5">5.º']],
-    ['', 'Grado / edad', []],
-  ]) {
-    const markup = renderToStaticMarkup(createElement(Filters, {
-      years: [], yearId: '', filters: { nivel, grado: '', activo: '' }, onYearChange() {}, onFiltersChange() {},
-    }));
-    assert.ok(markup.includes(`>${label}<select`));
-    for (const option of options) assert.ok(markup.includes(option));
-    if (nivel === 'SECUNDARIA') assert.doesNotMatch(markup, /value="6"/);
-    assert.doesNotMatch(markup, /4\.º \/ 4 años|5\.º \/ 5 años/);
-    if (!nivel) {
-      const grade = markup.match(/<select[^>]*id="[^"]*-grade"[^>]*>[\s\S]*?<\/select>/)[0];
-      assert.match(grade, / disabled=""/);
-      assert.equal((grade.match(/<option/g) ?? []).length, 1);
-      assert.match(grade, />Todos<\/option>/);
-    }
   }
 });

@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { AxiosError } from 'axios';
 
-let vite, http, api, calendarApi, opening, calendar, Page, View, CalendarDayInfo, Auth, Selection, Selected;
+let vite, http, api, calendarApi, opening, calendar, Page, View, CalendarDayInfo, Auth, Selection;
 const root = '/src/features/asistencias/';
 const selection = { section: { id: '9007199254740993', anio_escolar_id: '1', nivel: 'INICIAL', grado: 4,
   letra: 'CREATIVOS', activo: false, turno: null }, year: { id: '1', anio: 2026, estado: 'CERRADO' } };
@@ -30,7 +30,6 @@ before(async () => {
   CalendarDayInfo = (await vite.ssrLoadModule(`${root}AttendanceCalendarInfo.tsx`)).CalendarDayInfo;
   Auth = (await vite.ssrLoadModule('/src/features/auth/AuthContext.ts')).AuthContext;
   Selection = (await vite.ssrLoadModule('/src/features/organizacion-escolar/secciones/SeccionSelectionContext.ts')).SeccionSelectionContext;
-  Selected = (await vite.ssrLoadModule('/src/features/organizacion-escolar/secciones/SeccionSeleccionada.tsx')).default;
 });
 after(async () => { await vite?.close(); });
 
@@ -57,7 +56,6 @@ test('pantalla inicia sin POST y ofrece una apertura explícita a los tres roles
   }
   await setImmediate();
   assert.equal(calls, 0, 'renderizar no inicia la apertura');
-  assert.match(markup(Selected), /href="\/secciones\/asistencia\?page=3"[^>]*>Asistencia diaria/);
 });
 
 test('REGISTRADOR usa la fecha compartida y ADMIN/SUBDIRECCION conservan su selector local', () => {

@@ -4,33 +4,40 @@ import { createServer } from 'vite';
 import { AxiosError } from 'axios';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router';
 import { sessionId, sectionId, supervisionDetail } from './support/supervisionDetailFixture.mjs';
 import { supervisionResult } from './support/supervisionFixture.mjs';
 
-let vite, http, api, dates, Students, Session;
+let vite, http, api, dates, View, Detail, Auth;
 const response = (config, data) => ({ config, data, status: 200, statusText: 'OK', headers: {} });
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   http = await vite.ssrLoadModule('/src/shared/api/httpClient.ts');
   api = await vite.ssrLoadModule('/src/features/asistencias/supervision/supervisionDetail.api.ts');
   dates = await vite.ssrLoadModule('/src/shared/dates/civilDate.ts');
-  Students = (await vite.ssrLoadModule('/src/features/asistencias/supervision/SupervisionStudents.tsx')).default;
-  Session = (await vite.ssrLoadModule('/src/features/asistencias/supervision/SupervisionSessionDetail.tsx')).default;
+  View = (await vite.ssrLoadModule('/src/features/asistencias/AsistenciaSessionView.tsx')).default;
+  Detail = (await vite.ssrLoadModule('/src/features/asistencias/integrada/AdminSectionDetail.tsx')).default;
+  Auth = (await vite.ssrLoadModule('/src/features/auth/AuthContext.ts')).AuthContext;
 });
 after(async () => { await vite?.close(); });
 
-test('detalle de lectura no requiere contexto de edición ni autenticación y omite auditoría técnica', () => {
-  for (const state of ['ABIERTA', 'CERRADA']) {
+test('detalle actual conserva estados, totales y guardado autorizado sin exponer eventos técnicos', () => {
+  let calls = 0;
+  http.httpClient.defaults.adapter = async () => { calls++; throw new Error('HTTP inesperado al renderizar'); };
+  for (const role of ['ADMIN', 'SUBDIRECCION']) for (const state of ['ABIERTA', 'CERRADA']) {
     const attendance = supervisionDetail(sessionId, state);
     attendance.padron[0].ultimo_cambio = { usuario_id: 'ACTOR_TECNICO_OCULTO', fecha: 'INSTANTE_TECNICO_OCULTO' };
-    const html = renderToStaticMarkup(h(Session, { editable: false,
-      detail: { attendance, section: { nivel: 'INICIAL', grado: 4, letra: 'CREATIVOS' } }, retry() {} }));
-    assert.match(html, /Detalle por estudiante/);
-    assert.match(html, /Totales de asistencia/);
-    assert.match(html, state === 'ABIERTA' ? /Sesión abierta/ : /Sesión cerrada/);
-    assert.doesNotMatch(html, /Corrección de asistencia|Guardar cambios|Cerrar asistencia|ACTOR_TECNICO_OCULTO|INSTANTE_TECNICO_OCULTO/);
-    assert.doesNotMatch(html, /aria-label="Asistencia de/);
+    const html = renderToStaticMarkup(h(MemoryRouter, null,
+      h(Auth.Provider, { value: { session: { user: { id: '1', rol: role, nivel_asignado: 'PRIMARIA' } } } },
+        h(Detail, { detail: { attendance, section: { nivel: 'INICIAL', grado: 4, letra: 'CREATIVOS' } }, retry() {} }))));
+    assert.match(html, /aria-label="Sección consultada"/);
+    assert.match(html, /aria-label="Totales de asistencia"/);
+    assert.match(html, /aria-label="Edición autorizada de asistencia"/);
+    assert.match(html, /Guardar cambios/);
+    assert.match(html, state === 'ABIERTA' ? /Asistencia abierta/ : /Asistencia cerrada/);
+    assert.doesNotMatch(html, /Cerrar asistencia|ACTOR_TECNICO_OCULTO|INSTANTE_TECNICO_OCULTO/);
   }
+  assert.equal(calls, 0);
 });
 
 test('fecha civil se presenta DD/MM/AAAA sin conversión horaria ni modificación del valor original', () => {
@@ -41,12 +48,14 @@ test('fecha civil se presenta DD/MM/AAAA sin conversión horaria ni modificació
   assert.equal(dates.formatCivilDate('2026-02-30'), '2026-02-30');
 });
 
-test('contador distingue 0 estudiantes, 1 estudiante y varios estudiantes', () => {
-  const { padron } = supervisionDetail();
+test('vista actual cuenta cero, uno y varios estudiantes sin alterar el padrón', () => {
+  const source = supervisionDetail(), before = structuredClone(source);
   for (const count of [0, 1, 5]) {
-    const html = renderToStaticMarkup(h(Students, { padron: padron.slice(0, count) }));
-    assert.match(html, new RegExp(`>${count} ${count === 1 ? 'estudiante' : 'estudiantes'} · Todos<`));
+    const html = renderToStaticMarkup(h(View, { data: { ...source, padron: source.padron.slice(0, count) } }));
+    assert.match(html, new RegExp('Mostrando ' + count + ' de ' + count + ' estudiantes'));
+    assert.equal((html.match(/<li /g) ?? []).length, count);
   }
+  assert.deepEqual(source, before);
 });
 
 test('detalle ABIERTA/CERRADA usa sesion_id y resuelve identidad con un GET acotado de asistencia', async () => {

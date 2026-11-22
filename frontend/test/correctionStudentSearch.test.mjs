@@ -5,7 +5,7 @@ import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { supervisionDetail } from './support/supervisionDetailFixture.mjs';
 
-let vite, search, Search, SessionView, StudentRow;
+let vite, search, SessionView, StudentRow;
 const rows = supervisionDetail().padron.filter(row => row.version > 0).map((row, index) => ({ ...row, estudiante: {
   ...row.estudiante, nombres: index < 2 ? 'Lucía María' : 'José', apellido_paterno: index < 2 ? 'Álvarez' : 'Muñoz',
   apellido_materno: index < 2 ? 'Del Río' : null, codigo_estudiante: index < 2 ? `00012${index + 3}` : null,
@@ -13,7 +13,6 @@ const rows = supervisionDetail().padron.filter(row => row.version > 0).map((row,
 before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   search = await vite.ssrLoadModule('/src/features/asistencias/supervision/correctionStudentSearch.ts');
-  Search = (await vite.ssrLoadModule('/src/features/asistencias/supervision/SupervisionStudentSearch.tsx')).default;
   SessionView = (await vite.ssrLoadModule('/src/features/asistencias/AsistenciaSessionView.tsx')).default;
   StudentRow = (await vite.ssrLoadModule('/src/features/asistencias/AttendanceStudentRow.tsx')).default;
 });
@@ -69,23 +68,24 @@ test('consulta vacía conserva orden y homónimos; sin coincidencias es vacío s
   assert.deepEqual(rows, before);
 });
 
-test('resultados muestran nombre completo, código o ausencia y estado; selección usa ID exacto', () => {
-  const html = renderToStaticMarkup(h(Search, { rows, selectedId: rows[1].asistencia_id, disabled: false, onSelect() {} }));
-  assert.match(html, /Lucía María|Álvarez Del Río Lucía María/);
-  assert.match(html, /Código: 000123/); assert.match(html, /Código: No disponible/);
-  assert.match(html, /Presente/); assert.match(html, /Tardanza/);
+test('buscador actual distingue homónimos por código y conserva el estado de la fila visible', () => {
+  const data = { ...supervisionDetail(), padron: rows }, before = structuredClone(rows);
+  const html = renderToStaticMarkup(h(SessionView, { data, administrativeDetail: true, editable: true, query: '000124' }));
+  assert.match(html, new RegExp('Mostrando 1 de ' + rows.length + ' estudiantes'));
+  assert.match(html, /Álvarez Del Río Lucía María/);
+  assert.match(html, /Código: 000124/);
+  assert.doesNotMatch(html, /Código: 000123/);
+  assert.match(html, /Tardanza/);
   assert.equal((html.match(/aria-pressed="true"/g) ?? []).length, 1);
-  assert.doesNotMatch(html, /Estudiante seleccionado|null|undefined/); assert.match(html, /Limpiar selección/);
-  assert.match(html, /Estado de asistencia/); assert.match(html, /Actualizar asistencia/);
+  assert.deepEqual(rows, before);
 });
 
-test('sin selección válida no hay tarjeta; vacío y envío en curso mantienen estados accesibles', () => {
-  const html = renderToStaticMarkup(h(Search, { rows: [], selectedId: 'ajeno', disabled: false, onSelect() {} }));
-  assert.match(html, /No se encontraron estudiantes/);
-  assert.doesNotMatch(html, /Estudiante seleccionado/);
-  assert.equal((html.match(/<button[^>]*disabled=""/g) ?? []).length, 2);
-  const disabled = renderToStaticMarkup(h(Search, { rows, selectedId: rows[0].asistencia_id, disabled: true, onSelect() {} }));
-  assert.match(disabled, /type="search"[^>]*disabled=""/);
-  assert.equal((disabled.match(/<button[^>]*disabled=""/g) ?? []).length, rows.length + 2);
-  assert.match(disabled, /aria-controls=/); assert.match(disabled, /overflow-y-auto/);
+test('vista actual conserva vacío accesible y bloquea las marcas durante el envío', () => {
+  const empty = renderToStaticMarkup(h(SessionView, { data: { ...supervisionDetail(), padron: [] }, editable: true, disabled: true }));
+  assert.match(empty, /Mostrando 0 de 0 estudiantes/);
+  assert.match(empty, /No hay estudiantes que coincidan/);
+  assert.doesNotMatch(empty, /aria-pressed=/);
+  const busy = renderToStaticMarkup(h(SessionView, { data: { ...supervisionDetail(), padron: rows }, editable: true, disabled: true }));
+  assert.equal((busy.match(/disabled="" aria-pressed=/g) ?? []).length, rows.length * 4);
+  assert.match(busy, /Buscar estudiante/);
 });

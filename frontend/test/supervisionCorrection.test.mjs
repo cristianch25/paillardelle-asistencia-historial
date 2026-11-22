@@ -4,9 +4,10 @@ import { createServer } from 'vite';
 import { AxiosError } from 'axios';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter, Routes, Route } from 'react-router';
 import { supervisionDetail, sessionId } from './support/supervisionDetailFixture.mjs';
 
-let vite, http, api, Session, Auth;
+let vite, http, api, Workspace, access, Auth;
 const root = '/src/features/asistencias/supervision/';
 const response = (config, data, status = 200) => ({ config, data, status, statusText: 'OK', headers: {} });
 function updated(base, state) {
@@ -21,7 +22,8 @@ before(async () => {
   vite = await createServer({ server: { middlewareMode: true, hmr: false, ws: false } });
   http = await vite.ssrLoadModule('/src/shared/api/httpClient.ts');
   api = await vite.ssrLoadModule(`${root}supervisionCorrection.ts`);
-  Session = (await vite.ssrLoadModule(`${root}SupervisionSessionDetail.tsx`)).default;
+  Workspace = (await vite.ssrLoadModule('/src/features/asistencias/supervision/SupervisionWorkspace.tsx')).default;
+  access = await vite.ssrLoadModule('/src/features/asistencias/supervision/supervisionAccess.ts');
   Auth = (await vite.ssrLoadModule('/src/features/auth/AuthContext.ts')).AuthContext;
 });
 after(async () => { await vite?.close(); });
@@ -86,15 +88,17 @@ test('errores 400/403/404/409/500 y red se propagan sin reenviar ni consultar au
   }
 });
 
-test('matriz de asistencia orienta controles: ADMIN global, SUBDIRECCION por principal, REGISTRADOR sin corrección', () => {
+test('workspace actual restringe roles y conserva la matriz de niveles de asistencia', () => {
   for (const [role, principal, allowed] of [['ADMIN', null, ['INICIAL', 'PRIMARIA', 'SECUNDARIA']],
     ['SUBDIRECCION', 'PRIMARIA', ['INICIAL', 'PRIMARIA']], ['SUBDIRECCION', 'SECUNDARIA', ['SECUNDARIA']],
-    ['SUBDIRECCION', 'INICIAL', ['INICIAL']], ['REGISTRADOR', 'INICIAL', []]]) {
-    for (const nivel of ['INICIAL', 'PRIMARIA', 'SECUNDARIA']) {
-      const html = renderToStaticMarkup(h(Auth.Provider, { value: { session: { user: { rol: role, nivel_asignado: principal } } } },
-        h(Session, { detail: { attendance: supervisionDetail(), section: { nivel, grado: 4, letra: 'A' } }, retry() {} })));
-      assert.equal(html.includes('aria-label="Corrección de asistencia"'), allowed.includes(nivel), `${role}/${principal}/${nivel}`);
-    }
+    ['SUBDIRECCION', 'INICIAL', ['INICIAL']], ['REGISTRADOR', 'INICIAL', []], ['SUPERUSUARIO', null, []]]) {
+    const user = { id: '1', rol: role, nivel_asignado: principal };
+    assert.deepEqual(access.supervisionLevels(user), allowed);
+    const html = renderToStaticMarkup(h(MemoryRouter, null,
+      h(Auth.Provider, { value: { session: { user } } },
+        h(Routes, null, h(Route, { element: h(Workspace) },
+          h(Route, { path: '/', element: h('p', null, 'CURRENT_ATTENDANCE') }))))));
+    assert.equal(html.includes('CURRENT_ATTENDANCE'), ['ADMIN', 'SUBDIRECCION'].includes(role), role);
   }
 });
 

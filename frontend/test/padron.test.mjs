@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router';
 import { AxiosError } from 'axios';
 
-let vite, http, dates, api, requests, List, Page, Selection, Auth, Selected, Sidebar, location;
+let vite, http, dates, api, requests, List, Page, Selection, Auth, Sidebar, location;
 const root = '/src/features/organizacion-escolar/secciones/';
 const section = { id: '9007199254740993', anio_escolar_id: '1', nivel: 'INICIAL', grado: 4,
   letra: 'CREATIVOS', turno: null, activo: false };
@@ -26,7 +26,6 @@ before(async () => {
   requests = await vite.ssrLoadModule(`${root}usePadron.ts`);
   List = (await vite.ssrLoadModule(`${root}EstudiantesList.tsx`)).default;
   Page = (await vite.ssrLoadModule(`${root}EstudiantesSeccionPage.tsx`)).default;
-  Selected = (await vite.ssrLoadModule(`${root}SeccionSeleccionada.tsx`)).default;
   Sidebar = (await vite.ssrLoadModule('/src/app/layout/AppSidebar.tsx')).default;
   Selection = (await vite.ssrLoadModule(`${root}SeccionSelectionContext.ts`)).SeccionSelectionContext;
   Auth = (await vite.ssrLoadModule('/src/features/auth/AuthContext.ts')).AuthContext;
@@ -119,7 +118,6 @@ test('tres roles ven fecha y regreso según rol con filtros/página', () => {
     assert.match(html, /lucide-arrow-left/);
     assert.doesNotMatch(html, / min=| max=|Turno:|Guardar|Cerrar sesión de asistencia/);
   }
-  assert.match(markup(Selected), /href="\/secciones\/estudiantes\?page=3&amp;nivel=INICIAL"[^>]*>Ver estudiantes/);
 });
 
 test('menú mantiene secciones activo en rutas hijas por segmento, para los tres roles', () => {
@@ -175,20 +173,6 @@ test('roles y tres niveles conservan sus formatos y controles en años pasados, 
   const html = markup(Page, { selection: { ...selected, year: { ...selected.year, fecha_fin: '2026-02-30' } } });
   assert.match(html, /No se puede determinar la fecha del padrón/);
   assert.doesNotMatch(html, /Personal asignado|Consultando estudiantes/);
-});
-
-test('tarjeta prioriza asistencia, mantiene estudiantes y limpiar con rutas y filtros para los tres roles', () => {
-  for (const role of ['REGISTRADOR', 'SUBDIRECCION', 'ADMIN']) {
-    const html = markup(Selected, { role });
-    const attendance = html.match(/<a[^>]*href="\/secciones\/asistencia\?page=3&amp;nivel=INICIAL"[^>]*>Asistencia diaria<\/a>/)?.[0];
-    const students = html.match(/<a[^>]*href="\/secciones\/estudiantes\?page=3&amp;nivel=INICIAL"[^>]*>Ver estudiantes<\/a>/)?.[0];
-    assert.ok(attendance); assert.ok(students);
-    assert.ok(html.indexOf(attendance) < html.indexOf(students));
-    assert.match(attendance, /bg-institutional-800/);
-    assert.match(students, /bg-white/);
-    assert.match(html, /<button[^>]*class="[^"]*border-transparent[^"]*"[^>]*>Limpiar selección<\/button>/);
-    assert.match(html, /flex-col[^"]*sm:flex-row/);
-  }
 });
 
 test('acceso directo sin selección y revalidación no muestran datos anteriores', () => {
