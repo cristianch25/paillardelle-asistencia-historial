@@ -2,10 +2,12 @@ import './authHarness.jsx';
 import { AxiosError } from 'axios';
 import { httpClient } from '../../src/shared/api/httpClient';
 import { selection } from './attendanceFixture.mjs';
+import { monthlyFollowupResponse } from './monthlyFollowupFixture.mjs';
 
 const auth = httpClient.defaults.adapter;
 const sections = [selection.section, { ...selection.section, id: '3', nivel: 'PRIMARIA', grado: 1, letra: 'GENIALES' }];
 const controls = { calls: [], sections, allowed: ['2', '3'], stores: {}, blocked: [], blockedLevels: [], history: [], sequence: 1000, fail: null };
+controls.followup = { total: 0, status: null, hold: false, pending: [], invalid: false };
 const lective = (level, date) => !controls.blocked.includes(date) && !controls.blockedLevels.includes(`${level}:${date}`);
 window.mobileTest = controls;
 function roster(section) {
@@ -21,7 +23,15 @@ httpClient.defaults.adapter = async config => {
   controls.calls.push({ method: config.method, url: config.url, params: config.params, body });
   const fail = status => { throw new AxiosError('HTTP ficticio', '', config, null, { config, status, data: { error: 'Operación rechazada' } }); };
   let data;
-  if (config.url === '/anios-escolares') data = { anios_escolares: [selection.year], pagination: { page: 1, limit: 100, has_more: false } };
+  if (config.url === '/asistencias/seguimiento-mensual') {
+    const snapshot = { ...controls.followup };
+    data = monthlyFollowupResponse(config.params, snapshot.total, ['INICIAL']);
+    data.estudiantes = data.estudiantes.map((row, index) => ({ ...row, total: 8 - index, faltas: 7 - index, tardanzas: 1,
+      justificadas: 0, injustificadas: 8 - index, secciones: [{ ...sections[0] }] }));
+    if (snapshot.invalid && data.estudiantes.length) data.estudiantes[0].total = 2;
+    if (snapshot.hold) await new Promise(resolve => controls.followup.pending.push(resolve));
+    if (snapshot.status) fail(snapshot.status);
+  } else if (config.url === '/anios-escolares') data = { anios_escolares: controls.noYears ? [] : [selection.year], pagination: { page: 1, limit: 100, has_more: false } };
   else if (config.url === '/secciones/') data = { secciones: visible(), pagination: { page: config.params.page, limit: config.params.limit, has_more: false } };
   else if (config.url === '/calendario-lectivo') data = { ...config.params, dias: [{ fecha: config.params.desde,
     es_lectivo: lective(config.params.nivel, config.params.desde), origen: 'EXCEPCION', descripcion: null }] };
@@ -30,6 +40,7 @@ httpClient.defaults.adapter = async config => {
     if (!section) fail(404);
     data = { seccion: section, fecha: config.params.fecha, padron: roster(section) };
   } else if (config.url === '/asistencias/sesiones' && config.method === 'get') {
+    if (controls.listStatus) fail(controls.listStatus);
     const selected = visible().filter(section => !config.params.seccion_id || config.params.seccion_id === section.id);
     if (config.params.seccion_id && !selected.length) fail(404);
     data = { anio_escolar_id: '1', fecha: config.params.fecha, secciones: selected.map(seccion => {

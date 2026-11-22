@@ -38,7 +38,7 @@ function markup(Component, { role = 'ADMIN', selection = selected, checking = fa
   path = '/secciones/estudiantes?page=3&nivel=INICIAL' } = {}) {
   return renderToStaticMarkup(h(MemoryRouter, { initialEntries: [path] },
     h(Auth.Provider, { value: { session: { user: { rol: role } } } },
-      h(Selection.Provider, { value: { selected: selection, checking, error, revalidate: async () => {}, clear() {} } },
+      h(Selection.Provider, { value: { selected: selection, checking, error, attendanceDate: dates.peruToday(), revalidate: async () => {}, clear() {} } },
         h(Component)))));
 }
 
@@ -84,6 +84,26 @@ test('vacío y duplicados tienen mensajes distintos; nunca cuentan vínculos com
   const html = renderToStaticMarkup(h(List, { entries: [entry, { ...entry, matricula_seccion_id: '9' }] }));
   assert.match(html, /vínculos duplicados/);
   assert.doesNotMatch(html, /2 estudiantes|Pérez Ana/);
+});
+
+test('REGISTRADOR destaca nombres y solo muestra códigos de homónimos; ADMIN/SUB conservan presentación', () => {
+  const first = { ...entry, estudiante: { ...entry.estudiante, codigo_estudiante: 'COD-UNO' } };
+  const namesake = { ...first, estudiante_id: '22', matricula_seccion_id: '23', estudiante: {
+    ...first.estudiante, id: '22', apellido_paterno: '  PÉREZ ', nombres: 'ANA', codigo_estudiante: 'COD-DOS' } };
+  const other = { ...first, estudiante_id: '24', matricula_seccion_id: '25', estudiante: {
+    ...first.estudiante, id: '24', nombres: 'Luisa', codigo_estudiante: 'COD-TRES' } };
+  const entries = [first, namesake, other], before = structuredClone(entries);
+  const render = (role, rows) => renderToStaticMarkup(h(Auth.Provider, { value: { session: { user: { rol: role } } } }, h(List, { entries: rows })));
+  const single = render('REGISTRADOR', [first]);
+  assert.doesNotMatch(single, /Código|COD-UNO/); assert.match(single, /text-lg font-semibold/);
+  const multiple = render('REGISTRADOR', entries);
+  assert.match(multiple, /COD-UNO/); assert.match(multiple, /COD-DOS/); assert.doesNotMatch(multiple, /COD-TRES/);
+  for (const role of ['ADMIN', 'SUBDIRECCION']) {
+    const html = render(role, entries);
+    for (const code of ['COD-UNO', 'COD-DOS', 'COD-TRES']) assert.ok(html.includes(code));
+    assert.match(html, /space-y-1 p-4 sm:p-5/); assert.doesNotMatch(html, /text-lg font-semibold/);
+  }
+  assert.deepEqual(entries, before);
 });
 
 test('tres roles ven fecha y regreso según rol con filtros/página', () => {

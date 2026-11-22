@@ -145,8 +145,9 @@ test('Inicio ADMIN: resumen completo, consultas civiles, errores y aislamiento d
         }
         await evaluate("homeTest.role = 'REGISTRADOR'");
         const before = await evaluate('homeTest.calls.length');
-        await ui.login(); await wait('document.body.textContent.includes("Tu cuenta")');
-        assert.equal(await evaluate(`Boolean(${filter})`), false); assert.equal(await evaluate('homeTest.calls.length'), before);
+        await ui.login(); await wait('document.body.textContent.includes("Ir a mis secciones")');
+        assert.equal(await evaluate(`Boolean(${filter})`), false);
+        assert.ok(await evaluate(`homeTest.calls.slice(${before}).every(c=>c.method==='get'&&['/anios-escolares','/asistencias/sesiones','/asistencias/seguimiento-mensual'].includes(c.url))`));
       });
       assert.equal(await evaluate('homeTest.calls.every(c => c.method === "get")'), true);
     } finally { await ui.close(); }

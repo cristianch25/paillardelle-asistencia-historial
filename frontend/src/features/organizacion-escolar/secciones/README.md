@@ -210,3 +210,21 @@ sectionStudentsHarness.jsx y regresiones de padron/sectionSearch. Cubren roles,
 niveles, años, vigencias inclusivas, cargo nulo, cargas paginadas, vacíos,
 errores/reintentos y aislamiento de respuestas tardías. Datos simulados; no
 certifican el despliegue ni prueban el backend actualizado contra MySQL real.
+
+## Mis secciones unificada — REGISTRADOR, 21/11/2026
+
+Una sola entrada de menú, «Mis secciones», ofrece fecha compartida, buscador
+de estudiantes asignados y tarjetas con «Registrar asistencia» y «Ver estudiantes».
+`/asistencias` redirige a la misma vista conservando parámetros y estado; el registro
+diario conserva `/asistencias/diaria` y vuelve a `/secciones`.
+La lista de estudiantes de REGISTRADOR usa también la fecha compartida.
+No se cambian el guardado ni las protecciones de navegación pendiente.
+
+Las tarjetas y sus indicadores provienen juntos del listado de sesiones
+autorizadas para la fecha elegida, sin otra consulta del catálogo para dibujarlas.
+Se reutilizan `SeccionesList`, `SectionAttendanceSummary`, `AssignedStudentSearch`
+y los estados existentes. La carga completa recorre páginas de 100 por año y
+la presentación pagina 20 tarjetas sin repetir consultas al cambiar de página.
+La comprobación de acceso al abrir una sección sigue vigente. Las consultas
+de páginas separadas no constituyen una instantánea única de base de datos.
+No se amplían los permisos de REGISTRADOR ni se alteran las vistas administrativas.

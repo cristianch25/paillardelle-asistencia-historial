@@ -13,7 +13,7 @@ export function followupFixture() {
     students: studentIds.map((id, i) => ({ id, apellido_paterno: i === 1 ? 'Bravo' : 'Aguilar', apellido_materno: null, nombres: 'Ana' })),
     sections: ['PRIMARIA', 'PRIMARIA', 'INICIAL', 'SECUNDARIA'].map((nivel, i) => ({ id: String(i + 1), nivel,
       anio_escolar_id: '1', grado: nivel === 'INICIAL' ? 4 : 1, letra: i === 1 ? 'B' : 'A', activo: i !== 1 })),
-    marks: [],
+    marks: [], assignments: [],
   };
   function mark(index, day, section, estado, justificada = 0) {
     state.marks.push({ estudiante_id: studentIds[index], anio_escolar_id: '1', fecha: `2026-${day}`, seccion_id: section, estado, justificada });
@@ -33,8 +33,18 @@ export function followupFixture() {
       assert.doesNotMatch(sql, /historial|motivo|activo|CERRADA|PRESENTE|PENDIENTE/);
       const levelCount = sql.match(/s.nivel IN \(([^)]+)\)/)?.[1].split(',').length ?? 0;
       const levels = params.slice(3, 3 + levelCount);
+      const registrar = sql.includes('FROM asignaciones vigente');
+      if (registrar) {
+        assert.equal((sql.match(/EXISTS \(SELECT 1 FROM asignaciones/g) ?? []).length, 2);
+        assert.doesNotMatch(sql, /JOIN asignaciones/);
+        assert.match(sql, /vigente.seccion_id = a.seccion_id/);
+        assert.match(sql, /efectiva.fecha_inicio <= a.fecha.*efectiva.fecha_fin >= a.fecha/);
+      }
+      const assigned = (row, date) => snapshot.assignments.some(link => link.usuario_id === params[3]
+        && link.seccion_id === row.seccion_id && link.fecha_inicio <= date && (!link.fecha_fin || link.fecha_fin >= date));
       return snapshot.marks.filter(row => row.anio_escolar_id === params[0] && row.fecha >= params[1] && row.fecha <= params[2]
-        && ['FALTA', 'TARDANZA'].includes(row.estado) && snapshot.sections.some(s => s.id === row.seccion_id && levels.includes(s.nivel)));
+        && ['FALTA', 'TARDANZA'].includes(row.estado) && (registrar ? assigned(row, params[4]) && assigned(row, row.fecha)
+          : snapshot.sections.some(s => s.id === row.seccion_id && levels.includes(s.nivel))));
     }
     return {
       async query(sql) { events.push(sql); }, async beginTransaction() { events.push('begin'); },
@@ -64,13 +74,13 @@ export function followupFixture() {
           return [eligible.slice(params.at(-1), params.at(-1) + params.at(-2))];
         }
         assert.ok(sql.startsWith('SELECT DISTINCT m.estudiante_id'));
-        const ids = params.slice(3 + (sql.match(/s.nivel IN \(([^)]+)\)/)?.[1].split(',').length ?? 0));
+        const ids = params.slice(sql.includes('FROM asignaciones vigente') ? 7 : 3 + (sql.match(/s.nivel IN \(([^)]+)\)/)?.[1].split(',').length ?? 0));
         return [snapshot.sections.flatMap(section => ids.filter(id => marks.some(row => row.estudiante_id === id && row.seccion_id === section.id))
           .map(estudiante_id => ({ ...section, estudiante_id })))];
       },
     };
   } };
-  const service = createAttendanceService({ followupRepository: createMonthlyFollowupRepository(() => pool) });
+  const service = createAttendanceService({ followupRepository: createMonthlyFollowupRepository(() => pool), getToday: () => '2026-11-21' });
   return { state, service, calls, events, actor: id => structuredClone(state.users.find(row => row.id === id)),
     fail: value => { failure = value; }, concurrent: work => { concurrent = work; } };
 }

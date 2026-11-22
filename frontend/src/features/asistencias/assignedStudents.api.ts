@@ -23,7 +23,5 @@ export async function loadAssignedStudents(years: SchoolYear[], date: string, cu
 
 export function filterAssignedStudents(students: AssignedStudent[], query: string) {
   if (!query.trim()) return [];
-  return students.filter(({ row }) => searchCorrectionStudents([
-    { ...row, estudiante: { ...row.estudiante, codigo_estudiante: null } },
-  ], query).length > 0);
+  return students.filter(({ row }) => searchCorrectionStudents([row], query).length > 0);
 }

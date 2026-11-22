@@ -5,12 +5,12 @@ import type { SchoolYear } from '../anios-escolares/aniosEscolares.types';
 import type { ReactNode } from 'react';
 
 type Props = { sections: Section[]; years?: SchoolYear[]; selectedId?: string; checking: boolean;
-  formatName?: typeof formatSectionName; showAttendance?: boolean; showStudents?: boolean; compact?: boolean; renderSummary?: (section: Section) => ReactNode;
+  formatName?: typeof formatSectionName; attendanceLabel?: string; showAttendance?: boolean; showStudents?: boolean; compact?: boolean; renderSummary?: (section: Section) => ReactNode;
   renderActions?: (section: Section) => ReactNode } & (
   { onSelect: (section: Section) => void; onOpen?: never }
   | { onSelect?: never; onOpen: (section: Section, destination: 'asistencia' | 'estudiantes') => void }
 );
-export default function SeccionesList({ sections, years, selectedId, checking, onSelect, onOpen, formatName = formatSectionName, showAttendance = true, showStudents = true, compact = false, renderSummary, renderActions }: Props) {
+export default function SeccionesList({ sections, years, selectedId, checking, onSelect, onOpen, formatName = formatSectionName, attendanceLabel = 'Asistencia diaria', showAttendance = true, showStudents = true, compact = false, renderSummary, renderActions }: Props) {
   return (
     <ul aria-label="Secciones disponibles" className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
       {sections.map(section => {
@@ -27,8 +27,8 @@ export default function SeccionesList({ sections, years, selectedId, checking, o
           </dl>}
           {renderSummary?.(section)}
           {onOpen ? <div className="mt-4 flex flex-col gap-2">
-            {showAttendance && <Button disabled={checking || !year} aria-label={`Asistencia diaria de ${formatName(section)} — ${educationLevelLabels[section.nivel]}`}
-              onClick={() => onOpen(section, 'asistencia')}>Asistencia diaria</Button>}
+            {showAttendance && <Button disabled={checking || !year} aria-label={`${attendanceLabel} de ${formatName(section)} — ${educationLevelLabels[section.nivel]}`}
+              onClick={() => onOpen(section, 'asistencia')}>{attendanceLabel}</Button>}
             {showStudents && <Button variant={showAttendance ? 'secondary' : 'primary'} disabled={checking || !year} aria-label={`Ver estudiantes de ${formatName(section)} — ${educationLevelLabels[section.nivel]}`}
               onClick={() => onOpen(section, 'estudiantes')}>Ver estudiantes</Button>}
           </div> : <Button className="mt-5 w-full" variant={section.id === selectedId ? 'secondary' : 'primary'}

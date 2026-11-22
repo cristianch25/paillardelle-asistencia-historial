@@ -68,6 +68,8 @@ test('búsqueda solo carga secciones autorizadas, no escribe y acepta varias pal
   assert.equal(search.filterAssignedStudents(rows, '').length, 0);
   assert.equal(search.filterAssignedStudents(rows, 'mari pere 2').length, 1);
   assert.equal(search.filterAssignedStudents(rows, 'no asignado').length, 0);
+  const coded = structuredClone(rows); coded[0].row.estudiante.codigo_estudiante = 'FICTICIO-001';
+  assert.equal(search.filterAssignedStudents(coded, 'ficticio-001').length, 1);
   assert.ok(calls.every(call => !call.url.includes('busqueda-estudiantes')));
   adapter({ allowed: false });
   assert.deepEqual(await search.loadAssignedStudents([selection.year], '2026-11-13', () => true), []);

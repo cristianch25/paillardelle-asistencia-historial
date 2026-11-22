@@ -1,4 +1,5 @@
 import './authHarness.jsx';
+import { monthlyFollowupResponse } from './monthlyFollowupFixture.mjs';
 import { AxiosError } from 'axios';
 import { httpClient } from '../../src/shared/api/httpClient';
 import { dailyRows, dailyYear } from './adminHomeFixture.mjs';
@@ -19,7 +20,8 @@ httpClient.defaults.adapter = async config => {
   controls.calls.push({ method: config.method, url: config.url, params: config.params });
   if (config.method !== 'get') throw new Error('Inicio no puede escribir.');
   let data;
-  if (config.url === '/anios-escolares') data = { anios_escolares: controls.noYears ? [] : [dailyYear], pagination: { page: 1, limit: 100, has_more: false } };
+  if (config.url === '/asistencias/seguimiento-mensual') data = monthlyFollowupResponse(config.params, 0, []);
+  else if (config.url === '/anios-escolares') data = { anios_escolares: controls.noYears ? [] : [dailyYear], pagination: { page: 1, limit: 100, has_more: false } };
   else if (config.url === '/asistencias/sesiones') {
     const page = config.params.page;
     const levels = supervisionLevels({ rol: controls.role, nivel_asignado: controls.level });

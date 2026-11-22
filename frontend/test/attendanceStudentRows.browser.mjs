@@ -41,7 +41,12 @@ for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {
       await wait(`${rows}.length === 3`);
       await evaluate('window.savedConfirm=window.confirm; window.confirm=message=>{ window.bulkPrompt=message; return false; }');
       await click('Marcar todos como presentes');
-      assert.equal(await evaluate('bulkPrompt.includes("ocultos por la búsqueda")'), !registrar);
+      if (registrar) {
+        await wait('Boolean(document.querySelector("dialog[open]"))');
+        assert.equal(await evaluate('typeof window.bulkPrompt'), 'undefined');
+        assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /estudiantes que aún están sin marcar/);
+        await click('Cancelar');
+      } else assert.equal(await evaluate('bulkPrompt.includes("ocultos por la búsqueda")'), true);
       await evaluate('window.confirm=window.savedConfirm');
       if (!registrar) {
         const bar = `document.querySelector('[aria-label="Guardado de asistencia"]')`;
@@ -109,7 +114,7 @@ for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {
       assert.equal(changes.length, 1);
       assert.equal(changes[0].asistencia_id, fixture.padron[1].asistencia_id);
       assert.equal(changes[0].estado, 'FALTA');
-      if (registrar) assert.equal(await evaluate('Boolean(document.querySelector(".lucide-search"))'), false);
+      if (registrar) assert.equal(await evaluate('Boolean(document.querySelector(".lucide-search"))'), true);
     } finally { await ui.close(); }
   });
 }

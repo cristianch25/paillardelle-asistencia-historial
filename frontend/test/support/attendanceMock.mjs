@@ -69,7 +69,9 @@ export function attendanceMock() {
       const sections = controls.allow ? [selection.section, ...controls.extraSections] : [];
       result = { anio_escolar_id: config.params.anio_escolar_id, fecha: config.params.fecha,
         secciones: sections.map(seccion => ({ seccion: structuredClone(seccion), es_lectivo: controls.calendar.es_lectivo,
-          situacion: controls.sessionState, sesion_id: controls.server.sesion.id, resumen: structuredClone(controls.server.resumen) })),
+          situacion: seccion.id === selection.section.id ? controls.sessionState : 'SIN_REGISTRO',
+          sesion_id: seccion.id === selection.section.id ? controls.server.sesion.id : null,
+          resumen: seccion.id === selection.section.id ? structuredClone(controls.server.resumen) : null })),
         pagination: { page: config.params.page, limit: config.params.limit, has_more: false } };
     } else if (config.url.startsWith('/asistencias/sesiones')) {
       if (config.url === '/asistencias/sesiones' && config.method === 'post' && controls.openStatus) fail(controls.openStatus);

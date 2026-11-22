@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import Button from '../../shared/components/Button';
@@ -46,10 +46,9 @@ export default function AsistenciaDiariaPage() {
     <div className="space-y-4">
       {registrar ? <header className="flex items-start justify-between gap-3">
         <h1 className="min-w-0 break-words text-2xl font-bold tracking-tight sm:text-3xl">{selection ? formatRegistrarSectionName(selection.section) : 'Asistencia diaria'}</h1>
-        <Link to={`/asistencias${location.search}`} aria-disabled={draft.busy} onClick={event => { if (draft.busy) event.preventDefault(); }}
-          className="inline-flex min-h-11 shrink-0 items-center gap-1 text-sm font-semibold text-institutional-800 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-institutional-700">
+        <Button variant="secondary" disabled={draft.busy} className="shrink-0" onClick={() => void request(() => navigate(`/secciones${location.search}`))}>
           <ArrowLeft aria-hidden="true" className="size-4" />Volver
-        </Link>
+        </Button>
       </header> : <>
         <Button variant="secondary" disabled={draft.busy} onClick={() => void navigate(`/secciones${location.search}`)}>
           <ArrowLeft aria-hidden="true" className="size-5 shrink-0" />Volver a secciones</Button>
@@ -86,7 +85,7 @@ export default function AsistenciaDiariaPage() {
             <AsistenciaSessionView data={draft.base} changes={draft.changes} created={attendance.data?.creada} editable={draft.editable && Boolean(canWrite)} disabled={draft.disabled || !canWrite} updated={draft.updated}
               compact={registrar}
               query={query} onSearch={query => setSearch({ key: draft.key, query })} pendingCount={draft.count}
-              onSelect={draft.select} onMarkPending={draft.markAllPending}
+              onSelect={draft.select} onMarkPending={registrar ? draft.applyMarkAllPending : draft.markAllPending}
               reasons={draft.reasons} justificationDisabled={draft.justificationDisabled}
               onJustify={canWrite && session?.user.rol === 'REGISTRADOR' ? draft.justify : undefined} />
           </>}

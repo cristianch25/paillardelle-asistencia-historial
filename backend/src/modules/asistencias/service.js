@@ -57,7 +57,7 @@ export function createAttendanceService(options = {}) {
   }
   return {
     ...createAttendanceStatisticsService({ repository: options.statisticsRepository, users }),
-    ...createMonthlyFollowupService({ repository: options.followupRepository, users }),
+    ...createMonthlyFollowupService({ repository: options.followupRepository, users, getToday: today }),
     ...createAttendanceListService({ repository: options.listRepository, users, calendar, getToday: today }),
     ...createAttendanceSearchService({ repository: options.searchRepository, enrollments, users, getToday: today }),
     ...createAttendanceHistoryService({ repository: options.historyRepository }),

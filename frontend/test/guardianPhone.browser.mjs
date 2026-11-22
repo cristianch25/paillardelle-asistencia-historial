@@ -5,11 +5,11 @@ import { hasEdge } from './support/edgeBrowser.mjs';
 
 test('Celular: edición, vista previa, confirmación, no-op, conflicto y búsqueda intacta en móvil', { skip: !hasEdge, timeout: 120000 }, async t => {
   const ui = await authBrowser('studentProfileHarness.jsx'), { evaluate, wait, click } = ui;
-  const modal = `document.querySelector('dialog[open][aria-label="Perfil individual del estudiante"]')`;
+  const modal = `document.querySelector('dialog[open]:has([aria-label="Asistencia r\u00e1pida"])')`;
   const editor = `${modal}.querySelector('[aria-label="Celular del apoderado"]')`;
-  const open = `document.querySelector('[aria-label="Coincidencias de mis estudiantes"] [role="button"]')`;
+  const open = `document.querySelector('[aria-label="Coincidencias de mis estudiantes"] li button')`;
   const patchCount = `profileTest.calls.filter(c => c.method === 'patch').length`;
-  const close = () => evaluate(`${modal}.querySelector('[aria-label="Cerrar perfil"]').click()`);
+  const close = () => evaluate(`Array.from(${modal}.querySelectorAll('button')).find(e=>e.textContent==='Cerrar').click()`);
   async function input(value) {
     await evaluate(`(() => { const e = ${editor}.querySelector('input'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(e, ${JSON.stringify(value)}); e.dispatchEvent(new Event('input', { bubbles: true })); })()`);
   }
@@ -33,7 +33,7 @@ test('Celular: edición, vista previa, confirmación, no-op, conflicto y búsque
     });
     await t.test('confirmación única, X bloqueada durante PATCH y éxito solo después de respuesta', async () => {
       await evaluate('profileTest.phone.hold = true'); await click('Confirmar cambio'); await wait('profileTest.phone.pending.length === 1');
-      assert.equal(await evaluate(`${modal}.querySelector('[aria-label="Cerrar perfil"]').disabled`), true);
+      assert.equal(await evaluate(`Array.from(${modal}.querySelectorAll('button')).find(e=>e.textContent==='Cerrar').disabled`), true);
       assert.equal(await evaluate(patchCount), 1); assert.doesNotMatch(await evaluate(`${editor}.textContent`), /Número actualizado/);
       await evaluate('profileTest.phone.hold = false; profileTest.phone.pending.shift()()');
       await wait(`${editor}.textContent.includes('Número actualizado')`);

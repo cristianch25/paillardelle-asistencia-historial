@@ -352,3 +352,17 @@ conservación del historial. Finalizar no exige que el destinatario conserve
 REGISTRADOR, para no bloquear vínculos históricos legítimos. Sin migraciones
 ni dependencias nuevas. La verificación de esta entrega usa mocks y pruebas
 aisladas; no acredita ejecución sobre la base institucional.
+
+## Inicio de REGISTRADOR: seguimiento mensual — precisión aprobada 22/11/2026
+
+Se autoriza exclusivamente consultar hasta cinco estudiantes con tres o más
+faltas/tardanzas del mes desde Inicio. Reutiliza D11/D12 y RN-19/RN-23 V8,
+incluyendo justificadas y sin exigir fin de mes ni cierre. No habilita acceso
+general a Estadísticas ni altera el alcance de ADMIN/SUBDIRECCION.
+Para REGISTRADOR, cada incidencia se filtra por su sección histórica: requiere
+asignación vigente hoy en Lima y en la fecha de la marca, con extremos inclusivos
+y admitiendo filas distintas. Principales/adicionales no amplían acceso.
+El filtro precede al agrupamiento por identidad y al umbral; EXISTS evita
+multiplicar incidencias por asignaciones repetidas o históricas. El seguimiento
+conserva cambios de sección y no consulta historiales técnicos.
+Validación con mocks; sin operaciones institucionales, migraciones o dependencias.

@@ -124,9 +124,10 @@ test('AssignedStudentSearch: renderiza formulario de búsqueda y fecha', () => {
   assert.match(html, /Buscar entre mis estudiantes/);
   assert.match(html, /Fecha de asistencia/);
   assert.match(html, /Buscar estudiante/);
+  assert.match(html, /rounded-full/); assert.match(html, /lucide-search/);
 });
 
-test('QuickAttendanceDialog: renderiza nombre del estudiante enlazado al perfil', () => {
+test('QuickAttendanceDialog: encabezado único con sección sencilla, sin enlace a otro perfil', () => {
   const student = {
     selection: {
       year: { id: 'y1', anio: 2026, estado: 'ABIERTO', fecha_inicio: '2026-03-01', fecha_fin: '2026-12-31' },
@@ -164,8 +165,8 @@ test('QuickAttendanceDialog: renderiza nombre del estudiante enlazado al perfil'
   );
 
   assert.match(html, /Asistencia del estudiante/);
-  assert.match(html, /Pérez Ríos Ana María/);
-  assert.match(html, /title="Ver perfil del estudiante y teléfono del apoderado"/);
+  assert.match(html, /Sección: 1 A · Primaria/);
+  assert.doesNotMatch(html, /Ver perfil del estudiante|underline|Pérez Ríos Ana María/);
 });
 
 test('V8 RN-08: estudiante con justificación persistida bloquea cambio de estado en UI y en borrador', () => {

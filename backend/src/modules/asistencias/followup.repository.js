@@ -5,21 +5,28 @@ function count(value) {
   if (!Number.isSafeInteger(number) || number < 0) throw new Error('Conteo de seguimiento fuera de rango.');
   return number;
 }
-function source(data, levels) {
-  const scope = levels.length ? `s.nivel IN (${levels.map(() => '?').join(', ')})` : '1 = 0';
+function source(data, levels, assignment) {
+  const scope = assignment ? `EXISTS (SELECT 1 FROM asignaciones vigente
+        WHERE vigente.usuario_id = ? AND vigente.seccion_id = a.seccion_id
+          AND vigente.fecha_inicio <= ? AND (vigente.fecha_fin IS NULL OR vigente.fecha_fin >= ?))
+      AND EXISTS (SELECT 1 FROM asignaciones efectiva
+        WHERE efectiva.usuario_id = ? AND efectiva.seccion_id = a.seccion_id
+          AND efectiva.fecha_inicio <= a.fecha AND (efectiva.fecha_fin IS NULL OR efectiva.fecha_fin >= a.fecha))`
+    : levels.length ? `s.nivel IN (${levels.map(() => '?').join(', ')})` : '1 = 0';
   return { sql: `FROM asistencias a
     JOIN matriculas m ON m.id = a.matricula_id AND m.anio_escolar_id = a.anio_escolar_id
     JOIN secciones s ON s.id = a.seccion_id AND s.anio_escolar_id = a.anio_escolar_id
     WHERE a.anio_escolar_id = ? AND a.fecha BETWEEN ? AND ?
       AND a.estado IN ('FALTA', 'TARDANZA') AND ${scope}`,
-  params: [data.anio_escolar_id, data.fecha_desde, data.fecha_hasta, ...levels] };
+  params: [data.anio_escolar_id, data.fecha_desde, data.fecha_hasta,
+    ...(assignment ? [assignment.actorId, assignment.today, assignment.today, assignment.actorId] : levels)] };
 }
 export function createMonthlyFollowupRepository(poolProvider) {
   const { read, year } = createAttendanceListRepository(poolProvider);
   return {
     read, year,
-    async list(connection, data, levels) {
-      const from = source(data, levels);
+    async list(connection, data, levels, assignment) {
+      const from = source(data, levels, assignment);
       // El ámbito se aplica antes del GROUP BY/HAVING, también al obtener secciones.
       const eligible = `WITH elegibles AS (SELECT m.estudiante_id,
         SUM(a.estado = 'FALTA') AS faltas, SUM(a.estado = 'TARDANZA') AS tardanzas,

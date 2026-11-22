@@ -52,7 +52,7 @@ test('pantalla inicia sin POST y ofrece una apertura explícita a los tres roles
     const button = html.match(/<button[^>]*>Abrir asistencia<\/button>/)?.[0];
     if (role === 'REGISTRADOR') { assert.equal(button, undefined); assert.doesNotMatch(html, /Detalles|Detalle de sección/); }
     else { assert.ok(button); assert.doesNotMatch(button, /\sdisabled(?:=|[\s>])/); }
-    assert.match(html, role === 'REGISTRADOR' ? /Volver<\/a>/ : /Volver a secciones/);
+    assert.match(html, role === 'REGISTRADOR' ? /Volver<\/button>/ : /Volver a secciones/);
     assert.doesNotMatch(html, /<select|Guardar|Cerrar asistencia|Corregir|Justificar| min=| max=/);
   }
   await setImmediate();
@@ -145,6 +145,14 @@ test('calendario normal no añade avisos; excepciones y ausencia de clases sí s
   } }));
   assert.match(recovery, /Clases habilitadas en el calendario/); assert.match(recovery, /Recuperación autorizada/);
   assert.doesNotMatch(recovery, /no hay clases|No se puede iniciar/);
+  for (const rol of ['REGISTRADOR', 'ADMIN', 'SUBDIRECCION']) {
+    const html = renderToStaticMarkup(h(Auth.Provider, { value: { session: { user: { rol } } } }, h(CalendarDayInfo, { day: {
+      fecha: today, es_lectivo: true, origen: 'EXCEPCION', descripcion: 'Día lectivo / recuperación',
+    } })));
+    assert.match(html, /Día lectivo \/ recuperación/);
+    assert.equal(html.includes('Día de clases'), rol === 'REGISTRADOR');
+    assert.equal(html.includes('Clases habilitadas en el calendario'), rol !== 'REGISTRADOR');
+  }
 });
 
 test('estado después de abrir distingue nueva, abierta existente y cerrada sin modificar registros', () => {

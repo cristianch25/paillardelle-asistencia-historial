@@ -17,7 +17,7 @@ test('fecha única: se conserva entre búsqueda, salones, guardado y regreso sin
         input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); })()`);
     }
     async function main(date) {
-      await evaluate('document.querySelector("#main-content header a").click()'); await wait(`${cards}.length === 2`);
+      await click('Volver'); await wait(`${cards}.length === 2`);
       assert.equal(await evaluate('document.querySelectorAll("input[type=date]").length'), 1);
       assert.equal(await evaluate('document.querySelector("input[type=date]").value'), date);
     }
@@ -26,8 +26,8 @@ test('fecha única: se conserva entre búsqueda, salones, guardado y regreso sin
       assert.equal(await evaluate('document.querySelectorAll("input[type=date]").length'), 0);
       assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Ver perfil|Las marcas se guardan solo|Se aplica a los estudiantes/);
       assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Asistencia del/);
-      assert.equal(await evaluate('Boolean(document.querySelector(".lucide-search"))'), false);
-      assert.equal(await evaluate('document.querySelector("input[type=search]").parentElement.parentElement.className'), 'max-w-lg');
+      assert.equal(await evaluate('Boolean(document.querySelector(".lucide-search"))'), true);
+      assert.equal(await evaluate('document.querySelector("input[type=search]").parentElement.parentElement.className.includes("rounded-full")'), true);
       assert.equal(await evaluate('mobileTest.calls.filter(call => call.url === "/asistencias/sesiones" && call.params?.seccion_id).at(-1).params.fecha'), date);
     }
     try {
@@ -38,9 +38,9 @@ test('fecha única: se conserva entre búsqueda, salones, guardado y regreso sin
       await input('date', '2026-10-01'); await input('search', 'mari pere'); await wait(`${hits}.length === 2`);
       assert.equal(await writes(), 0);
       await evaluate(`${hits}[1].click()`); await wait('Boolean(document.querySelector("dialog[open] button[aria-pressed]"))');
-      assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /01\/10\/2026/);
+      assert.match(await evaluate('document.querySelector("dialog[open]").textContent'), /Sección: 1 GENIALES · Primaria/);
       await click('Tardanza'); assert.equal(await writes(), 0); await click('Guardar cambios');
-      await wait('!document.querySelector("dialog[open]") && document.body.textContent.includes("Asistencia guardada")');
+      await wait('document.body.textContent.includes("Asistencia guardada")'); await click('Cerrar'); await wait('!document.querySelector("dialog[open]")');
       assert.equal(await writes(), 2);
       assert.deepEqual(await evaluate('Object.keys(mobileTest.stores)'), ['3:2026-10-01']);
       await classroom(0, '2026-10-01'); assert.equal(await writes(), 2);

@@ -127,3 +127,31 @@ base 7364ad1. Esa implementación administrativa no se modifica en esta etapa.
 La ejecución amplia se detuvo tras detectar esas expectativas; no se presenta
 como una suite global satisfactoria. Las regresiones focalizadas verifican las
 interfaces vigentes, además del nuevo flujo móvil y la conservación del borrador.
+
+## Pulido del registro diario de REGISTRADOR — 22/11/2026
+
+Buscador con lupa y estilo píldora, navegación «Volver» mediante botón secundario
+y acción masiva azul tipo píldora. Solo REGISTRADOR confirma el masivo mediante
+el diálogo integrado existente, con cantidad elegible de toda la sección,
+incluidos estudiantes ocultos por la búsqueda. Cancelar/Escape no cambia marcas;
+confirmar reutiliza el mismo reducer `bulk` y solo modifica el borrador.
+Se mantienen pendientes, protecciones, marcas previas y «Guardar cambios».
+El contenido opcional de `UnsavedChangesDialog` conserva su comportamiento
+predeterminado y las demás confirmaciones. La petición de masivo se descarta si
+cambia su base, selección o disponibilidad mientras el diálogo está abierto.
+Pruebas con mocks en escritorio y móvil, sin operaciones reales de asistencia.
+
+## Ventana unificada del buscador de REGISTRADOR — 22/11/2026
+
+Toda la fila del resultado abre «Asistencia del estudiante», también por teclado.
+El encabezado muestra sección y nivel; el nombre aparece una vez en la fila de
+asistencia. La búsqueda usa el identificador que ya recibe el padrón autorizado.
+`QuickGuardianContact` consulta el perfil existente y presenta solo el apoderado
+actual, reutilizando `GuardianPhoneEditor` y sus validaciones, confirmación y
+recuperación de errores sin modificarlos. No ofrece edición sin contacto visible.
+
+El teléfono y la asistencia mantienen sus propios guardados. Guardar asistencia
+actualiza los resultados y conserva la ventana abierta para no descartar una
+edición de teléfono. Las operaciones en curso bloquean el cierre y evitan
+superponer escrituras; se conserva el borrador y su protección al salir.
+La justificación sigue siendo opcional. Sin cambios en backend ni otros perfiles.

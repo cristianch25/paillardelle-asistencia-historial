@@ -24,12 +24,13 @@ after(async () => { await vite?.close(); });
 
 function response(config, data) { return { status: 200, statusText: 'OK', headers: {}, config, data }; }
 
-test('Mis secciones se presenta sin selectores ni selección automática de año', () => {
+test('Mis secciones conserva año automático e incluye fecha y búsqueda, sin selector de año', () => {
   const markup = renderToStaticMarkup(createElement(MemoryRouter, null,
     createElement(Auth.Provider, { value: { session: null } }, createElement(SelectionProvider, null, createElement(MySections)))));
   assert.match(markup, />Mis secciones<\/h1>/);
   assert.doesNotMatch(markup, /<select|Filtros de secciones|Selecciona un año/);
-  assert.match(markup, /Cargando mis secciones/);
+  assert.match(markup, /Cargando años escolares/);
+  assert.match(markup, /Fecha de asistencia/); assert.match(markup, /Buscar estudiante/);
 });
 
 test('consulta sin filtros usa el mismo endpoint y conserva la paginación del servidor', async () => {

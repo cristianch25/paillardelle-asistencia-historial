@@ -7,7 +7,7 @@ import type { AttendanceDetail, AttendanceState } from './asistencias.types';
 import { useUnsavedChanges } from '../../shared/navigation/useUnsavedChanges';
 
 export function useAttendanceDraft(accountId: string | null, data: AttendanceDetail | null, checking: boolean,
-  revalidate: () => Promise<void>, allowJustifications = false, bulkIncludesHidden = false) {
+  revalidate: () => Promise<void>, allowJustifications = false, bulkIncludesHidden = false, externalBusy = false) {
   const [editor, dispatch] = useReducer(attendanceEditorReducer, null, () => createAttendanceEditor(accountId, data));
   const key = checking && accountId === editor.accountId ? editor.key : attendanceDraftKey(accountId, data);
   // Un nuevo resultado de apertura reemplaza la base; recuperar foco conserva el mismo resultado.
@@ -23,7 +23,7 @@ export function useAttendanceDraft(accountId: string | null, data: AttendanceDet
   const saving = useAttendanceSave(editor, dispatch, checking, revalidate);
   useAttendanceAccess(editor, checking, saving.validateAccess);
 
-  useUnsavedChanges(accountId, count > 0, busy);
+  useUnsavedChanges(accountId, count > 0, busy || externalBusy);
 
   function justify(id: string, reason: string | undefined) {
     if (justificationDisabled || !allowJustifications) return;
@@ -38,15 +38,19 @@ export function useAttendanceDraft(accountId: string | null, data: AttendanceDet
     }
     dispatch({ type: 'select', id, state });
   }
+  function applyMarkAllPending() {
+    if (disabled || !editor.base) return;
+    dispatch({ type: 'bulk' });
+  }
   function markAllPending() {
     if (disabled || !editor.base) return;
     const pending = draftSummary(editor.base.padron, editor.changes).pendientes;
     const message = pending === 1 ? 'Se marcará como presente 1 estudiante sin marcar.'
       : `Se marcarán como presentes ${pending} estudiantes sin marcar.`;
     const scope = bulkIncludesHidden ? ' También incluye a los estudiantes ocultos por la búsqueda.' : '';
-    if (pending && window.confirm(`${message}${scope} Las demás marcas se conservarán. ¿Continuar?`)) dispatch({ type: 'bulk' });
+    if (pending && window.confirm(`${message}${scope} Las demás marcas se conservarán. ¿Continuar?`)) applyMarkAllPending();
   }
-  return { ...editor, count, busy, editable, disabled, select, markAllPending, ...saving, justify, validation, justificationDisabled,
+  return { ...editor, count, busy, editable, disabled, select, markAllPending, applyMarkAllPending, ...saving, justify, validation, justificationDisabled,
     saveDisabled: justificationDisabled || Boolean(validation),
     resolve: (id: string, local: boolean) => dispatch({ type: 'resolve', id, local }) };
 }

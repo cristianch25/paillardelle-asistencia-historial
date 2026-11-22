@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
@@ -8,7 +7,7 @@ import ErrorState from '../../../shared/components/ErrorState';
 import LoadingState from '../../../shared/components/LoadingState';
 import { useSectionSelection } from './SeccionSelectionContext';
 import { educationLevelLabels, formatAdministrativeSectionName, formatSectionName } from './sectionPresentation';
-import { formatCivilDate, peruToday, validCivilDate } from '../../../shared/dates/civilDate';
+import { formatCivilDate, validCivilDate } from '../../../shared/dates/civilDate';
 import { usePadron } from './usePadron';
 import EstudiantesList from './EstudiantesList';
 import SectionStaff from './SectionStaff';
@@ -28,11 +27,10 @@ function StudentsSection() {
   const selection = useSectionSelection();
   const location = useLocation();
   const navigate = useNavigate();
-  const [editableDate] = useState(() => peruToday());
   const { selected, checking, error, revalidate } = selection;
   const administrative = session?.user.rol === 'ADMIN' || session?.user.rol === 'SUBDIRECCION';
   const retired = useRetirados(administrative && !checking && !error ? selected?.section.id ?? null : null);
-  const fecha = administrative ? (selected ? padronReferenceDate(selected.year) : '') : editableDate;
+  const fecha = administrative ? (selected ? padronReferenceDate(selected.year) : '') : selection.attendanceDate;
   const padron = usePadron(session && !checking && !error ? selected : null, fecha);
   const valid = validCivilDate(fecha);
   const backLabel = session?.user.rol === 'REGISTRADOR' ? 'mis secciones' : 'secciones';

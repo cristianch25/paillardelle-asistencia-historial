@@ -27,6 +27,15 @@ export default function EstudiantesList({
   const [withdrawTarget, setWithdrawTarget] = useState<PadronEntry | null>(null);
   const [changeSectionTarget, setChangeSectionTarget] = useState<PadronEntry | null>(null);
   const auth = useContext(AuthContext);
+  const registrar = auth?.session?.user.rol === 'REGISTRADOR';
+  const studentName = (entry: PadronEntry) => [entry.estudiante.apellido_paterno, entry.estudiante.apellido_materno, entry.estudiante.nombres].filter(Boolean).join(' ');
+  const nameKey = (entry: PadronEntry) => studentName(entry).normalize('NFC').replace(/\s+/g, ' ').trim().toLocaleLowerCase('es');
+  const names = new Set<string>(), duplicates = new Set<string>();
+  if (registrar) for (const entry of entries) {
+    const key = nameKey(entry);
+    if (names.has(key)) duplicates.add(key);
+    names.add(key);
+  }
   const canWithdraw = canWithdrawProp ?? (auth?.session?.user.rol === 'ADMIN' || auth?.session?.user.rol === 'SUBDIRECCION');
   const count = new Set(entries.map(entry => entry.estudiante_id)).size;
   // No elegir arbitrariamente un vínculo ni contar filas duplicadas como personas distintas.
@@ -39,11 +48,12 @@ export default function EstudiantesList({
           {entries.map(entry => {
             const { matricula_seccion_id, estudiante } = entry;
             return (
-              <li key={matricula_seccion_id} className="space-y-1 p-4 sm:p-5">
-                <p className="break-words font-medium text-institutional-950">
-                  {[estudiante.apellido_paterno, estudiante.apellido_materno, estudiante.nombres].filter(Boolean).join(' ')}
+              <li key={matricula_seccion_id} className={registrar ? 'space-y-1 px-4 py-3 sm:px-5' : 'space-y-1 p-4 sm:p-5'}>
+                <p className={`break-words text-institutional-950 ${registrar ? 'text-lg font-semibold leading-snug' : 'font-medium'}`}>
+                  {studentName(entry)}
                 </p>
-                {estudiante.codigo_estudiante && <p className="break-words text-sm text-slate-600">Código: {estudiante.codigo_estudiante}</p>}
+                {estudiante.codigo_estudiante && (!registrar || duplicates.has(nameKey(entry)))
+                  && <p className="break-words text-sm text-slate-600">Código: {estudiante.codigo_estudiante}</p>}
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   <StudentProfileButton studentId={estudiante.id} yearId={yearId} month={date?.slice(0, 7)} />
                   {canWithdraw && section && entry.estado === 'ACTIVA' && entry.fecha_retiro === null && (

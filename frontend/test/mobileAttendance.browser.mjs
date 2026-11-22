@@ -17,7 +17,7 @@ test('móvil: buscar entre salones, guardar Tardanza y continuar sin duplicados 
         field.dispatchEvent(new Event('input', { bubbles: true })); field.dispatchEvent(new Event('change', { bubbles: true })); })()`);
     }
     const writes = () => evaluate('mobileTest.calls.filter(call => ["post","patch"].includes(call.method)).length');
-    const back = () => evaluate('document.querySelector("#main-content header a").click()');
+    const back = () => click('Volver');
     try {
       await command('Emulation.setDeviceMetricsOverride', { width: 320, height: 812, deviceScaleFactor: 1, mobile: true });
       await ui.navigate('/login'); await ui.login(); await ui.setRoute('/asistencias');
@@ -40,7 +40,8 @@ test('móvil: buscar entre salones, guardar Tardanza y continuar sin duplicados 
         }
       }
       await command('Emulation.setDeviceMetricsOverride', { width: 320, height: 812, deviceScaleFactor: 1, mobile: true });
-      await click('Guardar cambios'); await wait('!document.querySelector("dialog[open]") && document.body.textContent.includes("Asistencia guardada")');
+      await click('Guardar cambios'); await wait('document.body.textContent.includes("Asistencia guardada")'); await click('Cerrar');
+      await wait('!document.querySelector("dialog[open]")');
       assert.equal(await writes(), 2);
       await wait(`${cards}[1].textContent.includes('Tardanzas1')`);
       await evaluate(`${cards}[1].querySelector('button').click()`); await wait(`${rows}.length === 2`);
@@ -70,7 +71,10 @@ test('móvil: buscar entre salones, guardar Tardanza y continuar sin duplicados 
       await evaluate("mobileTest.allowed = ['2']"); await field('search', 'pere');
       await wait(`${hits}.length === 2`);
       assert.equal(await evaluate(`Array.from(${hits}).some(hit => hit.textContent.includes('GENIALES'))`), false);
-      await ui.setRoute('/secciones'); await wait(`${cards}.length === 1`); await click('Ver estudiantes');
+      await ui.setRoute('/secciones');
+      // La asignación cambió fuera de la pantalla; el foco revalida el listado existente.
+      await evaluate('window.dispatchEvent(new Event("focus"))');
+      await wait(`${cards}.length === 1`); await click('Ver estudiantes');
       await wait('document.body.textContent.includes("2 estudiantes en esta fecha")');
       assert.doesNotMatch(await evaluate('document.body.textContent'), /Fecha de consulta|Año escolar|Asistencia diaria|Detalles/);
       assert.equal(await evaluate('document.querySelectorAll("input[type=date]").length'), 0);

@@ -4,6 +4,7 @@ import { createServer } from 'vite';
 import { AxiosError } from 'axios';
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router';
 import { dailyRows, dailyYear } from './support/adminHomeFixture.mjs';
 
 let vite, summary, api, http, View, Home, Auth, dates, access;
@@ -106,11 +107,14 @@ test('fallo intermedio, invalidación, paginación errónea y duplicados nunca p
   await assert.rejects(api.getDailySummary(dailyYear.id, '2026-02-30', () => true)); assert.equal(calls, 1);
 });
 
-test('Inicio genérico conserva datos de cuenta sin repetir rol/nivel; fecha inicial corresponde a Lima', () => {
+test('Inicio de REGISTRADOR resume el día; otros roles conservados y fecha inicial de Lima', () => {
   for (const rol of ['REGISTRADOR', 'SUPERUSUARIO']) {
-    const html = renderToStaticMarkup(h(Auth.Provider, { value: { session: { user: { rol, nombres: 'Rosa', apellidos: 'Prueba', usuario: 'rosa', nivel_asignado: 'PRIMARIA' } } } }, h(Home)));
-    assert.match(html, /Tu cuenta/); assert.match(html, /Bienvenido\/a/); assert.doesNotMatch(html, /Resumen diario institucional/);
-    assert.match(html, /Nombre completo|Usuario/);
+    const html = renderToStaticMarkup(h(MemoryRouter, null, h(Auth.Provider, { value: { session: { user: { rol, nombres: 'Rosa', apellidos: 'Prueba', usuario: 'rosa', nivel_asignado: 'PRIMARIA' } } } }, h(Home))));
+    assert.doesNotMatch(html, /Resumen diario institucional/);
+    if (rol === 'REGISTRADOR') {
+      assert.match(html, /Ir a mis secciones/); assert.doesNotMatch(html, /Tu cuenta|Rosa|espacio de trabajo|Nombre completo|Usuario/);
+      assert.match(html, /Registro de asistencia de hoy/); assert.match(html, /Estudiantes en seguimiento/);
+    } else { assert.match(html, /Bienvenido\/a/); assert.match(html, /Tu cuenta|Nombre completo|Usuario/); }
     assert.doesNotMatch(html, /Identificación|Nivel principal:|Fecha consultada|America\/Lima/);
   }
   assert.equal(dates.peruToday(new Date('2026-11-18T04:59:59Z')), '2026-11-17');

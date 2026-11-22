@@ -10,7 +10,23 @@ Paginación compartida: página 1 y límite 20 por defecto, máximo 100.
 
 ADMIN consulta los tres niveles; SUBDIRECCION principal y adicionales explícitos
 mediante el mismo servicio general de Estadísticas, nunca la matriz especial
-de asistencia. REGISTRADOR/nivel ajeno: 403; sin autenticación/inactivo: 401.
+de asistencia. Nivel ajeno: 403; sin autenticación/inactivo: 401.
+
+Precisión aprobada para Inicio de REGISTRADOR (22/11/2026): el mismo endpoint
+acepta únicamente `page=1`, `limit` explícito de 1 a 5 y sin filtro de nivel.
+No habilita `/estadisticas` ni su pantalla. Revalida rol/actividad en el mismo
+snapshot y filtra cada marca mediante dos EXISTS: asignación a esa sección
+vigente hoy en Lima y asignación efectiva en la fecha de la marca, con extremos
+inclusivos; pueden ser filas diferentes. Nivel principal/adicionales no amplían
+este acceso. El filtro se aplica a conteo, umbral, resultados y sus secciones.
+No se une asignaciones a las marcas: varias filas no multiplican incidencias.
+La sección se toma de la asistencia histórica, conservando cambios de aula y
+una sola fila agregada por estudiante. Las agregaciones y el criterio de tres
+FALTA/TARDANZA, incluidas justificadas, son exactamente los existentes.
+En REGISTRADOR, `niveles_autorizados` describe solo los niveles representados
+por las secciones de los resultados; no concede permisos por nivel ni catálogos.
+Los contratos de ADMIN/SUBDIRECCION permanecen intactos. Pruebas focalizadas en
+`asistencias.followup-registrador.test.js`, con MySQL bloqueado y datos ficticios.
 
 Respuesta: `filtros` (año, mes, nivel/null y fechas efectivas),
 `niveles_autorizados`, `estudiantes` y `pagination` (page, limit, total, has_more).

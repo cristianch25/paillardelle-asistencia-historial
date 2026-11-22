@@ -1,6 +1,7 @@
 import { useAuth } from '../auth/AuthContext';
 import { lazy, Suspense } from 'react';
 import LoadingState from '../../shared/components/LoadingState';
+import RegistrarHomePage from './RegistrarHomePage';
 
 const AdminHomePage = lazy(() => import('./AdminHomePage'));
 
@@ -10,6 +11,7 @@ export default function HomePage() {
   if (session.user.rol === 'ADMIN' || session.user.rol === 'SUBDIRECCION') return <Suspense fallback={<LoadingState message="Cargando inicio…" />}>
     <AdminHomePage key={`${session.user.id}:${session.user.rol}:${session.user.nivel_asignado}:${session.expiresAt}`} />
   </Suspense>;
+  if (session.user.rol === 'REGISTRADOR') return <RegistrarHomePage key={`${session.user.id}:${session.expiresAt}`} />;
   return (
     <div>
       <p className="text-sm font-medium text-institutional-800">I.E. Enrique Paillardelle · Tacna</p>
