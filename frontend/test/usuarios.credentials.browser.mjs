@@ -38,23 +38,3 @@ test('Restablecimiento incierto: no revela contraseña ni reenvía automáticame
     await ui.click('Actualizar consulta');
   } finally { await ui.close(); }
 });
-
-test('Finalizar: confirmación, cese explícito e historial visible sin cambiar cuenta', { skip: !hasEdge, timeout: 90000 }, async () => {
-  const ui = await authBrowser('usuariosHarness.jsx');
-  try {
-    await ui.navigate('/login'); await ui.login(); await ui.setRoute('/usuarios'); await ui.wait('Boolean(document.querySelector("[aria-label=\\"Usuarios encontrados\\"]"))');
-    await action(ui, 'Asignaciones'); await ui.wait('document.body.textContent.includes("Asignaciones de María")');
-    await ui.click('Finalizar asignación'); await ui.wait('Boolean(document.querySelector("dialog[open] input[type=date]"))');
-    const effective = await ui.evaluate('document.querySelector("dialog[open] input").value');
-    await ui.click('Revisar finalización'); assert.equal(await ui.evaluate('usersTest.calls.filter(c=>c.url.endsWith("/finalizar")).length'), 0);
-    await ui.click('Confirmar finalización'); await ui.wait('!document.querySelector("dialog[open]")');
-    await ui.wait('Boolean(document.querySelector("[aria-label=\\"Asignaciones del usuario\\"]"))');
-    assert.equal(await ui.evaluate('usersTest.assignments.length'), 1);
-    assert.equal(await ui.evaluate('usersTest.calls.find(c=>c.url.endsWith("/finalizar")).body.fecha_efectiva'), effective);
-    assert.ok(await ui.evaluate('document.querySelector("[aria-label=\\"Asignaciones del usuario\\"]").textContent.includes("Nueva asignación")'));
-    for (const width of [1440, 320]) {
-      await ui.command('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile: width === 320 });
-      assert.ok(await ui.evaluate('document.documentElement.scrollWidth <= innerWidth'));
-    }
-  } finally { await ui.close(); }
-});

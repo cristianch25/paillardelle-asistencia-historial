@@ -34,7 +34,8 @@ function listRows(state, sql, params) {
 }
 export function assignmentFixture() {
   const state = updatePool([testUser('1'), testUser('2'), testUser('3', 'REGISTRADOR'),
-    testUser('4', 'SUBDIRECCION', { nivel_asignado: 'PRIMARIA' }), testUser('5', 'REGISTRADOR'), testUser('6', 'OTRO')]);
+    testUser('4', 'SUBDIRECCION', { nivel_asignado: 'PRIMARIA' }), testUser('5', 'REGISTRADOR'), testUser('6', 'OTRO'),
+    testUser('7', 'SUBDIRECCION', { nivel_asignado: 'PRIMARIA' })]);
   state.sections = new Map(['PRIMARIA', 'SECUNDARIA', 'INICIAL'].map((nivel, i) => [String(i + 10),
     { id: String(i + 10), anio_escolar_id: '20', nivel, activo: 1 }]));
   state.year = { id: '20', estado: 'PLANIFICADO', fecha_inicio: '2026-01-01', fecha_fin: '2026-12-31' };
@@ -44,6 +45,15 @@ export function assignmentFixture() {
   state.pool = {
     async execute(sql, params) {
       state.calls.push({ sql, params });
+      if (sql.includes("FROM usuarios WHERE rol = 'REGISTRADOR'")) {
+        const levels = params.slice(0, -2);
+        return [[...state.users.values()].filter(row => row.rol === 'REGISTRADOR' && row.activo === 1
+          && (row.nivel_asignado === null || levels.includes(row.nivel_asignado))).slice(params.at(-1), params.at(-1) + params.at(-2))];
+      }
+      if (sql.includes('FROM secciones WHERE nivel IN')) {
+        const levels = params.slice(0, -2);
+        return [[...state.sections.values()].filter(row => levels.includes(row.nivel)).slice(params.at(-1), params.at(-1) + params.at(-2))];
+      }
       if (/FROM asignaciones a\s+JOIN secciones/.test(sql)) {
         if (state.readFails) throw state.error;
         return [listRows(state, sql, params)];
@@ -62,6 +72,18 @@ export function assignmentFixture() {
       return {
         async beginTransaction() { if (state.failAt === 'begin') throw state.error; return connection.beginTransaction(); },
         async execute(sql, params) {
+          if (sql.startsWith('SELECT usuario_id, seccion_id FROM asignaciones')) {
+            events.push({ sql, params }); return [state.assignments.filter(row => row.id === params[0]).map(row => ({ ...row }))];
+          }
+          if (sql.startsWith('UPDATE asignaciones SET fecha_fin')) {
+            events.push({ sql, params });
+            const row = state.assignments.find(item => item.id === params[1] && item.fecha_fin === params[2]);
+            if (!row) return [{ affectedRows: 0 }]; row.fecha_fin = params[0]; return [{ affectedRows: 1 }];
+          }
+          if (sql.startsWith('INSERT INTO auditoria_administrativa')) {
+            state.auditAttempts = (state.auditAttempts ?? 0) + 1;
+            if (state.auditAttempts === state.failAuditNumber) throw state.error;
+          }
           if (sql.startsWith('SELECT id FROM usuarios WHERE rol')) {
             const result = await connection.execute(sql, params); before = structuredClone(state.assignments); return result;
           }
@@ -118,5 +140,5 @@ export function assignmentFixture() {
   const sections = createSeccionesService({ repository: createSeccionesRepository(provider), usuariosService: users, getToday: () => today });
   const repository = createAssignmentsRepository(provider);
   const service = createAssignmentsService({ repository, usuariosService: users, seccionesService: sections, getToday: () => today });
-  return { state, repository, service, users, sections, admin: { ...state.users.get('1') } };
+  return { state, repository, service, users, sections, admin: { ...state.users.get('1') }, manager: { ...state.users.get('4') } };
 }

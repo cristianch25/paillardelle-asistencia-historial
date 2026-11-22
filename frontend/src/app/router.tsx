@@ -23,6 +23,7 @@ export const router = createBrowserRouter(createRoutesFromElements(
         <Route path="/usuarios" lazy={async () => ({ Component: (await import('../features/usuarios/UsersPage')).default })} />
         <Route path="/auditoria" lazy={async () => ({ Component: (await import('../features/auditoria/AuditPage')).default })} />
         <Route path="/anios-escolares" lazy={async () => ({ Component: (await import('../features/organizacion-escolar/anios-escolares/SchoolYearsPage')).default })} />
+        <Route path="/asignaciones-docentes" lazy={async () => ({ Component: (await import('../features/usuarios/TeacherAssignmentsPage')).default })} />
         <Route path="/reportes" lazy={async () => ({ Component: (await import('../features/reportes/MonthlyReportPage')).default })} />
         <Route path="/estadisticas" lazy={async () => ({ Component: (await import('../features/estadisticas/StatisticsPage')).default })} />
         <Route path="/calendario" lazy={async () => ({ Component: (await import('../features/organizacion-escolar/calendario-lectivo/SchoolCalendarPage')).default })} />

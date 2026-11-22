@@ -2,12 +2,14 @@ import type { AuthUser } from '../auth/auth.types';
 import type { Section, EducationLevel } from '../organizacion-escolar/secciones/secciones.types';
 import type { SchoolYear } from '../organizacion-escolar/anios-escolares/aniosEscolares.types';
 import type { SectionAssignment } from '../organizacion-escolar/secciones/sectionStaff.api';
-import { educationLevelLabels, formatSectionName } from '../organizacion-escolar/secciones/sectionPresentation';
 
 export type ManagedUser = AuthUser & { activo: boolean };
 export type UserDraft = { nombres: string; apellidos: string; usuario: string; rol: string; cargo: string; nivel_asignado: EducationLevel | ''; password: string };
 export type AssignmentInput = { usuario_id: string; seccion_id: string; fecha_inicio: string; fecha_fin: string | null };
+export type AssignmentBatchInput = { usuario_id: string; anio_escolar_id: string; seccion_ids: string[]; fecha_inicio: string; fecha_fin: string | null };
 export type UsersCatalog = { users: ManagedUser[]; assignments: SectionAssignment[]; sections: Section[]; years: SchoolYear[] };
+export type AssignmentRegistrar = Pick<ManagedUser, 'id' | 'nombres' | 'apellidos' | 'rol' | 'cargo' | 'activo' | 'nivel_asignado'>;
+export type AssignmentCatalog = Pick<UsersCatalog, 'assignments' | 'sections' | 'years'> & { registrars: AssignmentRegistrar[] };
 
 export function initialUserDraft(user?: ManagedUser): UserDraft {
   return { nombres: user?.nombres ?? '', apellidos: user?.apellidos ?? '', usuario: user?.usuario ?? '',
@@ -37,11 +39,4 @@ const normalize = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '
 export function matchesUser(user: ManagedUser, text: string) {
   const haystack = normalize(`${user.nombres} ${user.apellidos} ${user.usuario} ${user.id}`);
   return normalize(text).split(/\s+/).every(part => haystack.includes(part));
-}
-
-export function assignmentSectionLabel(id: string, catalog: UsersCatalog) {
-  const section = catalog.sections.find(row => row.id === id);
-  if (!section) return 'Sección no disponible';
-  const year = catalog.years.find(row => row.id === section.anio_escolar_id);
-  return `${year?.anio ?? 'Año no disponible'} · ${educationLevelLabels[section.nivel]} · ${formatSectionName(section)}`;
 }

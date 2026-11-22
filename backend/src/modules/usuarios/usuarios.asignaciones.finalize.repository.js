@@ -4,7 +4,7 @@ import { inTransaction } from '../../shared/transaction.js';
 export function finalizeAssignment(pool, data, actorId, hooks, columns, publicRow) {
   return inTransaction(pool, async connection => {
     await connection.execute('SELECT id FROM usuarios WHERE rol = ? AND activo = ? ORDER BY id FOR UPDATE', ['ADMIN', 1]);
-    const [actors] = await connection.execute('SELECT id, rol, activo, debe_cambiar_password FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId]);
+    const [actors] = await connection.execute('SELECT id, rol, activo, nivel_asignado, debe_cambiar_password FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [actorId]);
     assertPasswordChanged(actors[0]);
     hooks.authorizeActor(actors[0] ?? null);
     // Localizar sin bloquear la asignación antes de usuario/año/sección.
@@ -13,7 +13,7 @@ export function finalizeAssignment(pool, data, actorId, hooks, columns, publicRo
     const location = locations[0];
     const [targets] = await connection.execute('SELECT id FROM usuarios WHERE id = ? LIMIT 1 FOR UPDATE', [String(location.usuario_id)]);
     hooks.requireTarget(targets[0] ?? null);
-    await hooks.sectionContext(String(location.seccion_id), connection);
+    await hooks.sectionContext(String(location.seccion_id), connection, actors[0]);
     const [rows] = await connection.execute(`SELECT ${columns} FROM asignaciones a WHERE a.id = ? LIMIT 1 FOR UPDATE`, [data.id]);
     hooks.requireAssignment(rows[0] ?? null);
     const before = publicRow(rows[0]);

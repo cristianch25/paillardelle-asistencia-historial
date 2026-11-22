@@ -16,6 +16,22 @@ export function validateNewAssignment(body) {
     && (!validDate(data.fecha_fin) || data.fecha_fin < data.fecha_inicio))) invalid();
   return data;
 }
+export function validateAssignmentBatch(body) {
+  if (!body || !Object.hasOwn(body, 'seccion_ids')) return { batch: false, items: [validateNewAssignment(body)] };
+  object(body, ['usuario_id', 'anio_escolar_id', 'seccion_ids', 'fecha_inicio', 'fecha_fin']);
+  const yearId = validateId(body.anio_escolar_id);
+  if (!Array.isArray(body.seccion_ids) || !body.seccion_ids.length || body.seccion_ids.length > 100) invalid();
+  const ids = body.seccion_ids.map(validateId);
+  if (new Set(ids).size !== ids.length) throw new HttpError(400, 'Selecciona cada sección una sola vez.');
+  const items = ids.map(seccion_id => validateNewAssignment({ usuario_id: body.usuario_id, seccion_id,
+    fecha_inicio: body.fecha_inicio, fecha_fin: body.fecha_fin }));
+  items.sort((a, b) => BigInt(a.seccion_id) < BigInt(b.seccion_id) ? -1 : 1);
+  return { batch: true, yearId, items };
+}
+export function validateAssignmentCatalog(query = {}) {
+  object(query, ['page', 'limit']);
+  return validatePagination(query);
+}
 export function validateAssignmentQuery(query = {}) {
   object(query, ['page', 'limit', 'usuario_id', 'seccion_id', 'anio_escolar_id', 'nivel', 'vigencia']);
   const filters = {};

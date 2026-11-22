@@ -1,5 +1,39 @@
 # Módulo de usuarios
 
+## Asignaciones docentes: precisión aprobada el 21/11/2026
+
+Este contrato sustituye solo la gestión operativa de asignaciones descrita más
+abajo. SUBDIRECCION consulta, crea y finaliza según su nivel principal:
+INICIAL → Inicial; PRIMARIA → Inicial y Primaria; SECUNDARIA → Secundaria.
+Los niveles adicionales no amplían esta matriz específica. No cambia el ámbito
+de otros módulos. ADMIN conserva sus funciones de cuentas y la lectura existente
+de asignaciones; POST y finalización le están denegados. REGISTRADOR conserva
+solo su consulta propia. SUPERUSUARIO no participa.
+
+Los nuevos GET `/api/asignaciones/registradores` y `/api/asignaciones/secciones`
+son exclusivos de SUBDIRECCION, paginados, filtrados en SQL por la matriz y con
+proyección mínima sin credenciales. El primero devuelve solo REGISTRADOR activos
+compatibles; no habilita acceso al catálogo administrativo `/api/usuarios`.
+El segundo incluye secciones históricas del ámbito para interpretar el historial;
+crear sigue exigiendo sección activa y año PLANIFICADO/ABIERTO.
+
+POST `/api/asignaciones` conserva el contrato individual y añade el lote
+`{ usuario_id, anio_escolar_id, seccion_ids, fecha_inicio, fecha_fin }`:
+entre 1 y 100 secciones únicas del mismo año, fechas comunes e inclusivas.
+Devuelve 201 `{ asignaciones: [...] }` para el lote. Revalida actor, nivel
+principal, destinatario y contexto bajo bloqueo; ordena secciones por ID y valida
+todas antes de insertar. Usa una sola transacción y auditoría individual con
+el SUBDIRECCION real. Conflicto 409 o fallo de auditoría revierte todo; nunca
+sobrescribe asignaciones. Períodos sin intersección siguen permitidos.
+
+PATCH `/:id/finalizar` verifica esta misma matriz bajo bloqueo y conserva sus
+reglas de fechas, concurrencia y auditoría, sin exigir que el destinatario siga
+siendo REGISTRADOR: las asignaciones históricas pueden pertenecer a cuentas
+que cambiaron de rol. Se mantiene el prefijo de bloqueos compatible con edición
+de usuarios y el tratamiento de COMMIT incierto sin reintentos.
+Sin migraciones ni dependencias nuevas. Ver la precisión posterior de
+[trazabilidad V8](../../../../docs/requisitos/PAILLARDELLE_TRAZABILIDAD_v7_v8.md).
+
 ## Contrato vigente: SUPERUSUARIO etapa 2 — 20/11/2026
 
 Implementa D48/RN-48/RF-23 V8; este bloque sustituye únicamente los permisos

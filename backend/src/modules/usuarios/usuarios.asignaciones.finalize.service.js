@@ -6,10 +6,10 @@ export function previousDate(date) {
   return new Date(Date.parse(`${date}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
 }
 
-export function createAssignmentFinalizer({ repository, seccionesService, getToday, authorizeAdmin }) {
+export function createAssignmentFinalizer({ repository, seccionesService, getToday, authorizeManager, authorizeLevel }) {
   return async (id, body, actor) => {
     validateId(id);
-    authorizeAdmin(actor, false);
+    authorizeManager(actor, false);
     if (!body || typeof body !== 'object' || Array.isArray(body)
       || Object.keys(body).some(key => !['fecha_efectiva', 'fecha_fin_esperada'].includes(key))
       || !validDate(body.fecha_efectiva) || !Object.hasOwn(body, 'fecha_fin_esperada')
@@ -18,10 +18,13 @@ export function createAssignmentFinalizer({ repository, seccionesService, getTod
     }
     try {
       return await repository.finalize({ id, ...body }, actor.id, {
-        authorizeActor: authorizeAdmin,
+        authorizeActor: current => authorizeManager(current, true),
         requireAssignment(row) { if (!row) throw new HttpError(404, 'Asignación no encontrada.'); },
         requireTarget(row) { if (!row) throw new HttpError(404, 'Usuario no encontrado.'); },
-        sectionContext: (sectionId, connection) => seccionesService.assignmentContext(sectionId, connection),
+        async sectionContext(sectionId, connection, current) {
+          const context = await seccionesService.assignmentContext(sectionId, connection);
+          authorizeLevel(current, context.section); return context;
+        },
         decide(before) {
           if (before.fecha_fin !== body.fecha_fin_esperada) throw new HttpError(409, 'La asignación cambió. Actualiza la consulta.');
           if (body.fecha_efectiva <= before.fecha_inicio) {

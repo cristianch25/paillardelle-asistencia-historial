@@ -6,6 +6,7 @@ import { createAssignmentFinalizer, previousDate } from '../src/modules/usuarios
 import { createAuthService } from '../src/modules/auth/auth.service.js';
 import { createTokenService } from '../src/modules/auth/auth.tokens.js';
 
+const manager = { id: '4', rol: 'SUBDIRECCION', activo: 1, nivel_asignado: 'PRIMARIA' };
 const admin = { id: '1', rol: 'ADMIN', activo: 1 };
 function passwordFixture(actor = admin, target = { id: '2', rol: 'REGISTRADOR' }) {
   const calls = [], service = createPasswordResetService({ hash: async value => `HASH_FICTICIO_${value}`,
@@ -55,21 +56,21 @@ test('password básico: bcrypt real, contraseña anterior inválida y JWT previo
 });
 
 function finalizerFixture() {
-  const before = { id: '10', usuario_id: '2', seccion_id: '3', fecha_inicio: '2026-03-01', fecha_fin: null }, state = { actor: admin, before, calls: 0 };
+  const before = { id: '10', usuario_id: '2', seccion_id: '3', fecha_inicio: '2026-03-01', fecha_fin: null }, state = { actor: manager, before, calls: 0 };
   const finalize = createAssignmentFinalizer({ getToday: () => '2026-11-19', seccionesService: {},
-    authorizeAdmin(actor) { if (!actor?.activo) throw { status: 401 }; if (actor.rol !== 'ADMIN') throw { status: 403 }; },
+    authorizeManager(actor) { if (!actor?.activo) throw { status: 401 }; if (actor.rol !== 'SUBDIRECCION') throw { status: 403 }; },
     repository: { async finalize(_data, _id, hooks) { state.calls++; hooks.authorizeActor(state.actor); return { ...state.before, fecha_fin: hooks.decide(state.before) }; } } });
   return { state, finalize };
 }
 
 test('finalización: cese exclusivo convertido a fin inclusivo, validaciones, fechas y concurrencia', async () => {
   const { finalize, state } = finalizerFixture(), body = { fecha_efectiva: '2026-11-19', fecha_fin_esperada: null };
-  assert.equal((await finalize('10', body, admin)).fecha_fin, '2026-11-18'); assert.equal(state.before.fecha_fin, null);
+  assert.equal((await finalize('10', body, manager)).fecha_fin, '2026-11-18'); assert.equal(state.before.fecha_fin, null);
   assert.equal(previousDate('2024-03-01'), '2024-02-29'); assert.equal(previousDate('2026-03-01'), '2026-02-28');
   for (const patch of [{ fecha_efectiva: '2026-03-01' }, { fecha_efectiva: '2026-11-18' }, { fecha_fin_esperada: '2026-12-31' }]) {
-    await assert.rejects(finalize('10', { ...body, ...patch }, admin), { status: 409 });
+    await assert.rejects(finalize('10', { ...body, ...patch }, manager), { status: 409 });
   }
-  await assert.rejects(finalize('10', { ...body, extra: true }, admin), { status: 400 });
-  state.before.fecha_fin = '2026-11-19'; await assert.rejects(finalize('10', { fecha_efectiva: '2026-11-21', fecha_fin_esperada: state.before.fecha_fin }, admin), { status: 409 });
-  state.actor = { ...admin, rol: 'REGISTRADOR' }; await assert.rejects(finalize('10', body, admin), { status: 403 });
+  await assert.rejects(finalize('10', { ...body, extra: true }, manager), { status: 400 });
+  state.before.fecha_fin = '2026-11-19'; await assert.rejects(finalize('10', { fecha_efectiva: '2026-11-21', fecha_fin_esperada: state.before.fecha_fin }, manager), { status: 409 });
+  state.actor = { ...manager, rol: 'REGISTRADOR' }; await assert.rejects(finalize('10', body, manager), { status: 403 });
 });

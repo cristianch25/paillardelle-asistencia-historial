@@ -330,3 +330,25 @@ Revisar los cuatro V8 y esta matriz; la adopción del conjunto permanece pendien
 ## Gestión ADMIN de años escolares — aprobación posterior 19/11/2026
 
 P02, RN-03/RN-05 y RF-03 V8 precisados en los cuatro TXT: gestión ADMIN, cierre manual anual global y auditado, condición estricta de fecha en Lima, conservación histórica y ausencia de arrastre al cambiar de año. Formulario de creación con solo año y fechas; sin edición posterior, reapertura, DDL ni nuevas dependencias. La aprobación de esta etapa sustituye únicamente los pendientes anuales resueltos, conservando los demás antecedentes. Validación y límites de evidencia en README.md.
+
+## Asignaciones docentes — precisión posterior aprobada el 21/11/2026
+
+Por autorización expresa del usuario, se precisa exclusivamente el actor y ámbito
+de gestión de asignaciones docentes de RF-02 V8: SUBDIRECCION consulta, crea y
+finaliza según su nivel principal. INICIAL → Inicial; PRIMARIA → Inicial y
+Primaria; SECUNDARIA → Secundaria. Los niveles adicionales no amplían esta matriz.
+Es una autorización específica de este módulo, sin trasladar automáticamente
+RN-06/RF-19 ni modificar el alcance de asistencia, calendario u otros módulos.
+
+ADMIN conserva la administración de cuentas y las consultas de asignaciones ya
+necesarias para sus vistas, sin creación ni finalización operativas.
+REGISTRADOR conserva su consulta propia, sin gestionar asignaciones;
+SUPERUSUARIO no participa. No se amplía la administración general de cuentas
+a SUBDIRECCION: solo recibe el catálogo mínimo necesario de registradores elegibles.
+
+Se autoriza selección múltiple del mismo año y fechas comunes, guardado atómico,
+rechazo de superposiciones sin sobrescritura, auditoría del actor real y
+conservación del historial. Finalizar no exige que el destinatario conserve
+REGISTRADOR, para no bloquear vínculos históricos legítimos. Sin migraciones
+ni dependencias nuevas. La verificación de esta entrega usa mocks y pruebas
+aisladas; no acredita ejecución sobre la base institucional.

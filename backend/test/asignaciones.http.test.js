@@ -20,7 +20,7 @@ beforeEach(() => {
 });
 before(async () => {
   const authService = createAuthService({ tokens, repository: { findById: async id => fixture.state.users.get(id) } });
-  const assignmentsService = { list: (...args) => fixture.service.list(...args), create: (...args) => fixture.service.create(...args) };
+  const assignmentsService = Object.fromEntries(['list', 'create', 'catalog', 'finalize'].map(key => [key, (...args) => fixture.service[key](...args)]));
   server = createApp({ authService, assignmentsService }).listen(0, '127.0.0.1');
   await once(server, 'listening'); url = `http://127.0.0.1:${server.address().port}/api/asignaciones`;
 });
@@ -66,9 +66,9 @@ test('asignaciones HTTP: identidad mínima dentro del ámbito, sin ampliar acces
   assert.equal(users.status, 403); await users.text();
 });
 
-test('asignaciones HTTP: SUBDIRECCION principal/adicional y REGISTRADOR solo propias, sin ampliar por filtros', async () => {
-  assert.deepEqual((await (await request('', '4')).json()).asignaciones.map(row => row.id), ['101', '104']);
-  fixture.state.additional.set('4', ['INICIAL']);
+test('asignaciones HTTP: matriz propia sin adicionales y REGISTRADOR solo propias, sin ampliar por filtros', async () => {
+  assert.deepEqual((await (await request('', '4')).json()).asignaciones.map(row => row.id), ['101', '103', '104']);
+  fixture.state.additional.set('4', ['SECUNDARIA']);
   assert.deepEqual((await (await request('', '4')).json()).asignaciones.map(row => row.id), ['101', '103', '104']);
   const denied = await request('?nivel=SECUNDARIA', '4'); assert.equal(denied.status, 403); await denied.text();
   assert.deepEqual((await (await request('', '3')).json()).asignaciones.map(row => row.id), ['101', '103', '104']);
@@ -96,7 +96,7 @@ test('asignaciones HTTP: autenticación/rol/inactivo y POST reservado antes de p
   }
   fixture.state.users.get('3').activo = 0;
   assert.equal((await request('', '3')).status, 401);
-  for (const id of ['3', '4', '6']) {
+  for (const id of ['3', '1', '6']) {
     const response = await request('', id, 'POST', undefined, '{');
     assert.equal(response.status, id === '3' ? 401 : 403); await response.text();
   }
@@ -105,19 +105,19 @@ test('asignaciones HTTP: autenticación/rol/inactivo y POST reservado antes de p
 
 test('asignaciones HTTP: POST 201, validaciones estrictas, conflicto 409 y errores internos seguros', async () => {
   fixture.state.assignments.length = 0;
-  let response = await request('', '1', 'POST', assignmentBody);
+  let response = await request('', '4', 'POST', assignmentBody);
   assert.equal(response.status, 201); const row = (await response.json()).asignacion;
   assert.equal(row.id, '9007199254740993'); assert.equal(row.usuario_id, '3');
   assert.deepEqual(Object.keys(row), ['id', 'usuario_id', 'seccion_id', 'fecha_inicio', 'fecha_fin', 'created_at']);
-  response = await request('', '1', 'POST', assignmentBody); assert.equal(response.status, 409); await response.text();
+  response = await request('', '4', 'POST', assignmentBody); assert.equal(response.status, 409); await response.text();
   for (const path of ['?page=0', '?limit=101', '?usuario_id=3&usuario_id=5', '?nivel=PRIMARIA&nivel=INICIAL', '?vigencia=OTRA', '?extra=1']) {
     response = await request(path); assert.equal(response.status, 400); await response.text();
   }
   for (const [raw, status] of [['{', 400], [JSON.stringify({ extra: 'a'.repeat(9000) }), 413]]) {
-    response = await request('', '1', 'POST', undefined, raw); assert.equal(response.status, status); await response.text();
+    response = await request('', '4', 'POST', undefined, raw); assert.equal(response.status, status); await response.text();
   }
   fixture.state.failAt = 'audit';
-  response = await request('', '1', 'POST', { ...assignmentBody, seccion_id: '11' }); assert.equal(response.status, 500);
+  response = await request('', '4', 'POST', { ...assignmentBody, seccion_id: '12' }); assert.equal(response.status, 500);
   assert.deepEqual(await response.json(), { error: 'No se pudo procesar la solicitud.' });
   assert.equal(fixture.state.assignments.length, 1); assert.equal(fixture.state.audits.length, 1);
   fixture.state.readFails = true;
@@ -129,4 +129,31 @@ test('asignaciones HTTP: no hay detalle, edición ni borrado en este bloque', as
   for (const method of ['GET', 'PATCH', 'DELETE']) {
     const response = await request('/101', '1', method); assert.equal(response.status, 404); await response.text();
   }
+});
+
+test('HTTP: catálogos mínimos exclusivos, lote indivisible y finalización limitada por nivel', async () => {
+  for (const id of ['1', '3', '6']) {
+    for (const path of ['/registradores', '/secciones']) assert.equal((await request(path, id)).status, 403);
+    assert.equal((await request('/101/finalizar', id, 'PATCH', {})).status, 403);
+  }
+  const catalog = await (await request('/secciones', '4')).json();
+  assert.deepEqual(catalog.secciones.map(row => row.id), ['10', '12']);
+  const registrars = await (await request('/registradores', '4')).json();
+  assert.ok(registrars.registradores.every(row => row.rol === 'REGISTRADOR'));
+  assert.doesNotMatch(JSON.stringify(registrars), /password|hash|NO_EXPONER/);
+  fixture.state.assignments.length = 0;
+  const body = { usuario_id: '3', anio_escolar_id: '20', seccion_ids: ['10', '12'], fecha_inicio: today, fecha_fin: null };
+  const created = await request('', '4', 'POST', body);
+  assert.equal(created.status, 201); assert.equal((await created.json()).asignaciones.length, 2);
+  assert.equal((await request('', '4', 'POST', body)).status, 409);
+  assert.equal(fixture.state.assignments.length, 2);
+  const row = fixture.state.assignments[0];
+  fixture.state.users.get('3').rol = 'SUBDIRECCION';
+  const ending = { fecha_efectiva: '2026-11-14', fecha_fin_esperada: null };
+  assert.equal((await request(`/${row.id}/finalizar`, '4', 'PATCH', ending)).status, 200);
+  assert.equal(fixture.state.audits.at(-1)[0], '4');
+  assert.equal(fixture.state.audits.at(-1)[1], 'FINALIZAR_ASIGNACION');
+  fixture.state.sections.get('12').nivel = 'SECUNDARIA';
+  assert.equal((await request(`/${fixture.state.assignments[1].id}/finalizar`, '4', 'PATCH', ending)).status, 403);
+  assert.equal(fixture.state.assignments[1].fecha_fin, null);
 });

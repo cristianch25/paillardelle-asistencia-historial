@@ -1,5 +1,27 @@
 # Usuarios — interfaces por rol
 
+## Asignaciones docentes: precisión aprobada el 21/11/2026
+
+Sustituye únicamente la operación de asignaciones de los contratos históricos
+de este documento. Nuevo menú y ruta `/asignaciones-docentes` exclusivos de
+SUBDIRECCION. Su matriz específica es INICIAL → Inicial, PRIMARIA → Inicial y
+Primaria, SECUNDARIA → Secundaria; los niveles adicionales no amplían el alcance.
+El servidor filtra tanto asignaciones como el catálogo mínimo de registradores
+activos y secciones, sin conceder acceso a la administración general de usuarios.
+
+Se seleccionan una o varias secciones de un mismo año y fechas comunes;
+el formulario comprueba conflictos conocidos antes de enviar un único lote.
+El servidor vuelve a validar todo dentro de una transacción: o todas o ninguna.
+Se conserva el historial y la confirmación de finalización, incluso para cuentas
+que cambiaron de rol. Ante 409 se conservan las selecciones; resultado incierto
+exige actualizar antes de otra escritura, sin reenvíos automáticos.
+
+ADMIN conserva la gestión de cuentas y las secciones agrupadas con nomenclatura
+«Primaria: 1 A, 1 B», pero ya no ofrece el botón ni formulario de asignación.
+REGISTRADOR conserva su consulta propia; SUPERUSUARIO no interviene.
+Se reutilizan el módulo, los componentes y la finalización existentes.
+Pruebas con adaptadores y repositorios simulados, sin operaciones MySQL reales.
+
 ## Contraseña inicial/temporal ADMIN obligatoria — 20/11/2026
 
 D49/RN-49/RF-24 V8 precisados posteriormente: el alta y restablecimiento ADMIN

@@ -24,7 +24,7 @@ test('Usuarios: CRUD ADMIN, cargos, asignaciones y recuperación sin reenvíos',
       await ui.navigate('/login'); await ui.login(); await ui.setRoute('/usuarios'); await ready();
       await t.test('catálogo, búsqueda sin tildes y filtros por rol/estado', async () => {
         assert.equal(await evaluate(`${list}.children.length`), 4);
-        assert.equal(await evaluate(`Array.from(${list}.querySelectorAll('button')).filter(b=>b.textContent==='Asignaciones').length`), 2);
+        assert.equal(await evaluate(`Array.from(${list}.querySelectorAll('button')).filter(b=>b.textContent==='Asignaciones').length`), 0);
         for (const name of ['Administración', 'Ana']) assert.equal(await evaluate(`Array.from(${row(name)}.querySelectorAll('button')).some(b=>b.textContent==='Asignaciones')`), false);
         assert.equal(await evaluate(`Array.from(document.querySelectorAll('button')).some(b=>b.textContent==='Actualizar consulta')`), false);
         assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Administración de cuentas\.|Búsqueda sobre el catálogo completo cargado/);
@@ -89,18 +89,6 @@ test('Usuarios: CRUD ADMIN, cargos, asignaciones y recuperación sin reenvíos',
         await action('María', 'Activar'); await click('Confirmar estado'); await ready();
         await wait(`${row('María')}.textContent.includes('Activo') && !${row('María')}.textContent.includes('Inactivo')`);
       });
-      await t.test('asignaciones históricas y alta solo en sección activa/nivel/año compatibles', async () => {
-        await action('María', 'Asignaciones'); await wait(`Boolean(document.querySelector('form[aria-label="Nueva asignación"]'))`);
-        assert.match(await evaluate('document.body.textContent'), /01\/03\/2026.*Sin fecha de fin/);
-        assert.equal(await evaluate(`${field('Año escolar')}.options.length`), 2);
-        await fill('Año escolar', '9007199254741010');
-        assert.deepEqual(await evaluate(`Array.from(${field('Sección')}.options).map(o => o.value)`), ['', '9007199254741020', '9007199254741023']);
-        await fill('Sección', '9007199254741023'); await fill('Fecha de inicio', '2026-11-18'); await fill('Fecha de fin', '2026-12-31');
-        await click('Crear asignación'); await ready();
-        assert.equal(await evaluate('usersTest.assignments.length'), 2);
-        assert.equal(await evaluate(`${writes}.at(-1).body.usuario_id`), userId);
-        assert.equal(await evaluate(`${writes}.at(-1).url`), '/asignaciones');
-      });
       await t.test('escritura incierta no anuncia éxito ni reenvía antes de consulta explícita', async () => {
         await evaluate('usersTest.writeStatus = "network"');
         await action('María', 'Desactivar'); const before = await evaluate(writes + '.length');
@@ -118,7 +106,7 @@ test('Usuarios: CRUD ADMIN, cargos, asignaciones y recuperación sin reenvíos',
         await click('Guardar usuario'); await wait('document.body.textContent.includes("Datos rechazados por el servidor")');
         await wait(`Boolean(${form})`);
         assert.equal(await evaluate(writes + '.length'), before + 1);
-        assert.equal(await evaluate('usersTest.assignments.length'), 2);
+        assert.equal(await evaluate('usersTest.assignments.length'), 1);
         await evaluate('usersTest.writeStatus = null'); await click('Cancelar'); await ready();
       });
       await t.test('error de catálogo retira controles; recuperación y móvil de 320 px', async () => {
@@ -161,7 +149,9 @@ test('Usuarios: homónimos fuera del filtro, asignaciones de distintos años y b
     const text = await evaluate(`${list}.textContent`);
     assert.match(text, /maria\.prueba/); assert.match(text, /luis\.prueba/);
     assert.doesNotMatch(text, /admin\.prueba|ana\.prueba/);
-    assert.match(text, /Secciones asignadas: 1.º A · Primaria · 2026; 1.º A · Primaria · 2025 \(año cerrado\)/);
+    assert.match(text, /Primaria · 2026: 1 A/);
+    assert.match(text, /Primaria · 2025 \(año cerrado\): 1 A/);
+    assert.doesNotMatch(text, /\.º/);
     assert.doesNotMatch(text, /Secundaria/);
     for (const width of [1440, 412, 320]) {
       await ui.command('Emulation.setDeviceMetricsOverride', { width, height: 1000, deviceScaleFactor: 1, mobile: width < 600 });

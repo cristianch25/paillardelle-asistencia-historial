@@ -31,9 +31,9 @@ test('tarjetas: nombre principal, cargo, estado discreto y acciones conservadas,
   assert.match(html, /font-bold">María Pérez/); assert.match(html, /Docente/); assert.match(html, /Auxiliar/);
   assert.match(html, /Activo/); assert.match(html, /Inactivo/);
   assert.doesNotMatch(html, /maria\.prueba|admin\.prueba|Secciones vigentes|Sin asignaciones vigentes/);
-  assert.match(html, /Sección asignada: 1.º A · Primaria/);
+  assert.match(html, /Primaria: 1 A/); assert.doesNotMatch(html, /1.º/);
   assert.match(html, /Sin secciones asignadas/);
-  for (const action of ['Editar', 'Desactivar', 'Activar', 'Asignaciones', 'Restablecer contraseña']) assert.ok(html.includes(action));
+  for (const action of ['Editar', 'Desactivar', 'Activar', 'Restablecer contraseña']) assert.ok(html.includes(action));
 });
 
 test('homónimos se detectan en todo el catálogo, aunque solo una cuenta esté en la página o filtro', () => {
@@ -46,12 +46,12 @@ test('homónimos se detectan en todo el catálogo, aunque solo una cuenta esté 
   assert.deepEqual(catalog, before);
 });
 
-test('Asignaciones solo aparece para REGISTRADOR, independientemente del cargo visible', () => {
+test('ADMIN no ofrece gestión operativa de asignaciones para ningún rol', () => {
   for (const rol of ['ADMIN', 'SUBDIRECCION', 'SUPERUSUARIO', 'REGISTRADOR']) {
     for (const cargo of ['DOCENTE', 'AUXILIAR', null]) {
       const user = fixtureUser({ rol, cargo }), catalog = { ...usersFixture(), users: [user] };
       const html = cards(catalog);
-      assert.equal(/>Asignaciones<\/button>/.test(html), rol === 'REGISTRADOR', `${rol}/${cargo}`);
+      assert.equal(/>Asignaciones<\/button>/.test(html), false, `${rol}/${cargo}`);
       for (const label of ['Editar', 'Desactivar', 'Restablecer contraseña']) assert.ok(html.includes(label));
     }
   }
@@ -65,8 +65,22 @@ test('asignaciones: varias secciones y años identificados, sin mostrar vínculo
     { ...catalog.assignments[0], id: 'historica', seccion_id: catalog.sections[1].id, fecha_fin: '2025-12-31' },
     { ...catalog.assignments[0], id: 'futura', seccion_id: catalog.sections[1].id, fecha_inicio: '9999-01-01' });
   const html = cards(catalog, [user]);
-  assert.match(html, /Secciones asignadas: 1.º A · Primaria · 2026; 1.º A · Primaria · 2025 \(año cerrado\)/);
+  assert.match(html, /Primaria · 2026: 1 A/);
+  assert.match(html, /Primaria · 2025 \(año cerrado\): 1 A/);
   assert.doesNotMatch(html, /Secundaria/);
+});
+
+test('tarjetas agrupan varias secciones por nivel sin repetir el nivel ni usar ordinales', () => {
+  const catalog = usersFixture(), user = catalog.users[1]; user.nivel_asignado = null;
+  for (const [id, letra] of [['otra', 'B'], ['tercera', 'C']]) {
+    catalog.sections.push({ ...catalog.sections[0], id, letra });
+    catalog.assignments.push({ ...catalog.assignments[0], id, seccion_id: id });
+  }
+  catalog.assignments.push({ ...catalog.assignments[0], id: 'secundaria', seccion_id: catalog.sections[1].id });
+  const before = structuredClone(catalog), html = cards(catalog, [user]);
+  assert.match(html, /Primaria: 1 A, 1 B, 1 C/); assert.match(html, /Secundaria: 1 B/);
+  assert.equal((html.match(/Primaria:/g) ?? []).length, 1); assert.doesNotMatch(html, /\.º/);
+  assert.deepEqual(catalog, before);
 });
 
 test('rol y cargo separados; SUBDIRECCION requiere nivel y admite cargo opcional de 30 caracteres', () => {
