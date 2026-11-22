@@ -1,3 +1,18 @@
+## Migración 009 — retiro QR/bitácora, PREPARADA, NO EJECUTADA
+
+Nueva preparación autorizada después del desacoplamiento de código en d76c909.
+No modifica SQL v1 ni 002–008 ni acredita su aplicación en una instalación real.
+El estado de las secciones anteriores se conserva como antecedente de cada etapa.
+
+- [Migración con comprobaciones previas](009_retirar_qr_bitacora.sql).
+- [Alcance, dependencias, límites y condiciones de ejecución](009_retirar_qr_bitacora.md).
+
+Retiraría tres tablas vacías de QR/bitácora, dos indicadores obsoletos de usuarios
+y, solo con sus dos semillas originales deshabilitadas, configuracion_sistema.
+Conserva usuario_niveles_adicionales, auditorías y todos los datos académicos.
+No ejecutar ahora: requiere autorización posterior, destino verificado, respaldo,
+escritores detenidos y ensayo autorizado. No agregar 009 a los arneses históricos.
+
 ## Preparación de ensayo SUPERUSUARIO — 21/11/2026, SIN ejecución
 
 Se conserva expresamente `chk_usuario_nivel`. 007 retira y repone su definición
