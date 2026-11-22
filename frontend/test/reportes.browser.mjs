@@ -4,6 +4,20 @@ import { writeFile } from 'node:fs/promises';
 import { authBrowser } from './support/authBrowser.mjs';
 import { hasEdge } from './support/edgeBrowser.mjs';
 
+test('Ficha mensual: nomenclatura sencilla solo para REGISTRADOR, con una o varias secciones', { skip: !hasEdge, timeout: 60000 }, async () => {
+  const ui = await authBrowser('reportsHarness.jsx');
+  try {
+    await ui.navigate('/login'); await ui.wait('Boolean(window.reportsTest)');
+    await ui.evaluate("reportsTest.role='REGISTRADOR'"); await ui.login(); await ui.setRoute('/reportes');
+    await ui.wait('document.body.textContent.includes("Sección: Primaria · 1 A")');
+    await ui.setRoute('/inicio'); await ui.evaluate('reportsTest.multiple=true'); await ui.setRoute('/reportes');
+    await ui.wait('document.querySelectorAll("select option").length===3');
+    assert.deepEqual(await ui.evaluate('Array.from(document.querySelectorAll("select option")).slice(1).map(e=>[e.value,e.textContent])'),
+      [['20', 'Primaria · 1 A'], ['21', 'Secundaria · 2 B']]);
+    assert.equal(await ui.evaluate('reportsTest.calls.length'), 0);
+  } finally { await ui.close(); }
+});
+
 for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) test(`Ficha mensual ${role}: filtros mínimos, Blob descargable y móvil`, { skip: !hasEdge, timeout: 90000 }, async () => {
   const ui = await authBrowser('reportsHarness.jsx');
   try {

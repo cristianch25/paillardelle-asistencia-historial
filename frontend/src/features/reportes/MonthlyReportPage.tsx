@@ -3,7 +3,7 @@ import { Download, Printer } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useSchoolYears } from '../organizacion-escolar/anios-escolares/useSchoolYears';
 import { useInitialSchoolYear } from '../organizacion-escolar/anios-escolares/useInitialSchoolYear';
-import { educationLevelLabels, formatSectionName } from '../organizacion-escolar/secciones/sectionPresentation';
+import { educationLevelLabels, formatRegistrarSectionName, formatSectionName } from '../organizacion-escolar/secciones/sectionPresentation';
 import { peruToday } from '../../shared/dates/civilDate';
 import { useUnsavedChanges } from '../../shared/navigation/useUnsavedChanges';
 import Button from '../../shared/components/Button';
@@ -14,6 +14,8 @@ import { downloadPdf, monthlyPdf, reportError } from './reportes.api';
 import { printPdf, printFailureMessage } from './printPdf';
 
 function MonthlyReportContent() {
+  const { session } = useAuth();
+  const formatName = session?.user.rol === 'REGISTRADOR' ? formatRegistrarSectionName : formatSectionName;
   const years = useSchoolYears(), [yearChoice, setYear] = useState('');
   useInitialSchoolYear(years.years, !years.loading && !years.error, yearChoice, setYear);
   const yearId = years.years.length === 1 ? years.years[0]!.id : yearChoice;
@@ -61,9 +63,9 @@ function MonthlyReportContent() {
         {years.years.length === 1 ? <p>Año escolar: <strong>{year?.anio}</strong></p> : <label className="text-sm font-semibold">Año escolar<select required value={yearId} className={field}
           onChange={event => { setYear(event.target.value); setError(''); }}><option value="">Selecciona un año</option>
           {years.years.map(row => <option key={row.id} value={row.id}>{row.anio} · {row.estado}</option>)}</select></label>}
-        {sections.sections.length === 1 ? <p>Sección: <strong>{educationLevelLabels[section!.nivel]} · {formatSectionName(section!)}</strong></p> : <label className="text-sm font-semibold">Sección<select required className={field} value={sectionId}
+        {sections.sections.length === 1 ? <p>Sección: <strong>{educationLevelLabels[section!.nivel]} · {formatName(section!)}</strong></p> : <label className="text-sm font-semibold">Sección<select required className={field} value={sectionId}
           onChange={event => { setSection({ yearId, id: event.target.value }); setError(''); }}><option value="">Selecciona una sección</option>
-          {sections.sections.map(row => <option key={row.id} value={row.id}>{educationLevelLabels[row.nivel]} · {formatSectionName(row)}</option>)}</select></label>}
+          {sections.sections.map(row => <option key={row.id} value={row.id}>{educationLevelLabels[row.nivel]} · {formatName(row)}</option>)}</select></label>}
         <label className="min-w-0 text-sm font-semibold">Mes<input required type="month" min={min} max={max} value={month} className={field}
           onChange={event => { setMonth({ yearId, value: event.target.value }); setError(''); }} /></label>
       </fieldset>
