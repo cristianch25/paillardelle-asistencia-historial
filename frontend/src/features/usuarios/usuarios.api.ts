@@ -5,7 +5,7 @@ import type { Pagination } from '../../shared/types/pagination';
 import { getSections } from '../organizacion-escolar/secciones/secciones.api';
 import { getAllSchoolYears } from '../organizacion-escolar/anios-escolares/aniosEscolares.api';
 import type { SectionAssignment } from '../organizacion-escolar/secciones/sectionStaff.api';
-import { userRequest, type AssignmentInput, type ManagedUser, type UserDraft, type UsersCatalog } from './usuarios.types';
+import { userRequest, type ManagedUser, type UserDraft, type UsersCatalog } from './usuarios.types';
 
 async function collect<T extends { id: string }>(read: (page: number) => Promise<{ rows: T[]; pagination: Pagination }>, current: () => boolean) {
   const rows = new Map<string, T>();
@@ -60,12 +60,6 @@ export async function resetUserPassword(id: string): Promise<string> {
     throw new Error('Restablecimiento sin confirmación válida.');
   }
   return response.data.password_temporal;
-}
-
-export async function createUserAssignment(input: AssignmentInput) {
-  const response = await httpClient.post('/asignaciones', input);
-  if (response.status !== 201 || typeof response.data?.asignacion?.id !== 'string'
-    || Object.entries(input).some(([key, value]) => response.data.asignacion[key] !== value)) throw new Error('Confirmación no válida.');
 }
 
 export async function finalizeUserAssignment(assignment: SectionAssignment, fecha_efectiva: string) {

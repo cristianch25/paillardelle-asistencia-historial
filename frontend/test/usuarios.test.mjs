@@ -146,20 +146,17 @@ test('error de página o duplicado impide publicar catálogo parcial; no reinten
   await assert.rejects(api.getUsersCatalog(() => true));
 });
 
-test('alta/edición/estado/asignación usan APIs existentes, IDs exactos y confirmación', async () => {
+test('alta/edición/estado usan APIs existentes, IDs exactos y confirmación', async () => {
   const user = fixtureUser(), draft = { ...model.initialUserDraft(user), password: 'inicial-simulada' }, requests = [];
   client.defaults.adapter = async config => {
     const body = JSON.parse(config.data); requests.push({ method: config.method, url: config.url, body });
-    if (config.url === '/asignaciones') return response(config, { asignacion: { id: '999', ...body } }, 201);
     return response(config, { user: { ...user, ...body } }, config.method === 'post' ? 201 : 200);
   };
   await api.saveUser(draft); await api.saveUser(draft, user); await api.setUserState(userId, false);
-  const assignment = { usuario_id: userId, seccion_id: '9007199254741020', fecha_inicio: '2026-03-01', fecha_fin: null };
-  await api.createUserAssignment(assignment);
   assert.equal(requests[0].body.password, draft.password);
   assert.equal('password' in requests[1].body, false);
   assert.deepEqual(requests[2], { method: 'patch', url: `/usuarios/${userId}/estado`, body: { activo: false } });
-  assert.deepEqual(requests[3], { method: 'post', url: '/asignaciones', body: assignment });
+  assert.equal(requests.length, 3);
   client.defaults.adapter = async config => response(config, { user: { ...user, id: 'otro' } });
   await assert.rejects(api.saveUser(draft, user));
 });
