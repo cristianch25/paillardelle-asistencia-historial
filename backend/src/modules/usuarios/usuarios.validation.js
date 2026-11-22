@@ -4,7 +4,7 @@ import { educationLevels as levels } from '../../shared/education-levels.js';
 export { validateId as validateUserId } from '../../shared/query-validation.js';
 
 const roles = ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'];
-const booleanFields = ['puede_escanear_qr', 'puede_usar_bitacora', 'activo'];
+const booleanFields = ['activo'];
 const allowedFields = ['nombres', 'apellidos', 'usuario', 'password', 'rol',
   'cargo', 'nivel_asignado', ...booleanFields];
 export const editableFields = allowedFields.filter(field => !['password', 'activo'].includes(field));

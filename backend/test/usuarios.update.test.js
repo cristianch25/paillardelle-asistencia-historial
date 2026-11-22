@@ -41,17 +41,29 @@ function patch(path, body, token = tokens.issue('1').access_token) {
 
 test('ADMIN actualiza datos permitidos y recibe 200, sin contraseña ni hash', async () => {
   const response = await patch('3', { nombres: 'Nombre actualizado', cargo: null,
-    nivel_asignado: 'PRIMARIA', puede_escanear_qr: true, puede_usar_bitacora: true });
+    nivel_asignado: 'PRIMARIA' });
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   const { user } = await response.json();
   assert.equal(user.nombres, 'Nombre actualizado');
   assert.equal(user.nivel_asignado, 'PRIMARIA');
-  assert.equal(user.puede_escanear_qr, true);
-  assert.equal(user.puede_usar_bitacora, true);
+  assert.equal(Object.hasOwn(user, 'puede_escanear_qr'), false);
+  assert.equal(Object.hasOwn(user, 'puede_usar_bitacora'), false);
   assert.equal(Object.hasOwn(user, 'password_hash'), false);
   assert.equal(Object.hasOwn(user, 'password'), false);
   assert.equal(state.audits.length, 1);
+});
+
+test('PATCH rechaza indicadores retirados antes de abrir transacciones', async () => {
+  for (const field of ['puede_escanear_qr', 'puede_usar_bitacora']) {
+    for (const value of [true, false]) {
+      const response = await patch('3', { [field]: value });
+      assert.equal(response.status, 400);
+      await response.text();
+    }
+  }
+  assert.equal(state.transactions.length, 0);
+  assert.equal(state.audits.length, 0);
 });
 
 test('estado desactiva y reactiva; la autenticación rechaza inmediatamente una cuenta inactiva', async () => {

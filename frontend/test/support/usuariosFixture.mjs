@@ -8,7 +8,7 @@ export const schoolSections = [
 ];
 export function fixtureUser(patch = {}) {
   return { id: userId, nombres: 'María', apellidos: 'Pérez', usuario: 'maria.prueba', rol: 'REGISTRADOR', cargo: 'DOCENTE',
-    nivel_asignado: 'PRIMARIA', activo: true, puede_escanear_qr: false, puede_usar_bitacora: false, ...patch };
+    nivel_asignado: 'PRIMARIA', activo: true, ...patch };
 }
 export function usersFixture() {
   return {

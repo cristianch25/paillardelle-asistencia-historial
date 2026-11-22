@@ -45,6 +45,8 @@ test('repositorio de alta: usuario y auditoría se confirman juntos, sin secreto
   });
   assert.equal(user.id, '9007199254740993');
   assert.equal(Object.hasOwn(user, 'password_hash'), false);
+  assert.equal(Object.hasOwn(user, 'puede_escanear_qr'), false);
+  assert.equal(Object.hasOwn(user, 'puede_usar_bitacora'), false);
   assert.equal(events[0], 'begin');
   assert.deepEqual(events.slice(-2), ['commit', 'release']);
   const [lock, ...statements] = events.filter(event => typeof event === 'object');
@@ -61,6 +63,7 @@ test('repositorio de alta: usuario y auditoría se confirman juntos, sin secreto
   assert.deepEqual(JSON.parse(statements[2].params[5]), user);
   assert.equal(statements[2].params[5].includes(data.password_hash), false);
   for (const { sql } of statements) {
+    assert.doesNotMatch(sql, /puede_escanear_qr|puede_usar_bitacora/);
     assert.equal(sql.includes(data.usuario), false);
     assert.equal(sql.includes(data.password_hash), false);
     assert.equal(/UPDATE|DELETE|ALTER|DROP/.test(sql), false);

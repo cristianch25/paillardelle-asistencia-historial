@@ -84,13 +84,26 @@ test('ADMIN registra con bcrypt de 12 rondas y recibe 201 sin contraseña ni has
 test('ADMIN acepta los dos roles institucionales gestionables y opcionales válidos, sin inventar restricciones por cargo', async () => {
   for (const rol of ['SUBDIRECCION', 'REGISTRADOR']) {
     const response = await post({ ...payload, rol, nivel_asignado: 'SECUNDARIA',
-      cargo: 'Auxiliar', puede_escanear_qr: true, puede_usar_bitacora: false, activo: false });
+      cargo: 'Auxiliar', activo: false });
     assert.equal(response.status, 201);
     const { user } = await response.json();
     assert.equal(user.rol, rol);
     assert.equal(user.activo, false);
-    assert.equal(user.puede_escanear_qr, true);
+    assert.equal(Object.hasOwn(user, 'puede_escanear_qr'), false);
+    assert.equal(Object.hasOwn(user, 'puede_usar_bitacora'), false);
   }
+});
+
+test('POST rechaza indicadores retirados antes de consultar o registrar', async () => {
+  const prior = calls;
+  for (const field of ['puede_escanear_qr', 'puede_usar_bitacora']) {
+    for (const value of [true, false]) {
+      const response = await post({ ...payload, [field]: value });
+      assert.equal(response.status, 400);
+      await response.text();
+    }
+  }
+  assert.equal(calls, prior);
 });
 
 test('sin JWT responde 401 y con roles insuficientes 403, antes de consultar o registrar', async () => {

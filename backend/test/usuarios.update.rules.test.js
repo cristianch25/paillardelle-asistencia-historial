@@ -31,13 +31,17 @@ test('PATCH valida tipos, longitudes y campos protegidos sin exigir todos los ca
   assert.deepEqual(validateUserPatch({ cargo: null, nivel_asignado: null }), { cargo: null, nivel_asignado: null });
 });
 
-test('estado acepta únicamente un booleano estricto; los permisos QR no activan módulos', async () => {
+test('estado acepta únicamente un booleano estricto; indicadores retirados no son editables', async () => {
   for (const activo of [true, false]) assert.deepEqual(validateUserPatch({ activo }, true), { activo });
   for (const body of [{}, null, [], { activo: 0 }, { activo: 'false' }, { activo: null },
     { activo: false, rol: 'ADMIN' }, { activo: true, password: 'no' }]) {
     assert.throws(() => validateUserPatch(body, true), { status: 400 });
   }
-  assert.deepEqual(await plan({ puede_escanear_qr: true }), { puede_escanear_qr: true });
+  for (const field of ['puede_escanear_qr', 'puede_usar_bitacora']) {
+    for (const value of [true, false]) {
+      await assert.rejects(plan({ [field]: value }), { status: 400 });
+    }
+  }
 });
 
 test('valida el resultado completo de rol y nivel sin borrar datos implícitamente', async () => {
@@ -85,7 +89,7 @@ test('nivel específico debe coincidir con todas las asignaciones no finalizadas
 });
 
 test('sin cambios devuelve un plan vacío y revalida identidad/rol y existencia', async () => {
-  assert.deepEqual(await plan({ nombres: 'Nombre', puede_escanear_qr: false }), {});
+  assert.deepEqual(await plan({ nombres: 'Nombre' }), {});
   await assert.rejects(() => plan({ nombres: 'Otro' }, { actor: null }), { status: 401 });
   await assert.rejects(() => plan({ nombres: 'Otro' }, { actor: { ...actor, activo: 0 } }), { status: 401 });
   await assert.rejects(() => plan({ nombres: 'Otro' }, { actor: { ...actor, activo: 2 } }), { status: 401 });

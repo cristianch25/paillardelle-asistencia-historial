@@ -66,9 +66,9 @@ export async function initializeSuperuser(connection, { identity, password, exec
       const [duplicates] = await current.execute('SELECT id FROM usuarios WHERE usuario = ? LIMIT 1 FOR UPDATE', [data.usuario]);
       if (duplicates.length) throw localFailure('LOCAL_USERNAME_EXISTS');
       const [insert] = await current.execute(`INSERT INTO usuarios
-        (nombres, apellidos, usuario, password_hash, rol, cargo, nivel_asignado,
-         puede_escanear_qr, puede_usar_bitacora, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [data.nombres, data.apellidos, data.usuario, passwordHash, 'SUPERUSUARIO', null, null, false, false, true]);
+        (nombres, apellidos, usuario, password_hash, rol, cargo, nivel_asignado, activo)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [data.nombres, data.apellidos, data.usuario, passwordHash, 'SUPERUSUARIO', null, null, true]);
       if (insert.affectedRows !== 1) throw localFailure('LOCAL_INSERT_FAILED');
       const id = await readInsertedId(current);
       const [audit] = await current.execute(`INSERT INTO auditoria_administrativa

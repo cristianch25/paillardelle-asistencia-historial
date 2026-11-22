@@ -12,9 +12,13 @@ function fixture(initial) {
 
 test('PATCH usa una conexión, bloqueo previo al UPDATE y auditoría anterior/nueva sin secretos', async () => {
   const { service, state } = fixture();
-  const updated = await service.update('3', { nombres: 'Nuevo', puede_escanear_qr: true }, '1');
+  const updated = await service.update('3', { nombres: 'Nuevo', cargo: 'Auxiliar' }, '1');
   assert.equal(updated.nombres, 'Nuevo');
-  assert.equal(updated.puede_escanear_qr, true);
+  assert.equal(updated.cargo, 'Auxiliar');
+  assert.equal(state.users.get('3').puede_escanear_qr, 0);
+  assert.equal(state.users.get('3').puede_usar_bitacora, 0);
+  assert.equal(Object.hasOwn(updated, 'puede_escanear_qr'), false);
+  assert.equal(Object.hasOwn(updated, 'puede_usar_bitacora'), false);
   assert.equal(Object.hasOwn(updated, 'password_hash'), false);
   assert.equal(state.transactions.length, 1);
   const events = state.transactions[0];
@@ -24,19 +28,21 @@ test('PATCH usa una conexión, bloqueo previo al UPDATE y auditoría anterior/nu
   assert.equal(statements[0].sql, 'SELECT id FROM usuarios WHERE rol = ? AND activo = ? ORDER BY id FOR UPDATE');
   assert.deepEqual(statements[0].params, ['ADMIN', 1]);
   const update = statements.find(item => item.sql.startsWith('UPDATE'));
-  assert.equal(update.sql, 'UPDATE usuarios SET nombres = ?, puede_escanear_qr = ? WHERE id = ?');
-  assert.deepEqual(update.params, ['Nuevo', true, '3']);
+  assert.equal(update.sql, 'UPDATE usuarios SET nombres = ?, cargo = ? WHERE id = ?');
+  assert.deepEqual(update.params, ['Nuevo', 'Auxiliar', '3']);
   const [actorId, action, entity, id, before, after] = state.audits[0];
   assert.deepEqual([actorId, action, entity, id], ['1', 'ACTUALIZAR_USUARIO', 'usuarios', '3']);
   assert.equal(JSON.parse(before).nombres, 'Nombre ficticio');
   assert.equal(JSON.parse(after).nombres, 'Nuevo');
   assert.equal(/password|HASH_FICTICIO/.test(before + after), false);
+  assert.doesNotMatch(before + after, /puede_escanear_qr|puede_usar_bitacora/);
+  assert.equal(statements.some(item => /puede_escanear_qr|puede_usar_bitacora/.test(item.sql)), false);
   assert.equal(statements.some(item => /UPDATE (asignaciones|configuracion_sistema)|DELETE/.test(item.sql)), false);
 });
 
 test('un PATCH sin cambios no ejecuta UPDATE ni auditoría', async () => {
   const { service, state } = fixture();
-  await service.update('3', { nombres: 'Nombre ficticio', puede_escanear_qr: false }, '1');
+  await service.update('3', { nombres: 'Nombre ficticio' }, '1');
   await service.update('3', { activo: true }, '1', true);
   assert.equal(state.audits.length, 0);
   assert.equal(state.transactions.flat().some(item => item.sql?.startsWith('UPDATE')), false);

@@ -4,10 +4,10 @@ import { reconcileSupervision } from './usuarios.supervision.repository.js';
 import { assertPasswordChanged } from '../auth/auth.access.js';
 
 const columns = `id, nombres, apellidos, usuario, rol, cargo, nivel_asignado,
-  puede_escanear_qr, puede_usar_bitacora, activo, debe_cambiar_password, created_at, updated_at`;
+  activo, debe_cambiar_password, created_at, updated_at`;
 const publicFields = columns.split(',').map(field => field.trim());
 const insertColumns = ['nombres', 'apellidos', 'usuario', 'password_hash', 'rol',
-  'cargo', 'nivel_asignado', 'puede_escanear_qr', 'puede_usar_bitacora', 'activo', 'debe_cambiar_password'];
+  'cargo', 'nivel_asignado', 'activo', 'debe_cambiar_password'];
 const updateColumns = insertColumns.filter(field => !['password_hash', 'debe_cambiar_password'].includes(field));
 
 function publicRow(row) {

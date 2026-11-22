@@ -18,8 +18,6 @@ export function publicUser(user) {
     rol: user.rol,
     cargo: user.cargo,
     nivel_asignado: user.nivel_asignado,
-    puede_escanear_qr: Boolean(user.puede_escanear_qr),
-    puede_usar_bitacora: Boolean(user.puede_usar_bitacora),
     debe_cambiar_password: requiresPasswordChange(user),
   };
 }

@@ -4,7 +4,7 @@ import { requiresPasswordChange } from './auth.access.js';
 import { unauthorized } from './auth.errors.js';
 
 const publicColumns = `id, nombres, apellidos, usuario, rol, cargo, nivel_asignado,
-  puede_escanear_qr, puede_usar_bitacora, activo, debe_cambiar_password`;
+  activo, debe_cambiar_password`;
 
 export function createAuthRepository(poolProvider = getPool) {
   return {

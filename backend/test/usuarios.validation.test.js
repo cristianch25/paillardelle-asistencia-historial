@@ -49,7 +49,7 @@ test('alta: opcionales preservan defaults; booleanos son estrictos y no se acept
   for (const cargo of [false, 123, 'x'.repeat(31)]) {
     assert.throws(() => validateNewUser({ ...valid, cargo }), { status: 400 });
   }
-  for (const field of ['activo', 'puede_escanear_qr', 'puede_usar_bitacora']) {
+  for (const field of ['activo']) {
     for (const value of [0, 1, null, 'false', 'true']) {
       assert.throws(() => validateNewUser({ ...valid, [field]: value }), { status: 400 });
     }
@@ -57,5 +57,13 @@ test('alta: opcionales preservan defaults; booleanos son estrictos y no se acept
   }
   for (const field of ['id', 'password_hash', 'created_at', 'updated_at', 'usuario_id']) {
     assert.throws(() => validateNewUser({ ...valid, [field]: 'valor' }), { status: 400 });
+  }
+});
+
+test('alta rechaza indicadores retirados, incluso booleanos válidos', () => {
+  for (const field of ['puede_escanear_qr', 'puede_usar_bitacora']) {
+    for (const value of [true, false, 0, 1, null, 'false']) {
+      assert.throws(() => validateNewUser({ ...valid, [field]: value }), { status: 400 });
+    }
   }
 });

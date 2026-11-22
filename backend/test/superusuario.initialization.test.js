@@ -21,8 +21,6 @@ test('alta inicial: bcrypt 12, BIGINT textual y origen local explícito con audi
   assert.equal(user.rol, 'SUPERUSUARIO');
   assert.equal(user.activo, true);
   assert.equal(user.nivel_asignado, null);
-  assert.equal(user.puede_escanear_qr, false);
-  assert.equal(user.puede_usar_bitacora, false);
   assert.equal(bcrypt.getRounds(user.password_hash), 12);
   assert.equal(await bcrypt.compare(password, user.password_hash), true);
   assert.deepEqual(audit.slice(0, 5), [id, 'CREAR_SUPERUSUARIO_LOCAL', 'usuarios', id, null]);
@@ -35,6 +33,9 @@ test('alta inicial: bcrypt 12, BIGINT textual y origen local explícito con audi
   assert.equal(event.zona_fecha_hora, 'UTC');
   for (const secret of [password, user.password_hash]) assert.equal(JSON.stringify(audit).includes(secret), false);
   const calls = f.state.connections[0];
+  const insert = calls.find(call => call.sql?.startsWith('INSERT INTO usuarios'));
+  assert.doesNotMatch(insert.sql, /puede_escanear_qr|puede_usar_bitacora/);
+  assert.deepEqual(insert.params.slice(4), ['SUPERUSUARIO', null, null, true]);
   assert.deepEqual(calls.slice(-3).map(value => value.sql ?? value), ['commit', 'SELECT RELEASE_LOCK(?) AS released', 'release']);
   assert(calls.find(call => call.sql?.startsWith('INSERT INTO auditoria')).sql.includes('UTC_TIMESTAMP()'));
   assert.equal(calls.some(call => /^(UPDATE|DELETE|ALTER|CREATE|DROP)/.test(call.sql ?? '')), false);

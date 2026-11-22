@@ -71,7 +71,8 @@ test('login correcto emite JWT y datos básicos sin password ni hash', async () 
   assert.equal(body.token_type, 'Bearer');
   assert.equal(body.expires_in, 900);
   assert.equal(body.user.id, '9007199254740993');
-  assert.equal(body.user.puede_escanear_qr, false);
+  assert.equal(Object.hasOwn(body.user, 'puede_escanear_qr'), false);
+  assert.equal(Object.hasOwn(body.user, 'puede_usar_bitacora'), false);
   assert.equal(Object.hasOwn(body.user, 'password_hash'), false);
   assert.equal(Object.hasOwn(body.user, 'password'), false);
   const payload = jwt.verify(accessToken, secret, { algorithms: ['HS256'] });
@@ -124,6 +125,8 @@ test('me autenticado devuelve perfil actual y conserva BIGINT sin pérdida', asy
   const body = await response.json();
   assert.equal(body.user.id, user.id);
   assert.equal(body.user.cargo, user.cargo);
+  assert.equal(Object.hasOwn(body.user, 'puede_escanear_qr'), false);
+  assert.equal(Object.hasOwn(body.user, 'puede_usar_bitacora'), false);
   assert.equal(Object.hasOwn(body.user, 'password_hash'), false);
 });
 

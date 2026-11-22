@@ -15,6 +15,7 @@ test('el repositorio usa únicamente SELECT parametrizado sin interpolar credenc
   assert.equal(await repository.findById('9007199254740993'), null);
   for (const call of calls) {
     assert.match(call.sql, /^SELECT /);
+    assert.doesNotMatch(call.sql, /puede_escanear_qr|puede_usar_bitacora/);
     assert.match(call.sql, /FROM usuarios WHERE (usuario|id) = \? LIMIT 1$/);
     assert.equal(call.sql.includes(username), false);
   }
