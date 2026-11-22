@@ -40,7 +40,7 @@ test('cuatro roles: navegación conservada; SUPERUSUARIO sin menús ni solicitud
         await ui.setRoute('/administradores'); await ui.wait('location.pathname === "/inicio"');
         continue;
       }
-      assert.deepEqual(paths, ['/administradores']); await ui.wait(list);
+      assert.deepEqual(paths, ['/administradores', '/seguridad']); await ui.wait(list);
       assert.ok(await ui.evaluate('document.querySelector("header").textContent.includes("SUPERUSUARIO")'));
       for (const path of ['/inicio', '/usuarios', '/auditoria', '/anios-escolares', '/secciones', '/reportes', '/calendario', '/estadisticas', '/asistencias/supervision']) {
         await ui.setRoute(path); await ui.wait('location.pathname === "/administradores"'); await ui.wait(list);

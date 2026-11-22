@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { createServer } from 'vite';
 import { createElement as h } from 'react';
@@ -29,17 +29,17 @@ test('API getAuditLog envía GET /auditoria con query params serializados', asyn
     return { data: { registros: [], pagination: { page: 2, limit: 20, has_more: false } } };
   };
   try {
-    const res = await api.getAuditLog({ page: 2, limit: 20, accion: 'RETIRAR_MATRICULA' });
-    assert.equal(capturedUrl, '/auditoria?page=2&limit=20&accion=RETIRAR_MATRICULA');
+    const res = await api.getAuditLog({ page: 2, limit: 20, categoria: 'ESTUDIANTES_MATRICULAS' });
+    assert.equal(capturedUrl, '/auditoria?page=2&limit=20&categoria=ESTUDIANTES_MATRICULAS');
     assert.deepEqual(res.registros, []);
     assert.equal(res.pagination.page, 2);
 
     await api.getAuditLog();
     assert.equal(capturedUrl, '/auditoria');
 
-    for (const accion of ['ABRIR_SESION_ASISTENCIA', 'CERRAR_SESION_ASISTENCIA']) {
-      await api.getAuditLog({ page: 2, limit: 20, accion });
-      assert.equal(capturedUrl, `/auditoria?page=2&limit=20&accion=${accion}`);
+    for (const categoria of ['ASISTENCIAS', 'SECCIONES_ASIGNACIONES', 'ESTUDIANTES_MATRICULAS', 'CALENDARIO_ESCOLAR']) {
+      await api.getAuditLog({ page: 2, limit: 20, categoria });
+      assert.equal(capturedUrl, `/auditoria?page=2&limit=20&categoria=${categoria}`);
     }
   } finally {
     http.httpClient.get = originalGet;
@@ -47,6 +47,7 @@ test('API getAuditLog envía GET /auditoria con query params serializados', asyn
 });
 
 test('navigationFor incluye Historial de actividades exclusivamente para ADMIN', () => {
+  assert.deepEqual(presentation.auditCategoryOptions.map(item => item.label), ['Todas las actividades', 'Asistencias', 'Secciones y asignaciones', 'Estudiantes y matrículas', 'Calendario escolar']);
   const adminNav = navigationFor('ADMIN');
   const auditItem = adminNav.find(item => item.path === '/auditoria');
   assert.ok(auditItem, 'ADMIN debe tener acceso a /auditoria en el menú');
@@ -81,9 +82,9 @@ test('AuditPage renderiza estructura de encabezado, filtro y estados para ADMIN'
   assert.doesNotMatch(html, /Registro histórico de operaciones|Auditoría administrativa/);
   assert.match(html, /Filtrar por actividad/);
   assert.match(html, /Todas las actividades/);
-  assert.match(html, /<option value="ABRIR_SESION_ASISTENCIA">Sesión de asistencia creada<\/option>/);
-  assert.match(html, /<option value="CERRAR_SESION_ASISTENCIA">Sesión de asistencia cerrada<\/option>/);
-  assert.doesNotMatch(html, /<option value="(?:ABRIR_SESION|CERRAR_SESION)">/);
+  assert.equal((html.match(/<option /g) ?? []).length, 5);
+  assert.match(html, /<option value="ASISTENCIAS">Asistencias<\/option>/);
+  assert.doesNotMatch(html, /<option value="(?:CAMBIAR_PASSWORD|RESTABLECER_PASSWORD|CREAR_USUARIO)">/);
   assert.match(html, /Actualizar/);
   assert.match(html, /Cargando actividades/);
 });
@@ -109,6 +110,8 @@ test('identidad real, herramientas locales y datos incompletos no se atribuyen a
 });
 
 test('descripciones conservan nombres disponibles y el registro original completo, sin IDs ni tablas visibles', () => {
+  const calendarText = 'Inicial · 25/11/2026 · No lectivo · Suspensión #12';
+  assert.equal(presentation.activityDetail({ accion: 'CREAR_EXCEPCION_LECTIVA', entidad: 'calendario_lectivo', descripcion: calendarText }), calendarText);
   const record = { accion: 'CREAR_USUARIO', accion_nombre: 'Crear usuario', entidad: 'usuarios', registro_id: '55',
     descripcion: 'Creación de cuenta para María Ficticia (@demo) · ADMIN.' };
   const original = structuredClone(record);

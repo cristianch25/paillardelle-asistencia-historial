@@ -1,4 +1,6 @@
 import type { Pagination } from '../../shared/types/pagination';
+import type { AttendanceState } from '../asistencias/asistencias.types';
+import type { EducationLevel } from '../organizacion-escolar/secciones/secciones.types';
 
 export type AuditUser = {
   id: string;
@@ -16,6 +18,15 @@ export type AuditRecord = {
   entidad: string;
   registro_id: string | null;
   descripcion: string;
+  origen?: 'administrativa' | 'asistencia';
+  asistencia?: {
+    tipo: string; fecha: string;
+    estudiante: { id: string; nombre_completo: string };
+    seccion: { id: string; nivel: EducationLevel; grado: number; letra: string };
+    estado_anterior: AttendanceState; estado_nuevo: AttendanceState;
+    justificada_anterior: boolean; justificada_nueva: boolean;
+    motivo_justificacion_anterior: string | null; motivo_justificacion_nuevo: string | null; motivo: string | null;
+  };
 };
 
 export type AuditResponse = {
@@ -26,5 +37,5 @@ export type AuditResponse = {
 export type AuditQuery = {
   page?: number;
   limit?: number;
-  accion?: string;
+  categoria?: string;
 };

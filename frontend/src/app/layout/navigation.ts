@@ -13,6 +13,7 @@ export { roleLabels } from '../../features/auth/userPresentation';
 
 const navigation: readonly NavigationItem[] = [
   { label: 'Administradores', path: '/administradores', icon: Users, roles: ['SUPERUSUARIO'] },
+  { label: 'Seguridad', path: '/seguridad', icon: ShieldCheck, roles: ['SUPERUSUARIO'] },
   { label: 'Inicio', path: '/inicio', icon: House, roles: ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'] },
   { label: 'Usuarios', path: '/usuarios', icon: Users, roles: ['ADMIN'] },
   { label: 'Asignaciones docentes', path: '/asignaciones-docentes', icon: Users, roles: ['SUBDIRECCION'] },

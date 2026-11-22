@@ -23,7 +23,7 @@ before(async () => {
 after(async () => { await vite?.close(); });
 
 test('cuatro roles: navegación técnica exclusiva, perfil SUPERUSUARIO y rutas institucionales conservadas', () => {
-  assert.deepEqual(navigation.navigationFor('SUPERUSUARIO').map(item => item.path), ['/administradores']);
+  assert.deepEqual(navigation.navigationFor('SUPERUSUARIO').map(item => item.path), ['/administradores', '/seguridad']);
   assert.equal(presentation.userIdentityLabel({ rol: 'SUPERUSUARIO', cargo: 'DOCENTE' }), 'SUPERUSUARIO');
   assert.equal(presentation.primaryLevelLabel({ rol: 'SUPERUSUARIO', nivel_asignado: 'PRIMARIA' }), undefined);
   for (const rol of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {

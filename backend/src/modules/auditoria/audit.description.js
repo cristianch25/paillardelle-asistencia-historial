@@ -1,3 +1,5 @@
+import { calendarAuditDescription } from './calendar-description.js';
+
 export const ACTION_LABELS = {
   CREAR_USUARIO: 'Crear usuario',
   ACTUALIZAR_USUARIO: 'Actualizar usuario',
@@ -19,6 +21,7 @@ export const ACTION_LABELS = {
   CAMBIAR_SECCION_MATRICULA: 'Cambiar sección',
   REINGRESAR_MATRICULA: 'Reingresar estudiante',
   IMPORTAR_PADRON: 'Importar padrón',
+  CONFIRMAR_IMPORTACION_SIAGIE: 'Importar padrón',
   ABRIR_SESION_ASISTENCIA: 'Creación de sesión de asistencia',
   ABRIR_SESION: 'Creación de sesión de asistencia',
   CERRAR_SESION_ASISTENCIA: 'Cierre de sesión de asistencia',
@@ -59,6 +62,8 @@ export function formatUserName(nombres, apellidos, username, rol) {
 }
 
 export function formatAuditDescription(row) {
+  const calendar = calendarAuditDescription(row);
+  if (calendar !== null) return calendar;
   const { accion, entidad, registro_id, descripcion } = row;
   const targetId = registro_id ? ` #${registro_id}` : '';
   const student = formatStudentName(row.estudiante_apellido_paterno, row.estudiante_apellido_materno, row.estudiante_nombres);
@@ -140,6 +145,7 @@ export function formatAuditDescription(row) {
     case 'ACTUALIZAR_TELEFONO_APODERADO':
       return `Actualización de teléfono de contacto${targetId}.`;
     case 'IMPORTAR_PADRON':
+    case 'CONFIRMAR_IMPORTACION_SIAGIE':
       return 'Importación de nómina de estudiantes.';
 
     default:

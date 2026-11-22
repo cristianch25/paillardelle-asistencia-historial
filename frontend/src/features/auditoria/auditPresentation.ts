@@ -1,8 +1,9 @@
-import { roleLabels } from '../auth/userPresentation';
+﻿import { roleLabels } from '../auth/userPresentation';
 import type { UserRole } from '../auth/auth.types';
 import type { AuditRecord, AuditUser } from './auditoria.types';
 
 const labels: Record<string, string> = {
+  CAMBIO_ASISTENCIA: 'Cambio individual de asistencia',
   CREAR_USUARIO: 'Usuario creado', ACTUALIZAR_USUARIO: 'Usuario actualizado',
   CAMBIAR_ESTADO_USUARIO: 'Estado de cuenta actualizado',
   CAMBIAR_PASSWORD: 'Contraseña cambiada', RESTABLECER_PASSWORD: 'Contraseña restablecida',
@@ -12,7 +13,7 @@ const labels: Record<string, string> = {
   CREAR_MATRICULA: 'Estudiante matriculado', MATRICULAR_ESTUDIANTE: 'Estudiante matriculado',
   RETIRAR_MATRICULA: 'Matrícula retirada', REINGRESAR_MATRICULA: 'Estudiante reincorporado',
   CAMBIO_SECCION: 'Estudiante cambiado de sección', CAMBIAR_SECCION_MATRICULA: 'Estudiante cambiado de sección',
-  IMPORTAR_PADRON: 'Padrón importado',
+  IMPORTAR_PADRON: 'Padrón importado', CONFIRMAR_IMPORTACION_SIAGIE: 'Padrón importado',
   CREAR_ASIGNACION: 'Personal asignado a una sección', ASIGNAR_DOCENTE: 'Personal asignado a una sección',
   FINALIZAR_ASIGNACION: 'Asignación de personal finalizada',
   ABRIR_SESION_ASISTENCIA: 'Sesión de asistencia creada', ABRIR_SESION: 'Sesión de asistencia creada',
@@ -53,15 +54,17 @@ export function activityDetail(record: AuditRecord) {
     || /^(?:Creación|Actualización) de (?:sección académica|año escolar)(?: #\d+)?\.$/.test(description)) {
     return `${activityName(record)}.`;
   }
+  if (['calendario_lectivo', 'periodos_lectivos'].includes(record.entidad)) return description;
   return description.replace(/\s*\(@[^)]+\)/g, '')
     .replace(/\s*·\s*(ADMIN|SUBDIRECCION|REGISTRADOR|SUPERUSUARIO)\b/g, (_, role: string) => ` · ${responsibleRole(role)}`)
     .replace(/\s*\(matrícula(?: #\d+)?\)/g, '')
     .replace(/\s+#\d+\b/g, '');
 }
 
-// Se conserva el filtro individual del servidor hasta autorizar categorías reales.
-export const auditActionOptions = ['', 'CAMBIAR_PASSWORD', 'RESTABLECER_PASSWORD', 'CREAR_USUARIO', 'ACTUALIZAR_USUARIO',
-  'CREAR_ASIGNACION', 'FINALIZAR_ASIGNACION', 'RETIRAR_MATRICULA', 'CAMBIO_SECCION', 'REINGRESAR_MATRICULA',
-  'CREAR_MATRICULA', 'CREAR_ANIO_ESCOLAR', 'ACTUALIZAR_ANIO_ESCOLAR', 'CREAR_SECCION', 'ACTUALIZAR_SECCION',
-  'IMPORTAR_PADRON', 'ABRIR_SESION_ASISTENCIA', 'CERRAR_SESION_ASISTENCIA', 'ACTUALIZAR_TELEFONO_APODERADO']
-  .map(accion => ({ value: accion, label: accion ? activityName({ accion, accion_nombre: '' }) : 'Todas las actividades' }));
+export const auditCategoryOptions = [
+  { value: '', label: 'Todas las actividades' },
+  { value: 'ASISTENCIAS', label: 'Asistencias' },
+  { value: 'SECCIONES_ASIGNACIONES', label: 'Secciones y asignaciones' },
+  { value: 'ESTUDIANTES_MATRICULAS', label: 'Estudiantes y matrículas' },
+  { value: 'CALENDARIO_ESCOLAR', label: 'Calendario escolar' },
+];

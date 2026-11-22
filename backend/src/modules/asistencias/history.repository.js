@@ -1,7 +1,7 @@
 import { getPool } from '../../config/database.js';
 import { createAttendanceListRepository } from './list.repository.js';
 
-function fechaModificacionUtc(value) {
+export function fechaModificacionUtc(value) {
   if (value instanceof Date) return value.toISOString();
   // UTC_TIMESTAMP(6) llega como DATETIME sin zona; no interpretarlo en la zona de Node.
   const iso = String(value).replace(

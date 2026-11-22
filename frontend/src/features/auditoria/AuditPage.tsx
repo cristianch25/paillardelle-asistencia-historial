@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router';
 import { useAuth } from '../auth/AuthContext';
 import Button from '../../shared/components/Button';
@@ -9,22 +9,9 @@ import Pagination from '../../shared/components/Pagination';
 import { apiErrorMessage } from '../../shared/api/apiError';
 import { getAuditLog } from './auditoria.api';
 import type { AuditResponse } from './auditoria.types';
-import { activityName, activityDetail, responsibleName, responsibleRole, auditActionOptions } from './auditPresentation';
-
-function formatAuditTime(iso: string) {
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return iso;
-    return new Intl.DateTimeFormat('es-PE', {
-      timeZone: 'America/Lima',
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: false,
-    }).format(d);
-  } catch {
-    return iso;
-  }
-}
+import { activityName, activityDetail, responsibleName, responsibleRole, auditCategoryOptions } from './auditPresentation';
+import AttendanceActivityDetail from './AttendanceActivityDetail';
+import { formatEventTime } from '../../shared/dates/formatEventTime';
 
 export default function AuditPage() {
   const { session } = useAuth();
@@ -32,25 +19,30 @@ export default function AuditPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
-  const [accion, setAccion] = useState('');
+  const [categoria, setCategoria] = useState('');
+  const request = useRef(0);
+  const invalidate = useCallback(() => { request.current++; }, []);
 
   const loadData = useCallback(async (p: number, a: string) => {
+    const operation = ++request.current;
     setLoading(true); setError('');
     try {
-      const res = await getAuditLog({ page: p, limit: 20, accion: a || undefined });
-      setData(res);
+      const res = await getAuditLog({ page: p, limit: 20, categoria: a || undefined });
+      if (request.current === operation) setData(res);
     } catch (err) {
-      setError(apiErrorMessage(err));
+      if (request.current === operation) setError(apiErrorMessage(err));
     } finally {
-      setLoading(false);
+      if (request.current === operation) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    let current = true;
     if (session?.user.rol === 'ADMIN') {
-      void loadData(page, accion);
+      void Promise.resolve().then(() => { if (current) void loadData(page, categoria); });
     }
-  }, [session, page, accion, loadData]);
+    return () => { current = false; invalidate(); };
+  }, [session, page, categoria, loadData, invalidate]);
 
   if (!session) return <Navigate to="/login" replace />;
   if (session.user.rol !== 'ADMIN') return <Navigate to="/inicio" replace />;
@@ -61,7 +53,7 @@ export default function AuditPage() {
         <div>
           <h1 className="text-2xl font-bold">Historial de actividades</h1>
         </div>
-        <Button variant="secondary" disabled={loading} onClick={() => void loadData(page, accion)}>
+        <Button variant="secondary" disabled={loading} onClick={() => void loadData(page, categoria)}>
           Actualizar
         </Button>
       </header>
@@ -70,10 +62,10 @@ export default function AuditPage() {
         <label htmlFor="filtro-accion" className="text-sm font-semibold text-slate-700">
           Filtrar por actividad
         </label>
-        <select id="filtro-accion" value={accion}
-          onChange={e => { setAccion(e.target.value); setPage(1); }}
+        <select id="filtro-accion" value={categoria}
+          onChange={e => { setCategoria(e.target.value); setPage(1); }}
           className="min-h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-institutional-700 sm:w-auto">
-          {auditActionOptions.map(a => (
+          {auditCategoryOptions.map(a => (
             <option key={a.value} value={a.value}>{a.label}</option>
           ))}
         </select>
@@ -99,8 +91,8 @@ export default function AuditPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {data.registros.map(r => (
-                    <tr key={r.id} className="hover:bg-slate-50/80">
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-600">{formatAuditTime(r.fecha_hora)}</td>
+                    <tr key={`${r.origen ?? 'administrativa'}:${r.id}`} className="align-top hover:bg-slate-50/80">
+                      <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-600">{formatEventTime(r.fecha_hora)}</td>
                       <td className="px-4 py-3">
                         <p className="break-words font-semibold text-slate-900" title={r.accion === 'CREAR_SUPERUSUARIO_LOCAL' ? 'Alta realizada mediante la herramienta local' : 'Nombre actual de la cuenta responsable'}>{responsibleName(r.usuario)}</p>
                         {r.usuario.rol && <p className="mt-1 text-xs text-slate-600" title="Rol actual de la cuenta">{responsibleRole(r.usuario.rol)}</p>}
@@ -110,7 +102,7 @@ export default function AuditPage() {
                           {activityName(r)}
                         </span>
                       </td>
-                      <td className="break-words px-4 py-3 text-slate-700">{activityDetail(r)}</td>
+                      <td className="break-words px-4 py-3 text-slate-700">{r.asistencia ? <AttendanceActivityDetail data={r.asistencia} /> : activityDetail(r)}</td>
                     </tr>
                   ))}
                 </tbody>

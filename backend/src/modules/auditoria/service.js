@@ -2,6 +2,9 @@ import { HttpError } from '../../shared/http-error.js';
 import { validatePagination } from '../../shared/query-validation.js';
 import { createAdministrativeAuditRepository } from './repository.js';
 import { formatAuditAction, formatAuditDescription } from './audit.description.js';
+import { attendanceAuditItem } from './attendance-item.js';
+import { fechaModificacionUtc } from '../asistencias/history.repository.js';
+import { readAuditCategory } from './operational-categories.js';
 
 export {
   ACTION_LABELS,
@@ -19,7 +22,9 @@ function auditItem(row) {
     : [row.actor_nombres, row.actor_apellidos].filter(Boolean).join(' ') || 'Desconocido';
   return {
     id: String(row.id),
-    fecha_hora: row.fecha_hora instanceof Date ? row.fecha_hora.toISOString() : String(row.fecha_hora),
+    origen: row.origen ?? 'administrativa',
+    fecha_hora: row.origen === 'asistencia' ? fechaModificacionUtc(row.fecha_hora)
+      : row.fecha_hora instanceof Date ? row.fecha_hora.toISOString() : String(row.fecha_hora),
     usuario: {
       id: String(row.usuario_id),
       nombre_completo: actorNombre,
@@ -30,7 +35,8 @@ function auditItem(row) {
     accion_nombre: localInitialization ? 'Alta inicial local de SUPERUSUARIO' : formatAuditAction(row.accion),
     entidad: row.entidad,
     registro_id: row.registro_id ? String(row.registro_id) : null,
-    descripcion: formatAuditDescription(row),
+    descripcion: row.origen === 'asistencia' ? 'Cambio individual de asistencia.' : formatAuditDescription(row),
+    ...(row.origen === 'asistencia' ? { asistencia: attendanceAuditItem(row) } : {}),
   };
 }
 
@@ -51,9 +57,10 @@ export function createAdministrativeAuditService(repository = createAdministrati
       repository.append(connection, actorId, action, 'sesiones_asistencia', before, after),
     async list(actor, query = {}) {
       authorizeAdmin(actor);
+      if (Object.keys(query).some(key => !['page', 'limit', 'categoria'].includes(key))) throw new HttpError(400, 'Consulta de actividades inválida.');
       const { page, limit, offset } = validatePagination(query);
-      const accion = typeof query.accion === 'string' ? query.accion.trim() : undefined;
-      const rows = await repository.list({ limit: limit + 1, offset, accion });
+      const categoria = readAuditCategory(query.categoria);
+      const rows = await repository.list({ limit: limit + 1, offset, categoria });
       return {
         registros: rows.slice(0, limit).map(auditItem),
         pagination: { page, limit, has_more: rows.length > limit },
