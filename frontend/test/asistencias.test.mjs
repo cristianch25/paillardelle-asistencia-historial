@@ -74,7 +74,9 @@ test('filas compactas conservan controles, buscador y masivo sin perfil ni instr
     h(View, { data, editable: true, compact })));
   const compact = render(true);
   assert.match(compact, /Buscar estudiante|Marcar todos como presentes/);
-  assert.equal((compact.match(/aria-pressed=/g) ?? []).length, 4);
+  assert.equal((compact.match(/aria-pressed=/g) ?? []).length, 3);
+  assert.doesNotMatch(compact, /Quitar marca/);
+  assert.equal((render(false).match(/aria-pressed=/g) ?? []).length, 4);
   assert.doesNotMatch(compact, /Ver perfil|Las marcas se guardan solo|Se aplica a los estudiantes/);
   assert.match(render(false), /Ver perfil|Las marcas se guardan solo/);
 });

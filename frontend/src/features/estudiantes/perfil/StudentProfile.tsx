@@ -10,9 +10,11 @@ import EmptyState from '../../../shared/components/EmptyState';
 import { useStudentProfileData } from './useStudentProfileData';
 import type { ProfileSelection } from './profile.types';
 import StudentProfileView from './StudentProfileView';
+import StudentDailyHistory from './StudentDailyHistory';
+import { educationLevelLabels, formatRegistrarSectionName } from '../../organizacion-escolar/secciones/sectionPresentation';
 
-export default function StudentProfile({ selection, compact = false, phoneBusy = false, onPhoneBusy }: {
-  selection: ProfileSelection; compact?: boolean; phoneBusy?: boolean; onPhoneBusy?: (busy: boolean) => void;
+export default function StudentProfile({ selection, compact = false, phoneBusy = false, onPhoneBusy, historyOnly = false }: {
+  selection: ProfileSelection; compact?: boolean; phoneBusy?: boolean; onPhoneBusy?: (busy: boolean) => void; historyOnly?: boolean;
 }) {
   const years = useSchoolYears(), id = useId();
   const [yearId, setYear] = useState(selection.yearId ?? '');
@@ -30,16 +32,19 @@ export default function StudentProfile({ selection, compact = false, phoneBusy =
         <select id={`${id}-year`} value={yearId} className={style} disabled={phoneBusy || years.loading || Boolean(years.error)} onChange={e => setYear(e.target.value)}>
           <option value="">Selecciona un año</option>{years.years.map(row => <option key={row.id} value={row.id}>{row.anio} · {row.estado}</option>)}
         </select></label>}
-      <label htmlFor={`${id}-month`} className="text-sm font-semibold">Mes del perfil
+      <label htmlFor={`${id}-month`} className="text-sm font-semibold">{historyOnly ? 'Mes del historial' : 'Mes del perfil'}
         <input id={`${id}-month`} type="month" value={month} disabled={phoneBusy} className={style} min={year?.fecha_inicio.slice(0, 7)} max={year?.fecha_fin.slice(0, 7)}
           aria-invalid={Boolean(year && range.error)} onChange={e => setChosen({ yearId, month: e.target.value })} /></label>
     </div>}
     {years.loading && <LoadingState message={compact ? 'Cargando perfil…' : 'Cargando años escolares…'} />}
     {years.error && <><ErrorState message={years.error} /><Button onClick={years.retry}>Reintentar años escolares</Button></>}
     {!years.loading && !years.error && range.error && <EmptyState message={range.error} />}
-    {query.loading && <LoadingState message="Consultando perfil…" />}
-    {query.error && <><ErrorState message={query.error} /><Button onClick={query.retry}>Reintentar perfil</Button></>}
-    {query.data && <>{!compact && <Button variant="secondary" disabled={phoneBusy} onClick={query.retry}>Actualizar perfil</Button>}
-      <StudentProfileView data={query.data} compact={compact} onBusyChange={onPhoneBusy} onReload={query.retry} /></>}
+    {query.loading && <LoadingState message={historyOnly ? 'Consultando historial…' : 'Consultando perfil…'} />}
+    {query.error && <><ErrorState message={query.error} /><Button onClick={query.retry}>{historyOnly ? 'Reintentar historial' : 'Reintentar perfil'}</Button></>}
+    {query.data && <>{!compact && <Button variant="secondary" disabled={phoneBusy} onClick={query.retry}>{historyOnly ? 'Actualizar historial' : 'Actualizar perfil'}</Button>}
+      {historyOnly ? <>
+        <h3 className="break-words text-lg font-semibold">{[query.data.estudiante.apellido_paterno, query.data.estudiante.apellido_materno, query.data.estudiante.nombres].filter(Boolean).join(' ')}</h3>
+        <StudentDailyHistory days={query.data.dias} formatSection={section => `${formatRegistrarSectionName(section)} · ${educationLevelLabels[section.nivel]}`} />
+      </> : <StudentProfileView data={query.data} compact={compact} onBusyChange={onPhoneBusy} onReload={query.retry} />}</>}
   </div>;
 }

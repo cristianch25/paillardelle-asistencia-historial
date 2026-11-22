@@ -14,7 +14,7 @@ export default function StudentDailyHistory({ days, formatSection, today = peruT
   function table(rows: Days, caption: string) {
     return <div className="max-w-full overflow-x-auto"><table className={`w-full text-left text-sm ${showSection ? 'min-w-[32rem]' : 'min-w-[22rem]'}`}>
       <caption className="py-2 text-left font-semibold">{caption}</caption>
-      <thead><tr>{['Fecha', ...(showSection ? ['Sección'] : []), 'Estado', 'Justificación vigente'].map(label =>
+      <thead><tr>{['Fecha', ...(showSection ? ['Sección'] : []), 'Estado', 'Justificación'].map(label =>
         <th key={label} className="p-2" scope="col">{label}</th>)}</tr></thead>
       <tbody>{rows.map(day => <tr key={day.fecha} className="border-t border-slate-200 align-top">
         <th scope="row" className="p-2 font-normal">{formatCivilDate(day.fecha)}</th>

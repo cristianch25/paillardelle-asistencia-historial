@@ -2,7 +2,7 @@ import { useEffect, useId, useRef } from 'react';
 import Button from '../components/Button';
 
 type Props = { open: boolean; busy: boolean; dirty: boolean; onCancel: () => void; onConfirm: () => void; activity?: string; continueLabel?: string;
-  confirmation?: { title: string; message: string } };
+  confirmation?: { title: string; message: string; cancelLabel?: string; confirmLabel?: string } };
 export default function UnsavedChangesDialog({ open, busy, dirty, onCancel, onConfirm, activity = 'asistencia', continueLabel = 'Continuar registrando', confirmation }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const cancel = useRef<HTMLButtonElement>(null);
@@ -39,8 +39,8 @@ export default function UnsavedChangesDialog({ open, busy, dirty, onCancel, onCo
       </p>
       {busy && <p role="status" className="mt-3 text-sm font-medium">Espera a que termine la operación de {activity} y se compruebe su resultado.</p>}
       <div className={confirmationMode ? 'mt-5 flex flex-wrap gap-3 [&>button]:min-w-28' : 'mt-5 flex flex-col gap-3 sm:flex-row'}>
-        <Button ref={cancel} variant={confirmation ? 'secondary' : 'primary'} className="flex-1" onClick={onCancel}>{confirmation ? 'Cancelar' : continueLabel}</Button>
-        <Button variant={confirmation ? 'primary' : 'secondary'} className="flex-1" disabled={busy} onClick={onConfirm}>{confirmation ? 'Confirmar' : dirty ? 'Salir sin guardar' : 'Salir de todos modos'}</Button>
+        <Button ref={cancel} variant={confirmation ? 'secondary' : 'primary'} className="flex-1" onClick={onCancel}>{confirmation ? confirmation.cancelLabel ?? 'Cancelar' : continueLabel}</Button>
+        <Button variant={confirmation ? 'primary' : 'secondary'} className="flex-1" disabled={busy} onClick={onConfirm}>{confirmation ? confirmation.confirmLabel ?? 'Confirmar' : dirty ? 'Salir sin guardar' : 'Salir de todos modos'}</Button>
       </div>
     </dialog>
   );

@@ -53,10 +53,11 @@ test('móvil: buscar entre salones, guardar Tardanza y continuar sin duplicados 
       assert.deepEqual(await evaluate('Object.values(mobileTest.stores)[0].padron.map(row => [row.estado,row.version])'), [['TARDANZA', 1], ['PRESENTE', 1]]);
       assert.equal(await evaluate('mobileTest.history.length'), 2);
       await back(); await wait(`${cards}.length === 2`); await field('date', '2026-10-01');
-      await evaluate(`${cards}[1].querySelector('button').click()`); await wait(`${rows}.length === 2 && ${rows}[0].textContent.includes('Sin marcar')`);
+      await evaluate(`${cards}[1].querySelector('button').click()`); await wait(`${rows}.length === 2 && !${rows}[0].querySelector('[aria-pressed=true]')`);
       assert.equal(await writes(), 3);
       await evaluate(`Array.from(${rows}[0].querySelectorAll('button')).find(button => button.textContent.trim() === 'Falta').click()`);
-      await click('Guardar cambios'); await wait('document.body.textContent.includes("Cambios guardados correctamente")');
+      await click('Guardar cambios'); await wait(`Boolean(${ui.button('Guardar igualmente')})`); await click('Guardar igualmente');
+      await wait('document.body.textContent.includes("Cambios guardados correctamente")');
       assert.equal(await writes(), 5);
       await back(); await wait(`${cards}.length === 2`);
       await evaluate("mobileTest.blocked.push('2026-10-02')"); await field('date', '2026-10-02');

@@ -96,12 +96,14 @@ test('REGISTRADOR destaca nombres y solo muestra códigos de homónimos; ADMIN/S
   const render = (role, rows) => renderToStaticMarkup(h(Auth.Provider, { value: { session: { user: { rol: role } } } }, h(List, { entries: rows })));
   const single = render('REGISTRADOR', [first]);
   assert.doesNotMatch(single, /Código|COD-UNO/); assert.match(single, /text-lg font-semibold/);
+  assert.match(single, /Ver historial|Buscar estudiante/); assert.doesNotMatch(single, /Ver perfil/);
   const multiple = render('REGISTRADOR', entries);
   assert.match(multiple, /COD-UNO/); assert.match(multiple, /COD-DOS/); assert.doesNotMatch(multiple, /COD-TRES/);
   for (const role of ['ADMIN', 'SUBDIRECCION']) {
     const html = render(role, entries);
     for (const code of ['COD-UNO', 'COD-DOS', 'COD-TRES']) assert.ok(html.includes(code));
     assert.match(html, /space-y-1 p-4 sm:p-5/); assert.doesNotMatch(html, /text-lg font-semibold/);
+    assert.doesNotMatch(html, /Ver historial|Buscar estudiante/);
   }
   assert.deepEqual(entries, before);
 });

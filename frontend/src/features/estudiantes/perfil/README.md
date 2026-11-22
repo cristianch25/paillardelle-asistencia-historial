@@ -62,6 +62,21 @@ antes de volver a editar; nunca reenvía automáticamente el PATCH ni reutiliza 
 Tokens/borradores únicamente en memoria, sin almacenamiento ni logs.
 El resumen e historial de ADMIN/SUBDIRECCION no se editan ni se recalculan localmente.
 
+## Historial académico desde el padrón de REGISTRADOR — 22/11/2026
+
+«Ver historial» en Estudiantes de la sección abre `StudentAcademicHistoryDialog`.
+Reutiliza `StudentProfile` en modo de historial y `StudentDailyHistory`: año de
+origen, selector mensual y fechas/estados/justificaciones, sin controles de
+asistencia ni edición de contacto. El perfil compacto y la ventana unificada
+del buscador global conservan su funcionamiento anterior.
+
+La decisión ratificada para esta vista conserva la autorización académica
+existente: estudiante actualmente a cargo, con continuidad histórica incluso
+en otras secciones o años; no exige asignación para cada fecha histórica.
+El GET de perfil sigue validando acceso en servidor. No se habilita historial
+técnico, correcciones históricas ni nuevos permisos. El buscador del padrón
+filtra en memoria y reconoce homónimos sobre la lista completa.
+
 phone.api.ts valida el contrato, useGuardianPhone.ts controla fases y
 GuardianPhoneEditor.tsx presenta formulario/confirmación. Pruebas guardianPhone.test.mjs
 y guardianPhone.browser.mjs complementan las de perfil, con APIs simuladas.

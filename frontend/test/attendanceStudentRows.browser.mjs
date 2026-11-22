@@ -108,7 +108,9 @@ for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) {
       assert.match(await evaluate('document.body.textContent'), /Los cambios pendientes se conservan/);
       await input('FICTICIO-002'); await wait(`${rows}.length === 1`);
       assert.equal(await evaluate(`${rows}[0].querySelector('button[aria-pressed=true]').textContent.trim()`), 'Falta');
-      await click('Guardar cambios'); await wait('document.body.textContent.includes("Cambios guardados correctamente")');
+      await click('Guardar cambios');
+      if (registrar) { await wait(`Boolean(${ui.button('Guardar igualmente')})`); await click('Guardar igualmente'); }
+      await wait('document.body.textContent.includes("Cambios guardados correctamente")');
       const controls = registrar ? 'mobileTest' : 'supervisionCorrectionTest';
       const changes = await evaluate(`${controls}.calls.filter(c=>c.method==='patch').at(-1).body.cambios`);
       assert.equal(changes.length, 1);

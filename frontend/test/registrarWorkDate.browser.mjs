@@ -56,7 +56,7 @@ test('fecha única: se conserva entre búsqueda, salones, guardado y regreso sin
       assert.equal(await evaluate('document.querySelectorAll("button[aria-pressed]").length'), 0);
       assert.doesNotMatch(await evaluate('document.body.textContent'), /Guardar cambios|Marcar todos/);
       await main('2026-10-02'); await classroom(1, '2026-10-02');
-      await wait(`${rows}[0].querySelectorAll('button[aria-pressed]').length === 4`);
+      await wait(`${rows}[0].querySelectorAll('button[aria-pressed]').length === 3`);
       assert.equal(await writes(), 3); assert.equal(await evaluate('JSON.stringify(mobileTest.stores)'), historical);
       await evaluate('history.back()'); await wait(`${cards}.length === 2`);
       assert.equal(await evaluate('document.querySelector("input[type=date]").value'), '2026-10-02');

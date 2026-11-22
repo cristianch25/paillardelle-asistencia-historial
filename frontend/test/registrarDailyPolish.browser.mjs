@@ -42,7 +42,7 @@ test('REGISTRADOR: buscador, Volver y masivo integrado preservan marcas y guarda
   const dialog = `document.querySelector('dialog[open]')`;
   const bulk = `Array.from(document.querySelectorAll('button')).find(e=>e.textContent.trim()==='Marcar todos como presentes')`;
   const writes = () => evaluate('mobileTest.calls.filter(c=>["post","patch"].includes(c.method)).length');
-  const values = () => evaluate(`Array.from(${rows}).map(e=>e.querySelector('[aria-pressed=true]').textContent.trim())`);
+  const values = () => evaluate(`Array.from(${rows}).map(e=>e.querySelector('[aria-pressed=true]')?.textContent.trim() ?? 'Sin marcar')`);
   async function input(type, value) {
     await evaluate(`(()=>{const e=document.querySelector('input[type=${type}]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,${JSON.stringify(value)});e.dispatchEvent(new Event('input',{bubbles:true}));e.dispatchEvent(new Event('change',{bubbles:true}));})()`);
   }

@@ -30,6 +30,12 @@ export default function AttendanceStudentRow({ row, state, changed, editable, di
   const showCode = row.estudiante.codigo_estudiante && hasStudentNamesake(row, padron);
   const persisted = row.justificada, checked = persisted || reason !== undefined;
   const value = persisted ? row.motivo_justificacion ?? '' : reason;
+  const showJustification = (persisted || onJustify) && (state === 'FALTA' || state === 'TARDANZA');
+  const clearAction = compact && editable && state !== 'PENDIENTE' && <button type="button" disabled={disabled || persisted}
+    onClick={() => onSelect?.(row.asistencia_id, 'PENDIENTE')}
+    className="inline-flex min-h-11 items-center rounded-lg px-2 text-xs font-medium text-slate-600 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-institutional-700 disabled:cursor-not-allowed disabled:opacity-60">
+    Quitar marca
+  </button>;
   return (
     <li className={quick ? 'flex flex-col gap-3 p-3 sm:p-4'
       : `grid ${compact ? 'gap-2 p-2 sm:p-3' : 'gap-3 p-3 sm:p-4'} md:grid-cols-[minmax(0,1fr)_28rem] md:items-center md:gap-x-5`}>
@@ -41,24 +47,28 @@ export default function AttendanceStudentRow({ row, state, changed, editable, di
         {updated && <p className="mt-1 text-xs text-slate-600">Actualizado en la consulta</p>}
       </div>
       {editable ? (
-        <div role="group" aria-label={`Asistencia de ${name}`} className={quick ? 'grid grid-cols-1 gap-2 sm:grid-cols-3' : 'grid grid-cols-2 gap-2 md:grid-cols-4'}>
-          {states.filter(item => !quick || item.value !== 'PENDIENTE').map(({ value, label, Icon, selected }) => <button key={value} type="button"
+        <div role="group" aria-label={`Asistencia de ${name}`} className={compact ? 'grid grid-cols-3 gap-1.5' : quick ? 'grid grid-cols-1 gap-2 sm:grid-cols-3' : 'grid grid-cols-2 gap-2 md:grid-cols-4'}>
+          {states.filter(item => !(quick || compact) || item.value !== 'PENDIENTE').map(({ value, label, Icon, selected }) => <button key={value} type="button"
             disabled={disabled || persisted} aria-pressed={state === value} onClick={() => onSelect?.(row.asistencia_id, value)}
-            className={`flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-institutional-700 disabled:cursor-not-allowed disabled:opacity-60 ${state === value ? `${selected} font-bold ring-1 ring-current` : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}>
-            <Icon aria-hidden="true" className="size-4 shrink-0" /><span>{label}</span>
+            className={`flex min-h-11 min-w-0 items-center justify-center rounded-lg border py-2 ${compact ? 'gap-1 px-1 text-xs sm:text-sm' : 'gap-1.5 px-2 text-sm'} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-institutional-700 disabled:cursor-not-allowed disabled:opacity-60 ${state === value ? `${selected} font-bold ring-1 ring-current` : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}>
+            <Icon aria-hidden="true" className={`${compact ? 'size-3.5' : 'size-4'} shrink-0`} /><span className={compact ? 'whitespace-nowrap' : undefined}>{label}</span>
           </button>)}
         </div>
       ) : <p className="text-sm font-semibold text-institutional-950">{states.find(item => item.value === state)?.label}</p>}
-      <div className="flex flex-wrap items-center gap-2 md:col-span-2">
+      {(!compact || (!showJustification && clearAction)) && <div className={`flex flex-wrap items-center gap-2 md:col-span-2 ${compact ? 'justify-end' : ''}`}>
+        {clearAction}
         {profileContext && <StudentProfileButton studentId={row.estudiante.id} {...profileContext} disabled={disabled && editable} />}
         {!quick && <AttendanceHistoryButton asistenciaId={row.asistencia_id} version={row.version} />}
-      </div>
-      {(persisted || onJustify) && (state === 'FALTA' || state === 'TARDANZA') && <div className="space-y-2 md:col-span-2 md:max-w-md">
+      </div>}
+      {showJustification && <div className={`space-y-2 md:col-span-2 ${compact ? '' : 'md:max-w-md'}`}>
+        <div className={compact ? 'flex items-center justify-between gap-2' : undefined}>
         <label className="flex min-h-11 items-center gap-2 text-sm font-medium">
           <input type="checkbox" className="size-5" checked={Boolean(checked)} disabled={persisted || justificationDisabled}
             onChange={event => onJustify?.(row.asistencia_id, event.target.checked ? '' : undefined)} />
           Justificada
         </label>
+        {compact && clearAction}
+        </div>
         {checked && <FormField label="Motivo" required={!persisted} value={value ?? ''} readOnly={persisted}
           disabled={!persisted && justificationDisabled}
           onChange={event => onJustify?.(row.asistencia_id, event.target.value)}

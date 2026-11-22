@@ -18,6 +18,8 @@ import AttendanceSaveBar from './AttendanceSaveBar';
 import AttendanceReview from './AttendanceReview';
 import { useNavigationProtection } from '../../shared/navigation/NavigationProtectionContext';
 import { useAttendanceCalendar } from './useAttendanceCalendar';
+import { draftSummary } from './attendanceDraft';
+import UnsavedChangesDialog from '../../shared/navigation/UnsavedChangesDialog';
 
 export default function AsistenciaDiariaPage() {
   const { session } = useAuth();
@@ -42,6 +44,16 @@ export default function AsistenciaDiariaPage() {
   const [search, setSearch] = useState({ key: draft.key, query: '' });
   const query = search.key === draft.key ? search.query : '';
   const valid = validCivilDate(fecha);
+  const pending = draft.base ? draftSummary(draft.base.padron, draft.changes).pendientes : 0;
+  const [saveRequest, setSaveRequest] = useState<{ base: typeof draft.base; changes: typeof draft.changes; reasons: typeof draft.reasons } | null>(null);
+  const saveAllowed = registrar && canWrite && !draft.saveDisabled && draft.count > 0;
+  const currentRequest = saveRequest && saveAllowed && pending > 0 && saveRequest.base === draft.base
+    && saveRequest.changes === draft.changes && saveRequest.reasons === draft.reasons;
+  if (saveRequest && !currentRequest) setSaveRequest(null);
+  function save() {
+    if (saveAllowed && pending > 0) setSaveRequest({ base: draft.base, changes: draft.changes, reasons: draft.reasons });
+    else void draft.save();
+  }
   return (
     <div className="space-y-4">
       {registrar ? <header className="flex items-start justify-between gap-3">
@@ -94,7 +106,14 @@ export default function AsistenciaDiariaPage() {
       {selection && draft.base && canWrite && <AttendanceSaveBar compact={registrar} count={draft.count} phase={draft.phase} message={draft.message}
         success={draft.success} conflicts={draft.conflicts.length}
         disabled={draft.saveDisabled || !canWrite} validation={draft.validation}
-        onSave={() => void draft.save()} onRefresh={() => void draft.refresh()} />}
+        onSave={save} onRefresh={() => void draft.refresh()} />}
+      {currentRequest && <UnsavedChangesDialog open busy={false} dirty={false}
+        confirmation={{ title: 'Guardar lista incompleta', message: `Quedan ${pending} estudiantes sin marcar. ¿Deseas guardar de todas formas?`,
+          cancelLabel: 'Volver a revisar', confirmLabel: 'Guardar igualmente' }}
+        onCancel={() => setSaveRequest(null)} onConfirm={() => {
+          setSaveRequest(null);
+          if (currentRequest) void draft.save();
+        }} />}
     </div>
   );
 }
