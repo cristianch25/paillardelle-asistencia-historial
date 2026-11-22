@@ -1,7 +1,7 @@
 import { httpClient } from '../../../shared/api/httpClient';
 import axios from 'axios';
 import type { EducationLevel } from './secciones.types';
-import type { Section, SectionInput, SectionPatch, SectionsQuery, SectionsResponse } from './secciones.types';
+import type { Section, SectionInput, SectionBatchInput, SectionPatch, SectionsQuery, SectionsResponse } from './secciones.types';
 
 export async function getSectionManagementLevels(): Promise<EducationLevel[]> {
   const levels: EducationLevel[] = ['INICIAL', 'PRIMARIA', 'SECUNDARIA'];
@@ -32,6 +32,19 @@ export async function updateSection(id: string, input: SectionPatch): Promise<Se
   if (status !== 200 || data?.seccion?.id !== id
     || Object.entries(input.cambios).some(([key, value]) => data.seccion[key as keyof Section] !== value)) throw new Error('Confirmación de sección no válida.');
   return data.seccion;
+}
+
+export async function createSectionBatch(input: SectionBatchInput): Promise<Section[]> {
+  const { data, status } = await httpClient.post<{ secciones: Section[] }>('/secciones/lote', input);
+  const count = input.letra_hasta.charCodeAt(0) - input.letra_desde.charCodeAt(0) + 1;
+  const rows = data?.secciones;
+  if (status !== 201 || !Array.isArray(rows) || rows.length !== count || new Set(rows.map(row => row?.id)).size !== count
+    || rows.some((row, index) => !row || typeof row.id !== 'string' || !/^[1-9]\d*$/.test(row.id)
+      || row.anio_escolar_id !== input.anio_escolar_id || row.nivel !== input.nivel || row.grado !== input.grado
+      || row.letra !== String.fromCharCode(input.letra_desde.charCodeAt(0) + index) || row.activo !== true || row.turno !== null)) {
+    throw new Error('Confirmación del lote de secciones no válida.');
+  }
+  return rows;
 }
 
 export async function getSections(query: SectionsQuery): Promise<SectionsResponse> {

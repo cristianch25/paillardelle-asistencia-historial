@@ -19,8 +19,11 @@ import { useSectionManagement } from './useSectionManagement';
 import SectionForm from './SectionForm';
 import { educationLevelLabels } from './sectionPresentation';
 import { useSectionManagementLevels } from './useSectionManagementLevels';
+import { useAuth } from '../../auth/AuthContext';
+import SectionBatchForm from './SectionBatchForm';
 
 export default function AdministrativeSeccionesPage() {
+  const { session } = useAuth();
   const years = useSchoolYears(), selection = useSectionSelection();
   const location = useLocation(), navigate = useNavigate();
   const { yearId, query, page, changeYear, changeQuery, setPage } = useAdministrativeSectionLocation();
@@ -48,6 +51,9 @@ export default function AdministrativeSeccionesPage() {
     <header className="space-y-3"><h1 className="text-3xl font-bold tracking-tight">Secciones</h1>
       <div className="flex flex-wrap gap-3">
         <Button disabled={management.busy || !year || year.estado === 'CERRADO' || !access.levels.length} onClick={() => management.edit()}>Crear sección</Button>
+        {session?.user.rol === 'SUBDIRECCION' && <Button variant="secondary"
+          disabled={management.busy || !year || year.estado === 'CERRADO' || !access.levels.length}
+          onClick={management.createMultiple}>Crear varias secciones</Button>}
         <Link to="/secciones/importar" className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold">Importar padrón SIAGIE</Link>
       </div>
       <p className="text-base leading-7 text-slate-600">Consulta y administra las secciones autorizadas por año escolar.</p>
@@ -69,7 +75,10 @@ export default function AdministrativeSeccionesPage() {
     </label>}
     {management.message && <p role="status">{management.message}</p>}
     {management.error && <ErrorState message={management.error} />}
-    {year && management.editor && access.levels.length > 0 && (!management.editor.section || access.levels.includes(management.editor.section.nivel))
+    {year && management.editor?.multiple && session?.user.rol === 'SUBDIRECCION' && access.levels.length > 0
+      && <SectionBatchForm key={`${year.id}-${access.levels.join()}`} yearId={year.id} yearLabel={year.anio}
+        levels={access.levels} busy={management.busy} onSave={management.saveBatch} onCancel={management.close} />}
+    {year && management.editor && !management.editor.multiple && access.levels.length > 0 && (!management.editor.section || access.levels.includes(management.editor.section.nivel))
       && <SectionForm key={`${year.id}-${management.editor.section?.id ?? 'new'}-${access.levels.join()}`}
         levels={access.levels} yearId={year.id} section={management.editor.section} busy={management.busy} onCancel={management.close} onSave={management.save} />}
     {management.confirm && <section aria-label="Confirmar estado de sección" className="space-y-3 rounded-xl border border-slate-300 bg-white p-5">

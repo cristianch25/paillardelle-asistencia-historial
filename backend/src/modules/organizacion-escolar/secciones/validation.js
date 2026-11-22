@@ -61,3 +61,18 @@ export function validateSectionQuery(query = {}) {
   }
   return { ...validatePagination(query), filters };
 }
+
+export function validateSectionBatch(body) {
+  const fields = ['anio_escolar_id', 'nivel', 'grado', 'letra_desde', 'letra_hasta'];
+  if (!body || typeof body !== 'object' || Array.isArray(body)
+    || Object.keys(body).length !== fields.length || Object.keys(body).some(key => !fields.includes(key))
+    || typeof body.letra_desde !== 'string' || typeof body.letra_hasta !== 'string'
+    || !/^[A-Z]$/.test(body.letra_desde ?? '') || !/^[A-Z]$/.test(body.letra_hasta ?? '')
+    || body.letra_hasta < body.letra_desde) {
+    throw new HttpError(400, 'Indica un rango válido de A a Z; la letra final no puede ser anterior a la inicial.');
+  }
+  const data = validateNewSection({ anio_escolar_id: body.anio_escolar_id, nivel: body.nivel,
+    grado: body.grado, letra: body.letra_desde });
+  return Array.from({ length: body.letra_hasta.charCodeAt(0) - body.letra_desde.charCodeAt(0) + 1 },
+    (_, index) => ({ ...data, letra: String.fromCharCode(body.letra_desde.charCodeAt(0) + index) }));
+}

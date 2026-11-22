@@ -1,5 +1,8 @@
 export function createSeccionesController(service) {
   return {
+    async createBatch(req, res) {
+      res.status(201).json({ secciones: await service.createBatch(req.body, req.authUser) });
+    },
     async update(req, res) {
       res.json({ seccion: await service.update(req.params.id, req.body, req.authUser) });
     },

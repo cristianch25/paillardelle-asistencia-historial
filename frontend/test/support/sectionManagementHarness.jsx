@@ -21,6 +21,17 @@ httpClient.defaults.adapter = async config => {
     if (state.hold) await new Promise(resolve => state.pending.push(resolve));
     if (state.fail) throw new AxiosError('privado', '', config, null, { config, status: state.fail,
       data: { error: 'No se puede desactivar: existen matrículas o asignaciones vigentes o futuras.' } });
+    if (config.method === 'post' && config.url === '/secciones/lote') {
+      const letters = Array.from({ length: body.letra_hasta.charCodeAt(0) - body.letra_desde.charCodeAt(0) + 1 },
+        (_, index) => String.fromCharCode(body.letra_desde.charCodeAt(0) + index));
+      const duplicate = state.rows.some(row => row.anio_escolar_id === body.anio_escolar_id && row.nivel === body.nivel
+        && row.grado === body.grado && letters.includes(row.letra));
+      if (duplicate) throw new AxiosError('duplicado', '', config, null, { config, status: 409,
+        data: { error: 'Una sección ya existe. No se creó ninguna sección del lote.' } });
+      const secciones = letters.map((letra, index) => ({ anio_escolar_id: body.anio_escolar_id, nivel: body.nivel,
+        grado: body.grado, letra, id: String(9007199254742000n + BigInt(state.rows.length + index)), turno: null, activo: true }));
+      state.rows.push(...secciones); return result({ secciones }, 201);
+    }
     if (config.method === 'post') {
       const row = { ...body, id: '9007199254741999', turno: null, activo: true }; state.rows.push(row);
       return result({ seccion: row }, 201);

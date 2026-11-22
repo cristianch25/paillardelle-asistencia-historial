@@ -45,6 +45,30 @@ test('409/red/500 no reenvían la escritura ni hacen consultas implícitas', asy
   }
 });
 
+test('lote A-E usa un POST y exige confirmación íntegra, sin duplicados ni filas ajenas', async () => {
+  const batch = { anio_escolar_id: section.anio_escolar_id, nivel: 'SECUNDARIA', grado: 1, letra_desde: 'A', letra_hasta: 'E' };
+  const rows = ['A', 'B', 'C', 'D', 'E'].map((letra, index) => ({ ...section, nivel: batch.nivel, grado: 1,
+    letra, id: String(9007199254742000n + BigInt(index)) }));
+  let calls = 0;
+  client.defaults.adapter = async config => {
+    calls++; assert.equal(config.url, '/secciones/lote'); assert.equal(config.method, 'post');
+    assert.deepEqual(JSON.parse(config.data), batch);
+    return { config, status: 201, headers: {}, data: { secciones: rows } };
+  };
+  assert.deepEqual(await api.createSectionBatch(batch), rows); assert.equal(calls, 1);
+  for (const data of [{}, { secciones: rows.slice(0, 4) }, { secciones: [...rows.slice(0, 4), rows[0]] },
+    { secciones: rows.map(row => ({ ...row, anio_escolar_id: '2' })) },
+    { secciones: rows.map(row => ({ ...row, activo: false })) }]) {
+    client.defaults.adapter = async config => ({ config, status: 201, headers: {}, data });
+    await assert.rejects(api.createSectionBatch(batch), /Confirmación del lote/);
+  }
+  for (const status of [409, 500, undefined]) {
+    calls = 0;
+    client.defaults.adapter = async config => { calls++; throw new AxiosError('privado', '', config, null, status ? { config, status } : undefined); };
+    await assert.rejects(api.createSectionBatch(batch)); assert.equal(calls, 1);
+  }
+});
+
 test('niveles confirmados por GET Secciones: incluye adicionales aun sin filas y excluye solo 403', async () => {
   for (const allowed of [['INICIAL', 'PRIMARIA', 'SECUNDARIA'], ['PRIMARIA'], ['SECUNDARIA'], ['INICIAL', 'PRIMARIA'], ['PRIMARIA', 'SECUNDARIA']]) {
     const calls = [];

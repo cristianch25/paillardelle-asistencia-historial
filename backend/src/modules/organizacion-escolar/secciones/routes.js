@@ -9,6 +9,10 @@ export function createSeccionesRoutes(authService, service = createSeccionesServ
   const controller = createSeccionesController(service);
   router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   router.use(authenticate(authService));
+  router.post('/lote', (req, _res, next) => {
+    if (req.authUser.rol !== 'SUBDIRECCION') throw new HttpError(403, 'Solo Subdirección puede crear varias secciones.');
+    next();
+  }, json({ limit: '2kb' }), controller.createBatch);
   router.get('/', controller.list);
   router.get('/:id', controller.findById);
   router.patch('/:id', (req, _res, next) => {

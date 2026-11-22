@@ -4,7 +4,7 @@ import { peruDate } from '../../../shared/peru-date.js';
 import { unauthorized } from '../../auth/auth.errors.js';
 import { createUsuariosService } from '../../usuarios/usuarios.service.js';
 import { createSeccionesRepository } from './repository.js';
-import { validateNewSection, validateSectionQuery, validateSectionPatch } from './validation.js';
+import { validateNewSection, validateSectionQuery, validateSectionPatch, validateSectionBatch } from './validation.js';
 
 function publicSection(row) {
   return { id: String(row.id), anio_escolar_id: String(row.anio_escolar_id), nivel: row.nivel,
@@ -29,6 +29,35 @@ export function createSeccionesService({ repository = createSeccionesRepository(
       return { ids: await usuariosService.currentSectionIds(actor.id, getToday()) };
     }
     return {};
+  }
+  async function createSections(body, actor, multiple = false) {
+    const onlySubdirection = current => {
+      if (current?.rol !== 'SUBDIRECCION') throw new HttpError(403, 'Solo Subdirección puede crear varias secciones.');
+    };
+    if (multiple) onlySubdirection(actor);
+    const data = multiple ? validateSectionBatch(body) : validateNewSection(body);
+    const level = multiple ? data[0].nivel : data.nivel;
+    if (!actor || !['ADMIN', 'SUBDIRECCION'].includes(actor.rol)) {
+      throw new HttpError(403, 'No tienes permiso para crear secciones.');
+    }
+    try {
+      const write = multiple ? repository.createBatch.bind(repository) : repository.create.bind(repository);
+      const result = await write(data, actor.id, async (current, year, connection) => {
+        if (!current || !(current.activo === 1 || current.activo === true)) throw unauthorized();
+        if (multiple) onlySubdirection(current);
+        await authorize(current, level, connection);
+        if (!year) throw new HttpError(404, 'Año escolar no encontrado.');
+        if (year.estado === 'CERRADO') throw new HttpError(409, 'El año escolar está cerrado.');
+      });
+      return multiple ? result.map(publicSection) : publicSection(result);
+    } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') throw new HttpError(409, multiple
+        ? 'Una sección del lote ya está registrada. No se creó ninguna sección del lote.' : 'La sección ya está registrada.');
+      if (['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT'].includes(error.code)) {
+        throw new HttpError(409, 'Conflicto concurrente: vuelve a intentar la operación.');
+      }
+      throw error;
+    }
   }
   return {
     async update(id, body, actor) {
@@ -94,26 +123,7 @@ export function createSeccionesService({ repository = createSeccionesRepository(
       if (!row) throw new HttpError(404, 'Sección no encontrada.');
       return publicSection(row);
     },
-    async create(body, actor) {
-      const data = validateNewSection(body);
-      if (!actor || !['ADMIN', 'SUBDIRECCION'].includes(actor.rol)) {
-        throw new HttpError(403, 'No tienes permiso para crear secciones.');
-      }
-      try {
-        const row = await repository.create(data, actor.id, async (current, year, connection) => {
-          if (!current || !(current.activo === 1 || current.activo === true)) throw unauthorized();
-          await authorize(current, data.nivel, connection);
-          if (!year) throw new HttpError(404, 'Año escolar no encontrado.');
-          if (year.estado === 'CERRADO') throw new HttpError(409, 'El año escolar está cerrado.');
-        });
-        return publicSection(row);
-      } catch (error) {
-        if (error.code === 'ER_DUP_ENTRY') throw new HttpError(409, 'La sección ya está registrada.');
-        if (['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT'].includes(error.code)) {
-          throw new HttpError(409, 'Conflicto concurrente: vuelve a intentar la operación.');
-        }
-        throw error;
-      }
-    },
+    create: (body, actor) => createSections(body, actor),
+    createBatch: (body, actor) => createSections(body, actor, true),
   };
 }

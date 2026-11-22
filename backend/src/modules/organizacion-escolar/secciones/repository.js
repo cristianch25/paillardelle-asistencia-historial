@@ -2,6 +2,7 @@ import { assertPasswordChanged } from '../../auth/auth.access.js';
 import { getPool } from '../../../config/database.js';
 import { inTransaction } from '../../../shared/transaction.js';
 import { updateSection } from './update.repository.js';
+import { HttpError } from '../../../shared/http-error.js';
 
 const fields = ['id', 'anio_escolar_id', 'nivel', 'grado', 'letra', 'turno', 'activo'];
 const columns = fields.map(field => `s.${field}`).join(', ');
@@ -66,6 +67,10 @@ export function createSeccionesRepository(poolProvider = getPool) {
       return rows[0] ?? null;
     },
     create(data, actorId, decide) {
+      return repository.createBatch([data], actorId, decide, false).then(rows => rows[0]);
+    },
+    createBatch(items, actorId, decide, checkDuplicates = true) {
+      const data = items[0];
       return inTransaction(poolProvider(), async connection => {
         // Orden de escritura: actor, año; sin adquirir otros usuarios después.
         const [actors] = await connection.execute(
@@ -76,26 +81,37 @@ export function createSeccionesRepository(poolProvider = getPool) {
           'SELECT id, estado FROM anios_escolares WHERE id = ? LIMIT 1 FOR UPDATE', [data.anio_escolar_id],
         );
         await decide(actors[0] ?? null, years[0] ?? null, connection);
-        const [result] = await connection.execute(
-          `INSERT INTO secciones (anio_escolar_id, nivel, grado, letra, turno, activo) VALUES (?, ?, ?, ?, ?, ?)`,
-          [data.anio_escolar_id, data.nivel, data.grado, data.letra, data.turno ?? null, true],
-        );
-        if (result.affectedRows !== 1) throw new Error('No se creó una única sección.');
-        const [rows] = await connection.execute(
-          `SELECT ${columns} FROM secciones s WHERE s.id = ? LIMIT 1`, [String(result.insertId)],
-        );
-        if (!rows[0]) throw new Error('No se pudo consultar la sección creada.');
-        const row = Object.fromEntries(fields.map(field => [field, rows[0][field]]));
-        row.id = String(row.id);
-        row.anio_escolar_id = String(row.anio_escolar_id);
-        row.activo = Boolean(row.activo);
-        await connection.execute(
-          `INSERT INTO auditoria_administrativa
-            (usuario_id, accion, entidad, registro_id, datos_anteriores, datos_nuevos)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [actorId, 'CREAR_SECCION', 'secciones', row.id, null, JSON.stringify(row)],
-        );
-        return row;
+        if (checkDuplicates) {
+          const [duplicates] = await connection.execute(`SELECT letra FROM secciones
+            WHERE anio_escolar_id = ? AND nivel = ? AND grado = ? AND letra IN (${items.map(() => '?').join(', ')})
+            ORDER BY letra FOR UPDATE`, [data.anio_escolar_id, data.nivel, data.grado, ...items.map(item => item.letra)]);
+          if (duplicates.length) throw new HttpError(409,
+            `Ya existen las secciones: ${duplicates.map(row => `${data.grado} ${row.letra}`).join(', ')}. No se creó ninguna sección del lote.`);
+        }
+        const created = [];
+        for (const data of items) {
+          const [result] = await connection.execute(
+            `INSERT INTO secciones (anio_escolar_id, nivel, grado, letra, turno, activo) VALUES (?, ?, ?, ?, ?, ?)`,
+            [data.anio_escolar_id, data.nivel, data.grado, data.letra, data.turno ?? null, true],
+          );
+          if (result.affectedRows !== 1) throw new Error('No se creó una única sección.');
+          const [rows] = await connection.execute(
+            `SELECT ${columns} FROM secciones s WHERE s.id = ? LIMIT 1`, [String(result.insertId)],
+          );
+          if (!rows[0]) throw new Error('No se pudo consultar la sección creada.');
+          const row = Object.fromEntries(fields.map(field => [field, rows[0][field]]));
+          row.id = String(row.id);
+          row.anio_escolar_id = String(row.anio_escolar_id);
+          row.activo = Boolean(row.activo);
+          await connection.execute(
+            `INSERT INTO auditoria_administrativa
+              (usuario_id, accion, entidad, registro_id, datos_anteriores, datos_nuevos)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [actorId, 'CREAR_SECCION', 'secciones', row.id, null, JSON.stringify(row)],
+          );
+          created.push(row);
+        }
+        return created;
       });
     },
   };

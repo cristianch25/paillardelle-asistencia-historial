@@ -10,7 +10,7 @@ export function sectionsPool(options = {}) {
     const events = [];
     state.events.push(events);
     if (state.failAt === 'acquire') throw state.error;
-    let unlock, pending, audit;
+    let unlock, pending = [], audits = [];
     function step(name) { events.push(name); if (state.failAt === name) throw state.error; }
     function finish() { if (unlock) { unlock(); unlock = null; } }
     return {
@@ -35,32 +35,39 @@ export function sectionsPool(options = {}) {
         }
         if (sql.startsWith('INSERT INTO secciones')) {
           step('insert');
+          if (state.failInsertAt === pending.length + 1) throw state.error;
           // Simula UNIQUE con comparación insensible a mayúsculas y acentos.
-          if (state.rows.some(row => row.anio_escolar_id === params[0] && row.nivel === params[1]
+          if ([...state.rows, ...pending].some(row => row.anio_escolar_id === params[0] && row.nivel === params[1]
             && row.grado === params[2] && row.letra.localeCompare(params[3], 'es', { sensitivity: 'base' }) === 0)) {
             throw Object.assign(new Error('Duplicado privado'), { code: 'ER_DUP_ENTRY' });
           }
-          pending = { id: String(nextId++), anio_escolar_id: params[0], nivel: params[1],
+          const row = { id: String(nextId++), anio_escolar_id: params[0], nivel: params[1],
             grado: params[2], letra: params[3], turno: params[4], activo: params[5] };
-          return [{ affectedRows: state.affectedRows ?? 1, insertId: pending.id }];
+          pending.push(row);
+          return [{ affectedRows: state.affectedRows ?? 1, insertId: row.id }];
         }
+        if (sql.startsWith('SELECT letra FROM secciones')) return [state.rows.filter(row =>
+          row.anio_escolar_id === params[0] && row.nivel === params[1] && row.grado === params[2]
+          && params.slice(3).some(letter => row.letra.localeCompare(letter, 'es', { sensitivity: 'base' }) === 0))];
         if (sql.includes('FROM secciones')) {
           step('select');
-          return [state.missingRow ? [] : [{ ...pending, secreto: 'NO_AUDITAR' }]];
+          return [state.missingRow ? [] : [{ ...pending.at(-1), secreto: 'NO_AUDITAR' }]];
         }
         if (sql.startsWith('INSERT INTO auditoria_administrativa')) {
-          step('audit'); audit = params; return [{ affectedRows: 1 }];
+          step('audit');
+          if (state.failAuditAt === pending.length) throw state.error;
+          audits.push(params); return [{ affectedRows: 1 }];
         }
         throw new Error('Consulta inesperada');
       },
       async commit() {
-        step('commit'); state.rows.push(pending); state.audits.push(audit); finish();
+        step('commit'); state.rows.push(...pending); state.audits.push(...audits); finish();
         if (state.commitFailsAfterPersist) throw state.error;
       },
       async rollback() {
         events.push('rollback'); finish();
         if (state.rollbackFails) throw state.cleanup;
-        pending = null; audit = null;
+        pending = []; audits = [];
       },
       release() {
         events.push('release'); finish(); if (state.releaseFails) throw state.cleanup;
