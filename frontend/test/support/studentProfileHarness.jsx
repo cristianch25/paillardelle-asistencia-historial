@@ -7,7 +7,7 @@ if (source === 'stats') await import('./statisticsHarness.jsx');
 else if (source === 'search') await import('./integratedAttendanceHarness.jsx');
 else await import('./navigationHarness.jsx');
 const previous = httpClient.defaults.adapter;
-const controls = { calls: [], status: null, hold: false, pending: [], contact: true, role: null, sectionChange: false };
+const controls = { calls: [], status: null, hold: false, pending: [], contact: true, role: null, sectionChange: false, empty: false };
 controls.phone = { value: '900000001', shared: true, preview: null, confirmStatus: null, hold: false, pending: [], writes: 0, noGuardian: false, applyBeforeError: false };
 window.profileTest = controls;
 httpClient.defaults.adapter = async config => {
@@ -37,6 +37,10 @@ httpClient.defaults.adapter = async config => {
   }
   controls.calls.push({ method: config.method, url: config.url, params: config.params });
   const data = studentProfileResponse(match[1], config.params.anio_escolar_id, config.params.mes), status = controls.status;
+  if (controls.empty) {
+    for (const key of Object.keys(data.resumen)) data.resumen[key] = 0;
+    for (const day of data.dias) Object.assign(day, { estado: null, justificada: false, motivo_justificacion: null, situacion: 'SIN_SESION' });
+  }
   if (controls.sectionChange) {
     const moved = { ...data.contexto.seccion_actual, id: '3', letra: 'OTRA SECCIÓN' };
     data.contexto.secciones[0].fecha_fin = `${config.params.mes}-14`;

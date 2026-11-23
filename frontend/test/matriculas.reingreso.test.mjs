@@ -123,15 +123,13 @@ test('ReingresoDialog renderiza modal accesible con datos de estudiante y retiro
   assert.match(html, /Cargando secciones disponibles/);
 });
 
-test('StudentProfileView muestra botón Reingresar estudiante si está RETIRADA y usuario es ADMIN/SUBDIRECCION', () => {
-  // 1. ADMIN con perfil RETIRADA -> muestra banner y botón Reingresar estudiante
+test('perfil simplificado omite acciones de matrícula incluso para estudiantes retirados', () => {
   const htmlAdminRetired = renderToStaticMarkup(
     h(Auth.Provider, { value: { session: { user: { rol: 'ADMIN' } } } },
       h(ProfileView, { data: retiredProfile }),
     ),
   );
-  assert.match(htmlAdminRetired, /Estudiante con matrícula RETIRADA/);
-  assert.match(htmlAdminRetired, />Reingresar estudiante</);
+  assert.doesNotMatch(htmlAdminRetired, /Estudiante con matrícula RETIRADA|>Reingresar estudiante</);
 
   // 2. ADMIN con perfil ACTIVA -> NO muestra botón Reingresar
   const htmlAdminActive = renderToStaticMarkup(

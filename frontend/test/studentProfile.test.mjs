@@ -14,10 +14,11 @@ before(async () => {
   Profile = (await vite.ssrLoadModule('/src/features/estudiantes/perfil/StudentProfile.tsx')).default;
 });
 
-test('sin año de origen el perfil conserva el selector en lugar de fijar un contexto supuesto', () => {
+test('perfil completo sin filtros; historial separado conserva sus selectores', () => {
   const html = renderToStaticMarkup(h(Profile, { selection: { studentId: '1' } }));
-  assert.match(html, /Año escolar|Selecciona un año/);
-  assert.match(html, /<select/); assert.match(html, /Mes del perfil/);
+  assert.doesNotMatch(html, /<select|type="month"|Mes del perfil|Actualizar perfil/);
+  const historical = renderToStaticMarkup(h(Profile, { selection: { studentId: '1' }, historyOnly: true }));
+  assert.match(historical, /<select/); assert.match(historical, /Mes del historial/);
 });
 
 const history = data => renderToStaticMarkup(h(History, { days: data.dias, today: '2026-11-21', formatSection: section => section.letra }));
@@ -51,6 +52,18 @@ test('perfil: historial de solo consulta y celular editable sin controles de cor
   for (const text of ['00001', 'Apoderada actual', '900000001', 'Pendiente', 'Sin sesión', 'Sin marca individual',
     'Día no lectivo', 'Fuera de vigencia', 'Aviso vigente']) assert.ok(html.includes(text));
   assert.doesNotMatch(html, /<input|Corregir|Guardar|version|usuario_id/);
+  assert.match(html, /<strong>Apoderada actual<\/strong>/);
+  assert.equal([...html.matchAll(/<dt\b/g)].length, 4);
+  assert.doesNotMatch(html, /Sección actual|Secciones del período|Incidencias justificadas|Faltas justificadas|Tardanzas justificadas|Vínculo activo|apoderado histórico/);
+});
+test('sin asistencias: conserva los cuatro indicadores y el historial sin mensajes redundantes', () => {
+  const data = studentProfileResponse();
+  for (const key of Object.keys(data.resumen)) data.resumen[key] = 0;
+  for (const day of data.dias) Object.assign(day, { estado: null, justificada: false, motivo_justificacion: null, situacion: 'SIN_SESION' });
+  const html = renderToStaticMarkup(h(View, { data }));
+  assert.equal([...html.matchAll(/<dd\b[^>]*>0<\/dd>/g)].length, 4);
+  assert.match(html, /Historial diario|Sin sesión/);
+  assert.doesNotMatch(html, /No hay marcas individuales|Incidencias justificadas/);
 });
 test('apoderado no autorizado se diferencia de vínculo inexistente sin exponer teléfono', () => {
   const data = studentProfileResponse(); data.apoderado_visible = false; data.apoderado = null;

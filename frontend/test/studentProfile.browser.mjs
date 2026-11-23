@@ -82,7 +82,7 @@ test('ADMIN/SUBDIRECCION: perfil desde seguimiento sin perder mes/nivel ni crear
       await evaluate(`document.querySelector('[aria-label="Seguimiento mensual"] tbody button').click()`);
       await wait(`Boolean(document.querySelector('[aria-label="Datos del perfil individual"]'))`);
       assert.equal(await evaluate(`document.querySelector('[aria-label="Perfil individual del estudiante"]').querySelectorAll('select').length`), 0);
-      assert.equal(await evaluate(`document.querySelector('[aria-label="Perfil individual del estudiante"]').querySelectorAll('input[type=month]').length`), 1);
+      assert.equal(await evaluate(`document.querySelector('[aria-label="Perfil individual del estudiante"]').querySelectorAll('input[type=month]').length`), 0);
       assert.match(await evaluate(`document.querySelector('[aria-label="Datos del perfil individual"]').textContent`), /Resumen mensual.*Historial diario/);
       await click('Volver');
       assert.equal(await evaluate(`document.querySelector('[aria-label="Seguimiento mensual"] input').value`), before);
@@ -107,9 +107,8 @@ test('ADMIN: búsqueda de Asistencias conserva texto y fecha al volver del perfi
     const modal = `document.querySelector('dialog[open][aria-label="Perfil individual del estudiante"]')`;
     assert.equal(await evaluate(`${modal}.querySelectorAll('select').length`), 0);
     assert.doesNotMatch(await evaluate(`${modal}.textContent`), /Se muestran datos guardados|Al volver se conservan/);
-    const before = await evaluate('profileTest.calls.at(-1).params.anio_escolar_id');
-    await click('Actualizar perfil'); await wait(`Boolean(${modal}.querySelector('[aria-label="Datos del perfil individual"]'))`);
-    assert.equal(await evaluate('profileTest.calls.at(-1).params.anio_escolar_id'), before);
+    assert.equal(await evaluate('profileTest.calls.at(-1).params.anio_escolar_id'), '9007199254740993');
+    assert.doesNotMatch(await evaluate(`${modal}.textContent`), /Mes del perfil|Actualizar perfil|Secciones del período|Sección actual/);
     for (const width of [1280, 412, 320]) {
       await ui.command('Emulation.setDeviceMetricsOverride', { width, height: 915, deviceScaleFactor: 1, mobile: width < 600 });
       assert.ok(await evaluate(`${modal}.scrollWidth <= ${modal}.clientWidth && document.documentElement.scrollWidth <= ${width}`));
@@ -138,16 +137,14 @@ test('SUBDIRECCION: acceso desde estudiantes de una sección autorizada sin perd
     const modal = `document.querySelector('dialog[open][aria-label="Perfil individual del estudiante"]')`;
     assert.equal(await evaluate(`${modal}.querySelectorAll('select').length`), 0);
     assert.equal(await evaluate('profileTest.calls.at(-1).params.anio_escolar_id'), '1');
-    await click('Actualizar perfil'); await wait(`Boolean(${modal}.querySelector('[aria-label="Datos del perfil individual"]'))`);
-    assert.equal(await evaluate('profileTest.calls.at(-1).params.anio_escolar_id'), '1');
-    await evaluate(`(() => { const e = ${modal}.querySelector('input[type=month]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(e, '2026-10'); e.dispatchEvent(new Event('input', { bubbles: true })); })()`);
-    await wait(`profileTest.calls.at(-1).params.mes === '2026-10' && Boolean(${modal}.querySelector('[aria-label="Datos del perfil individual"]'))`);
-    assert.equal(await evaluate(`${modal}.querySelector('tbody th').textContent`), '31/10/2026');
+    assert.equal(await evaluate(`${modal}.querySelectorAll('input[type=month]').length`), 0);
+    assert.equal(await evaluate('profileTest.calls.at(-1).params.mes'), '2026-11');
     assert.doesNotMatch(await evaluate(`${modal}.querySelector('thead').textContent`), /Sección/);
-    await evaluate('profileTest.sectionChange = true'); await click('Actualizar perfil');
+    await click('Volver'); await evaluate('profileTest.sectionChange = true');
+    await evaluate(`document.querySelector('[aria-label="Estudiantes de la fecha consultada"] button').click()`);
     await wait(`${modal}.querySelector('thead')?.textContent.includes('Sección')`);
     assert.match(await evaluate(`${modal}.textContent`), /OTRA SECCIÓN/);
-    assert.equal(await evaluate(`${modal}.querySelectorAll('tbody tr').length`), 31);
+    assert.equal(await evaluate(`${modal}.querySelectorAll('tbody tr').length`), 30);
     await ui.command('Emulation.setDeviceMetricsOverride', { width: 320, height: 915, deviceScaleFactor: 1, mobile: true });
     assert.ok(await evaluate(`${modal}.scrollWidth <= ${modal}.clientWidth && document.documentElement.scrollWidth <= 320`));
     await click('Volver');

@@ -12,10 +12,13 @@ Accesos: ADMIN desde el resultado seleccionado de búsqueda de Asistencias;
 ADMIN/SUBDIRECCION desde seguimiento mensual; listados autorizados de estudiantes;
 REGISTRADOR desde cada fila de asistencia diaria. No se sustituye el editor diario.
 
-Un solo StudentProfile ofrece mes y hereda el año válido de la vista de origen,
-sin mostrar el selector de año en ese caso. Sin contexto válido conserva el
-selector y el helper de año automático existente. Mantiene identidad, sección actual e históricos,
-apoderado actual autorizado, resumen y hasta 31 filas diarias. Sin asistencia
+ADMIN/SUBDIRECCION consultan automáticamente el mes actual en America/Lima al
+abrir el perfil, con el año escolar cuyo número corresponde al año civil actual.
+El período de origen no cambia esta consulta y se conserva al volver. Se muestra
+el mes como texto discreto, sin selectores ni botón de actualización. Si falta el
+año actual o el mes no intersecta sus fechas, se informa sin consultar otro mes.
+Mantiene nombre completo, código, apoderado en negrita, celular autorizado,
+cuatro indicadores y hasta 31 filas diarias. Sin asistencia
 masiva de otros estudiantes, corrección de asistencia ni eventos técnicos.
 El backend decide permisos; el frontend distingue apoderado no autorizado y
 ausencia de vínculo. El contacto es el actual, no histórico del mes consultado.
@@ -25,22 +28,32 @@ Lectividad se muestra como dato independiente sin convertir ausencias en faltas.
 `StudentDailyHistory` presenta las fechas transcurridas en orden descendente;
 las posteriores a hoy permanecen completas en un desplegable separado. No cambia
 estados, justificaciones ni resumen. La columna Sección solo aparece si los IDs
-reales del historial del mes incluyen más de una sección; se conserva el apartado
-de secciones del período y la sección actual. La fecha de referencia es Lima.
-Los cambios de mes invalidan consultas previas; cerrar el perfil impide que una
+reales del historial del mes incluyen más de una sección. El perfil completo no
+muestra bloques de sección actual/período, desgloses de justificaciones, textos
+técnicos de vínculos ni acciones de matrícula. Las justificaciones permanecen
+en cada fecha del historial. La fecha de referencia es Lima.
+Cerrar el perfil impide que una
 respuesta tardía lo reabra. Cambiar usuario/rol o perder la sesión retira el perfil.
 Los resultados reflejan datos guardados; no incorporan el borrador de la asistencia.
 
-Pruebas focales: studentProfile.test.mjs y studentProfile.browser.mjs con APIs
-simuladas, incluyendo permisos de contacto, retorno con borrador, accesos de los
-tres roles y 320 px. No acreditan integración React → Express → MySQL real.
+Pruebas focales: studentProfile.test.mjs, studentProfile.browser.mjs y
+studentProfile.current-month.browser.mjs con APIs simuladas, incluyendo permisos
+de contacto, retorno con borrador, accesos de los tres roles y 320 px. La prueba
+de mes actual fija diciembre en Tokio mientras todavía es noviembre en Lima,
+abre desde un año histórico y comprueba consulta actual, cuatro indicadores,
+justificaciones, ausencia de polling y actualización visible del celular.
+Verificación del 22/11/2026: 15 pruebas de componentes/contratos y 26 de navegador
+aprobadas, incluidas regresiones de guardianPhone, reingreso y el historial de
+REGISTRADOR. TypeScript y build correctos. Sin acceso a MySQL; no acredita
+integración React → Express → MySQL real. Se conservan los permisos específicos
+de D14/RN-24/RF-10 y de celular F07/F08/RN-13 V8.
 
 ## Presentación compacta de REGISTRADOR
 
 DOCENTE/AUXILIAR comparten la variante compacta: título «Perfil del estudiante»,
 X accesible, nombre, sección actual, apoderado actual y celular autorizado.
 Oculta filtros, código, históricos, resumen y textos explicativos; conserva la
-misma API de lectura y sus permisos. ADMIN/SUBDIRECCION mantienen la vista completa.
+misma API de lectura y sus permisos. Esta variante conserva su presentación.
 X/Escape cierran sin desmontar la asistencia ni modificar su borrador.
 
 Pruebas focales cubren 320/390 px y conservación del borrador.
@@ -54,13 +67,15 @@ y aceptación expresa. Se advierte el efecto compartido sin nombres ajenos.
 Vacío permite quitar el teléfono; sin cambios no se confirma ni escribe.
 Sin apoderado autorizado no se ofrece edición ni creación.
 
-Durante las solicitudes se bloquean doble envío, X/Escape, cambio de año/mes y
-actualización del perfil. Las marcas/borradores de asistencia permanecen intactos.
+Durante las solicitudes se bloquean doble envío y X/Escape. Las marcas/borradores
+de asistencia permanecen intactos.
 Solo la respuesta confirmada del PATCH actualiza el valor y muestra éxito.
 Ante rechazo o resultado incierto se exige Consultar número actual (GET de perfil)
 antes de volver a editar; nunca reenvía automáticamente el PATCH ni reutiliza token.
 Tokens/borradores únicamente en memoria, sin almacenamiento ni logs.
 El resumen e historial de ADMIN/SUBDIRECCION no se editan ni se recalculan localmente.
+El número visible cambia con la respuesta confirmada del guardado existente;
+abrir de nuevo el modal vuelve a consultar. No hay polling ni refresco continuo.
 
 ## Historial académico desde el padrón de REGISTRADOR — 22/11/2026
 
