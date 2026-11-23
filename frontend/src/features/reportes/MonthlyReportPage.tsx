@@ -63,7 +63,7 @@ function MonthlyReportContent() {
         {years.years.length === 1 ? <p>Año escolar: <strong>{year?.anio}</strong></p> : <label className="text-sm font-semibold">Año escolar<select required value={yearId} className={field}
           onChange={event => { setYear(event.target.value); setError(''); }}><option value="">Selecciona un año</option>
           {years.years.map(row => <option key={row.id} value={row.id}>{row.anio} · {row.estado}</option>)}</select></label>}
-        {sections.sections.length === 1 ? <p>Sección: <strong>{educationLevelLabels[section!.nivel]} · {formatName(section!)}</strong></p> : <label className="text-sm font-semibold">Sección<select required className={field} value={sectionId}
+        {sections.sections.length === 1 ? <p className={session?.user.rol === 'REGISTRADOR' ? 'sm:col-span-2' : undefined}>Sección: <strong>{educationLevelLabels[section!.nivel]} · {formatName(section!)}</strong></p> : <label className="text-sm font-semibold">Sección<select required className={field} value={sectionId}
           onChange={event => { setSection({ yearId, id: event.target.value }); setError(''); }}><option value="">Selecciona una sección</option>
           {sections.sections.map(row => <option key={row.id} value={row.id}>{educationLevelLabels[row.nivel]} · {formatName(row)}</option>)}</select></label>}
         <label className="min-w-0 text-sm font-semibold">Mes<input required type="month" min={min} max={max} value={month} className={field}

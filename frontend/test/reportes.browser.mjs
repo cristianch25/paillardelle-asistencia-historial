@@ -8,9 +8,17 @@ test('Ficha mensual: nomenclatura sencilla solo para REGISTRADOR, con una o vari
   const ui = await authBrowser('reportsHarness.jsx');
   try {
     await ui.navigate('/login'); await ui.wait('Boolean(window.reportsTest)');
-    await ui.evaluate("reportsTest.role='REGISTRADOR'"); await ui.login(); await ui.setRoute('/reportes');
+    await ui.evaluate("reportsTest.role='REGISTRADOR'; reportsTest.multipleYears=true"); await ui.login(); await ui.setRoute('/reportes');
     await ui.wait('document.body.textContent.includes("Sección: Primaria · 1 A")');
-    await ui.setRoute('/inicio'); await ui.evaluate('reportsTest.multiple=true'); await ui.setRoute('/reportes');
+    for (const width of [1440, 412, 320]) {
+      await ui.command('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile: width < 640 });
+      const positions = await ui.evaluate(`Array.from(document.querySelector('fieldset').children).map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left}})`);
+      assert.ok(positions[1].top >= positions[0].bottom);
+      assert.equal(positions[1].left, positions[0].left);
+      assert.ok(positions[2].top >= positions[1].bottom);
+      assert.ok(await ui.evaluate('document.documentElement.scrollWidth <= innerWidth'));
+    }
+    await ui.setRoute('/inicio'); await ui.evaluate('reportsTest.multiple=true; reportsTest.multipleYears=false'); await ui.setRoute('/reportes');
     await ui.wait('document.querySelectorAll("select option").length===3');
     assert.deepEqual(await ui.evaluate('Array.from(document.querySelectorAll("select option")).slice(1).map(e=>[e.value,e.textContent])'),
       [['20', 'Primaria · 1 A'], ['21', 'Secundaria · 2 B']]);
@@ -45,6 +53,11 @@ for (const role of ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR']) test(`Ficha mensual
     for (const width of [1440, 412, 320]) {
       await ui.command('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile: width === 320 });
       assert.ok(await ui.evaluate('document.documentElement.scrollWidth <= innerWidth'));
+      const fields = await ui.evaluate(`Array.from(document.querySelector('fieldset').children).map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left}})`);
+      if (role === 'REGISTRADOR' || width < 640) {
+        assert.ok(fields[1].top >= fields[0].bottom); assert.equal(fields[1].left, fields[0].left);
+        assert.ok(fields[2].top >= fields[1].bottom);
+      } else assert.equal(fields[0].top, fields[1].top);
       const positions = await ui.evaluate(`['Imprimir ficha','Descargar ficha'].map(text=>{const b=Array.from(document.querySelectorAll('button')).find(b=>b.textContent===text),r=b.getBoundingClientRect();return {top:r.top,left:r.left,width:r.width};})`);
       assert.equal(positions[0].top === positions[1].top, width >= 640);
       const screenshot = await ui.command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });

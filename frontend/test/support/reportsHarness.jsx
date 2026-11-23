@@ -4,7 +4,7 @@ import { httpClient } from '../../src/shared/api/httpClient';
 
 const previous = httpClient.defaults.adapter;
 const state = { role: 'ADMIN', calls: [], downloads: [], created: [], revoked: [], prints: [], printFails: false,
-  nativePrint: false, pdfBytes: null, fail: 0, multiple: false, empty: false };
+  nativePrint: false, pdfBytes: null, fail: 0, multiple: false, multipleYears: false, empty: false };
 window.reportsTest = state;
 const createUrl = URL.createObjectURL.bind(URL), revokeUrl = URL.revokeObjectURL.bind(URL);
 URL.createObjectURL = blob => { const url = createUrl(blob); state.created.push({ type: blob.type, size: blob.size, url }); return url; };
@@ -28,7 +28,8 @@ document.createElement = (tag, ...args) => {
 HTMLAnchorElement.prototype.click = function () { state.downloads.push({ name: this.download, url: this.href }); };
 httpClient.defaults.adapter = async config => {
   if (config.url === '/auth/me') { const result = await previous(config); result.data.user.rol = state.role; return result; }
-  if (config.url === '/anios-escolares') return { config, status: 200, data: { anios_escolares: [{ id: '10', anio: 2026, fecha_inicio: '2026-01-01', fecha_fin: '2026-12-31', estado: 'CERRADO' }], pagination: { page: 1, has_more: false } } };
+  if (config.url === '/anios-escolares') return { config, status: 200, data: { anios_escolares: [{ id: '10', anio: 2026, fecha_inicio: '2026-01-01', fecha_fin: '2026-12-31', estado: 'CERRADO' },
+    ...(state.multipleYears ? [{ id: '11', anio: 2025, fecha_inicio: '2025-01-01', fecha_fin: '2025-12-31', estado: 'CERRADO' }] : [])], pagination: { page: 1, has_more: false } } };
   if (config.url === '/secciones/') return { config, status: 200, data: { secciones: state.empty ? [] : [
     { id: '20', anio_escolar_id: '10', nivel: 'PRIMARIA', grado: 1, letra: 'A', activo: true },
     ...(state.multiple ? [{ id: '21', anio_escolar_id: '10', nivel: 'SECUNDARIA', grado: 2, letra: 'B', activo: false }] : []),
