@@ -1,5 +1,48 @@
 # Paillardelle Asistencia
 
+## Instalación web básica en Android (PWA)
+
+El frontend incluye `public/manifest.webmanifest` e íconos PNG institucionales
+de 192 y 512 píxeles, con una variante maskable de 512 que deja margen al escudo.
+Vite los copia a `dist/`. Nombre: **Paillardelle Asistencia**; apertura
+`standalone`, inicio en `/login` y ámbito `/`. La guardia existente restaura y
+valida la sesión y dirige al módulo permitido por rol, incluido SUPERUSUARIO.
+La instalación no concede permisos ni crea otro login, APK o aplicación nativa.
+
+En Android, abrir el dominio HTTPS en Chrome y usar su menú **Instalar aplicación**
+o **Agregar a pantalla principal**, según versión/dispositivo. El navegador
+decide si ofrece instalación o acceso directo y cuándo muestra una promoción;
+no se fuerza un aviso. La instalación desde menú no requiere service worker en
+Chrome Android moderno. Fuentes oficiales:
+[criterios de instalación](https://web.dev/articles/install-criteria) y
+[cambio de criterios de Chrome](https://developer.chrome.com/blog/update-install-criteria).
+
+No se registra service worker ni se añade Cache Storage, caché de APIs, tokens
+o datos académicos. No hay asistencia offline, sincronización ni push; se necesita
+conexión para utilizar las APIs. Se conserva `sessionStorage`, JWT, inactividad,
+máximo de ocho horas y permisos. Una ventana instalada tiene su propio contexto:
+no se copia la sesión de otra pestaña ni se garantiza conservarla si Android
+cierra ese contexto. Los borradores no guardados conservan sus límites actuales.
+
+Condiciones del alojamiento, pendientes de configurar/verificar al desplegar:
+
+- Servir en la raíz de un dominio HTTPS con certificado válido, incluidos API,
+  manifiesto e íconos; abrir una IP LAN por HTTP desde el móvil no basta.
+- Servir `/manifest.webmanifest` como `application/manifest+json` y los íconos
+  como `image/png`, públicos, sin devolver HTML de fallback para archivos ausentes.
+- Resolver las rutas SPA (`/login`, `/inicio`, `/secciones`, etc.) con `index.html`;
+  dirigir `/api/*` al backend, sin aplicar ese fallback ni caché de CDN a las APIs.
+- Revalidar HTML, manifiesto e íconos (`Cache-Control: no-cache`); los recursos
+  `/assets/*` generados con hash pueden usar caché larga e `immutable`.
+  Mantener el `no-store` existente de respuestas privadas, sin sustituirlo en el proxy.
+- Publicar cada compilación de manera coherente y conservar los recursos con hash
+  anteriores durante la transición para ventanas abiertas. No hay recarga forzada:
+  la nueva interfaz se obtiene al recargar o volver a abrir; guardar antes cualquier
+  edición pendiente. No se añade una política de actualización de service worker.
+
+La compilación local no acredita instalación en un Android real ni configuración
+HTTPS/CDN de producción. El diseño responsive y la navegación existentes se conservan.
+
 Sistema web de control de asistencia de la I.E. Enrique Paillardelle para
 INICIAL, PRIMARIA y SECUNDARIA. Independiente de SIAGIE: se prevé importación
 manual de padrones con revisión, sin sincronización automática.

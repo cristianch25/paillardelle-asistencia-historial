@@ -1,0 +1,33 @@
+{
+  "id": "/",
+  "name": "Paillardelle Asistencia",
+  "short_name": "Paillardelle",
+  "description": "Sistema de asistencia de la I.E. Enrique Paillardelle.",
+  "lang": "es-PE",
+  "start_url": "/login",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#edf2f8",
+  "theme_color": "#102c46",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
