@@ -136,6 +136,38 @@ el buffer se limpia tras procesarlo y se conservan únicamente registros extraí
 y sus originales hasta caducar. Un reinicio invalida las vistas. Las cuotas son
 por proceso Node: esta versión requiere una única instancia del backend.
 
+### Regeneración de vistas — 22/11/2026
+
+Se conservan los máximos y la vigencia fija de RN-20/T01 V8, junto con la
+revalidación de F10 y la idempotencia de T04. Una carga completada retira las
+vistas anteriores ya cargadas y libres del mismo actor, incluso de otros archivos
+o contextos. Sus selecciones y correcciones temporales se descartan; en otra
+pestaña, consultar o confirmar una operación nueva con esa vista devuelve 404
+indicando que pudo ser reemplazada. No se retiran reservas de cargas ni vistas
+con `confirming=true`; la confirmación mantiene esa protección hasta terminar
+la transacción, incluido COMMIT/rollback. La caducidad original sigue aplicando,
+también durante confirmación; caducar no acredita reversión ni sustituye el recibo.
+
+Si al reservar ya se alcanzó una cuota, se libera únicamente la vista cargada
+y libre más antigua del propio actor. En ese caso se pierde esa vista aunque
+la nueva carga falle. Si hay cupo, un fallo conserva la anterior y libera la
+nueva reserva. Sin candidata propia se devuelve 429: distingue cargas o
+confirmaciones propias en curso del límite global. No se desalojan vistas de
+otros usuarios. La limpieza por temporizador y al acceder conserva su plazo.
+La reserva y el reemplazo son síncronos dentro del proceso Node.
+
+La acumulación anterior era posible tras tres cargas exitosas sin confirmar ni
+descartar, aun del mismo XLSX; no se distinguían de trabajo activo al calcular
+la cuota. La regeneración ahora vuelve a conciliar los datos actuales. No se
+cambian XLSX, conciliación, SQL, confirmación ni recibos: una repetición de una
+operación confirmada sigue recuperando su recibo aunque la vista se reemplace.
+Pruebas con mocks en `importaciones.preview.replacement.test.js`: regeneración,
+secciones corregidas, cuotas, dueño, cargas simultáneas, fallos, caducidad,
+permisos, confirmación en curso y repetición durable. Sin MySQL ni importaciones
+reales; el cambio requiere recargar el proceso backend para entrar en servicio.
+Verificación de esta entrega: 431 pruebas de importaciones aprobadas, incluidos
+10 casos nuevos; se excluyeron expresamente los archivos `*.mysql.test.js`.
+
 El supervisor usa el extractor real en un proceso sin credenciales/configuración
 DB, con 20 segundos y 2 análisis simultáneos. Se conservan límites ZIP/XML/XLSX;
 el protocolo de extracción tiene además un máximo de 32 MiB. El supervisor limita

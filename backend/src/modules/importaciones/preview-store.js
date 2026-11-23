@@ -8,11 +8,21 @@ export function createPreviewStore({ now = Date.now } = {}) {
   function clean() {
     for (const [id, value] of previews) if (value.expires <= now()) remove(id);
   }
+  function replaceable(actorId, exceptId) {
+    return [...previews].filter(([id, row]) => id !== exceptId && row.actorId === actorId && row.ready && !row.confirming);
+  }
   return {
     reserve(actorId) {
       clean();
-      if (previews.size >= 20 || [...previews.values()].filter(row => row.actorId === actorId).length >= 3) {
-        throw new HttpError(429, 'Hay demasiadas vistas previas abiertas. Espera a que caduquen.');
+      const own = [...previews.values()].filter(row => row.actorId === actorId);
+      if (previews.size >= 20 || own.length >= 3) {
+        const previous = replaceable(actorId)[0];
+        if (previous) remove(previous[0]);
+        else if (own.length >= 3) {
+          throw new HttpError(429, 'Tienes cargas o confirmaciones en curso. Espera a que terminen y vuelve a generar la vista previa.');
+        } else {
+          throw new HttpError(429, 'El servicio alcanzó el límite de vistas previas. Intenta nuevamente cuando se libere un cupo.');
+        }
       }
       const id = randomBytes(32).toString('hex'), expires = now() + PREVIEW_TTL;
       const timer = setTimeout(() => remove(id), PREVIEW_TTL); timer.unref();
@@ -22,10 +32,14 @@ export function createPreviewStore({ now = Date.now } = {}) {
     get(id, actorId) {
       clean();
       const value = previews.get(id);
-      if (!value || value.actorId !== actorId) throw new HttpError(404, 'La vista previa no existe o ha caducado. Carga nuevamente el archivo.');
+      if (!value || value.actorId !== actorId) throw new HttpError(404, 'La vista previa no existe, caducó o fue reemplazada. Carga nuevamente el archivo.');
       return value;
     },
-    complete(id, actorId, data) { Object.assign(this.get(id, actorId), data); },
+    complete(id, actorId, data) {
+      Object.assign(this.get(id, actorId), data, { ready: true });
+      // Síncrono con reserve/acquire: nunca retirar cargas ni confirmaciones activas.
+      for (const [previousId] of replaceable(actorId, id)) remove(previousId);
+    },
     remove,
   };
 }
