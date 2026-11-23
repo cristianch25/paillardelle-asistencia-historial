@@ -23,7 +23,7 @@ test('REGISTRADOR: Inicio y Mis secciones unificados, contexto, guardado protegi
       assert.deepEqual(await counts(), [0, 2]);
       assert.match(await evaluate(`${home}.textContent`), /Lista sin registrar/);
       assert.equal(await evaluate('mobileTest.calls.some(c=>c.url.includes("estadisticas"))'), false);
-      await click('Ir a mis secciones'); await ready();
+      await click('Ver mis secciones'); await ready();
       assert.equal(await evaluate('document.querySelector("h1").textContent'), 'Mis secciones');
       assert.ok(await evaluate(`Array.from(${cards}).every(c=>c.textContent.includes('Registrar asistencia')&&c.textContent.includes('Ver estudiantes'))`));
     });
@@ -81,7 +81,7 @@ test('REGISTRADOR: Inicio y Mis secciones unificados, contexto, guardado protegi
       await evaluate('mobileTest.listStatus=500'); await ui.setRoute('/secciones'); await wait('document.body.textContent.includes("Reintentar consulta")'); await openHome();
       await wait('document.body.textContent.includes("Reintentar resumen")'); assert.deepEqual(await counts(), []);
       await evaluate('mobileTest.listStatus=null'); await click('Reintentar resumen'); await wait(`${home}.textContent.includes('No tienes secciones')`);
-      assert.doesNotMatch(await evaluate(`${home}.textContent`), /Sin estudiantes en seguimiento/);
+      assert.doesNotMatch(await evaluate(`${home}.textContent`), /No hay estudiantes que requieran atención/);
     });
   } finally { await ui.close(); }
 });

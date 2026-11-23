@@ -24,7 +24,14 @@ test('Inicio REGISTRADOR: seguimiento compacto reutilizado, vacío válido, erro
       assert.deepEqual(Object.keys(query).sort(), ['anio_escolar_id', 'limit', 'mes', 'page']);
       assert.equal(query.limit, 5); assert.equal(query.page, 1);
       await wait(`${daily}.textContent.includes('Lista sin registrar')`);
-      assert.match(await evaluate(`${daily}.textContent`), /Secciones con lista completa.*Secciones por completar/);
+      assert.match(await evaluate(`${daily}.textContent`), /Secciones completadas.*Secciones pendientes/);
+      for (const width of [412, 320]) {
+        await ui.command('Emulation.setDeviceMetricsOverride', { width, height: 1200, deviceScaleFactor: 1, mobile: true });
+        assert.equal(await evaluate(`${daily}.querySelector('h2').textContent`), 'Asistencia de hoy');
+        assert.equal(await evaluate(`${section}.querySelector('h2').textContent`), 'Estudiantes que requieren atención');
+        assert.match(await evaluate(`${daily}.textContent`), /Ver mis secciones/);
+        assert.ok(await evaluate('document.documentElement.scrollWidth<=innerWidth'));
+      }
       assert.equal(await evaluate('Boolean(document.querySelector(\'aside a[href="/estadisticas"]\'))'), false);
       assert.equal(await evaluate('mobileTest.calls.some(c=>c.url.includes("/estudiantes/")||c.url.includes("/estadisticas"))'), false);
     });
@@ -45,7 +52,7 @@ test('Inicio REGISTRADOR: seguimiento compacto reutilizado, vacío válido, erro
       await evaluate('mobileTest.followup.total=0;mobileTest.followup.hold=true;window.dispatchEvent(new Event("focus"))');
       await wait('mobileTest.followup.pending.length===1');
       assert.match(await evaluate(`${section}.textContent`), /Consultando seguimiento/);
-      assert.doesNotMatch(await evaluate(`${section}.textContent`), /Sin estudiantes en seguimiento/);
+      assert.doesNotMatch(await evaluate(`${section}.textContent`), /No hay estudiantes que requieran atención/);
       await ui.setRoute('/secciones'); await wait('location.pathname==="/secciones"');
       await evaluate('mobileTest.followup.hold=false;mobileTest.followup.total=3');
       await ui.setRoute('/inicio'); await ready();
@@ -56,18 +63,18 @@ test('Inicio REGISTRADOR: seguimiento compacto reutilizado, vacío válido, erro
     await t.test('error y respuesta inválida no anuncian vacío; reintento válido confirma cero casos', async () => {
       await evaluate('mobileTest.followup.status=403;window.dispatchEvent(new Event("focus"))');
       await wait(`${section}.textContent.includes('Reintentar seguimiento')`);
-      assert.doesNotMatch(await evaluate(`${section}.textContent`), /Sin estudiantes en seguimiento/);
+      assert.doesNotMatch(await evaluate(`${section}.textContent`), /No hay estudiantes que requieran atención/);
       await evaluate('mobileTest.followup.status=null;mobileTest.followup.invalid=true;mobileTest.followup.total=1');
       await click('Reintentar seguimiento'); await wait(`${section}.textContent.includes('Reintentar seguimiento')`);
-      assert.doesNotMatch(await evaluate(`${section}.textContent`), /Sin estudiantes en seguimiento/);
+      assert.doesNotMatch(await evaluate(`${section}.textContent`), /No hay estudiantes que requieran atención/);
       await evaluate('mobileTest.followup.invalid=false;mobileTest.followup.total=0');
-      await click('Reintentar seguimiento'); await wait(`${section}.textContent.includes('Sin estudiantes en seguimiento este mes')`);
+      await click('Reintentar seguimiento'); await wait(`${section}.textContent.includes('No hay estudiantes que requieran atención este mes')`);
       assert.equal(await evaluate(`${section}.querySelectorAll('li').length`), 0);
     });
     await t.test('sin año disponible no se inventa una consulta vacía y nunca escribe', async () => {
       const before = await evaluate(requests + '.length'); await evaluate('mobileTest.noYears=true'); await leaveAndReturn();
       assert.match(await evaluate(`${section}.textContent`), /No hay un año escolar disponible/);
-      assert.doesNotMatch(await evaluate(`${section}.textContent`), /Sin estudiantes en seguimiento/);
+      assert.doesNotMatch(await evaluate(`${section}.textContent`), /No hay estudiantes que requieran atención/);
       assert.equal(await evaluate(requests + '.length'), before);
       assert.equal(await evaluate('mobileTest.calls.every(c=>c.method==="get")'), true);
     });

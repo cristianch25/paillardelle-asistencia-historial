@@ -112,8 +112,8 @@ test('Inicio de REGISTRADOR resume el día; otros roles conservados y fecha inic
     const html = renderToStaticMarkup(h(MemoryRouter, null, h(Auth.Provider, { value: { session: { user: { rol, nombres: 'Rosa', apellidos: 'Prueba', usuario: 'rosa', nivel_asignado: 'PRIMARIA' } } } }, h(Home))));
     assert.doesNotMatch(html, /Resumen diario institucional/);
     if (rol === 'REGISTRADOR') {
-      assert.match(html, /Ir a mis secciones/); assert.doesNotMatch(html, /Tu cuenta|Rosa|espacio de trabajo|Nombre completo|Usuario/);
-      assert.match(html, /Registro de asistencia de hoy/); assert.match(html, /Estudiantes en seguimiento/);
+      assert.match(html, /Ver mis secciones/); assert.doesNotMatch(html, /Tu cuenta|Rosa|espacio de trabajo|Nombre completo|Usuario/);
+      assert.match(html, />Asistencia de hoy<\/h2>/); assert.match(html, />Estudiantes que requieren atención<\/h2>/);
     } else { assert.match(html, /Bienvenido\/a/); assert.match(html, /Tu cuenta|Nombre completo|Usuario/); }
     assert.doesNotMatch(html, /Identificación|Nivel principal:|Fecha consultada|America\/Lima/);
   }

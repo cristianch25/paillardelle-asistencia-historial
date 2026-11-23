@@ -16,7 +16,7 @@ test('Mis secciones: resúmenes agrupados, paginación, permisos y aislamiento',
     try {
       await ui.navigate('/login'); await ui.login();
       assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Tu cuenta|espacio de trabajo|Perfil validado/);
-      await click('Ir a mis secciones'); await wait('location.pathname==="/secciones"'); await ready();
+      await click('Ver mis secciones'); await wait('location.pathname==="/secciones"'); await ready();
       assert.doesNotMatch(await evaluate('document.querySelector("#main-content").textContent'), /Consulta las secciones que tienes asignadas|Actualizar resúmenes|Reintentar resúmenes/);
       await t.test('fecha Lima, datos reales, ausencia y no lectivo sin ceros; dos GET para 20 tarjetas', async () => {
         assert.equal(await evaluate(`${cards}.length`), 20);

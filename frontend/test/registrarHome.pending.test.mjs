@@ -66,7 +66,7 @@ test('SIN_REGISTRO, sesión vacía, guardado parcial y sesión completa conserva
 test('todas completas: conserva confirmación breve y oculta la lista', () => {
   const html = render([row('1', 'COMPLETA'), row('2', 'COMPLETA', { situation: 'CERRADA' })]);
   assert.deepEqual(counts(html), [2, 0]); assert.equal(pendingList(html), '');
-  assert.match(html, /Asistencia registrada en todas tus secciones lectivas/);
+  assert.match(html, /Ya completaste la asistencia de todas tus secciones de hoy/);
 });
 
 test('día no lectivo no genera pendientes; un nivel no lectivo tampoco se incluye en un día mixto', () => {
