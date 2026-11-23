@@ -9,7 +9,7 @@ import '../../src/app/styles.css';
 
 const query = new URLSearchParams(location.search);
 const controls = { documentId: crypto.randomUUID(), calls: [], meStatus: query.get('me'), holdMe: query.has('hold'), pending: [], offset: 0,
-  userName: 'Perfil validado', expiresIn: 900 };
+  userName: 'Perfil validado', expiresIn: 900, loginStatus: null, loginRemaining: null, loginWait: null };
 window.authTest = controls;
 controls.navigate = router.navigate;
 const realNow = Date.now; Date.now = () => realNow() + controls.offset;
@@ -33,8 +33,13 @@ controls.releaseMe = () => { const pending = controls.pending.splice(0); pending
 controls.verify = () => httpClient.get('/auth/me').catch(() => {});
 httpClient.defaults.adapter = async config => {
   controls.calls.push({ method: config.method, url: config.url, bearer: Boolean(config.headers.get('Authorization')) });
+  if (config.url === '/auth/login' && controls.loginStatus) throw new AxiosError('Detalle privado simulado', '', config, null,
+    { config, status: controls.loginStatus, headers: controls.loginWait ? { 'retry-after': String(controls.loginWait) } : {},
+      data: { error: 'Credenciales o autenticación no válidas.', ...(controls.loginRemaining === null ? {}
+        : { intentos_restantes: controls.loginRemaining, reintentar_en_segundos: controls.loginWait ?? 0 }) } });
   let result;
-  if (config.url === '/auth/login') result = { access_token: 'credencial-simulada-sin-validez-real', token_type: 'Bearer', expires_in: controls.expiresIn };
+  if (config.url === '/auth/login') result = { access_token: 'credencial-simulada-sin-validez-real', token_type: 'Bearer', expires_in: controls.expiresIn,
+    expires_at: Math.floor(Date.now() / 1000) + controls.expiresIn, session_expires_at: Math.floor(Date.now() / 1000) + 28800 };
   else if (config.url === '/auth/me') {
     if (controls.holdMe) await new Promise(resolve => controls.pending.push(resolve));
     if (controls.meStatus) throw new AxiosError('Detalle privado simulado', controls.meStatus === 'timeout' ? 'ECONNABORTED' : '', config,

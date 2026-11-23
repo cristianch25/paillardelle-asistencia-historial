@@ -14,6 +14,8 @@ export type LoginResponse = {
   access_token: string;
   token_type: 'Bearer';
   expires_in: number;
+  expires_at: number;
+  session_expires_at: number;
   user: AuthUser;
 };
 export type AuthSession = { user: AuthUser; expiresAt: number };

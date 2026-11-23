@@ -15,14 +15,27 @@ before(async () => {
 });
 after(async () => { globalThis.window = previousWindow; await vite?.close(); });
 
-test('se conserva únicamente token y vencimiento absoluto, sin copiar perfil ni contraseñas', () => {
+test('se conservan token, límites y última actividad sin copiar perfil ni contraseñas', () => {
   const area = memoryStorage(); globalThis.window = { sessionStorage: area };
   const expiresAt = Date.now() + 60000;
-  assert.equal(storage.writeStoredAuth({ token: 'simulado', expiresAt, user: { id: '5' }, password: 'no-persistir' }), true);
+  const lastActivityAt = Date.now(), absoluteExpiresAt = expiresAt + 3600000;
+  assert.equal(storage.writeStoredAuth({ token: 'simulado', expiresAt, lastActivityAt, absoluteExpiresAt, lastRenewedActivityAt: lastActivityAt,
+    user: { id: '5' }, password: 'no-persistir' }), true);
   const record = JSON.parse(area.records.get(storage.AUTH_STORAGE_KEY));
-  assert.deepEqual(Object.keys(record).sort(), ['expiresAt', 'token']);
+  assert.deepEqual(Object.keys(record).sort(), ['absoluteExpiresAt', 'expiresAt', 'lastActivityAt', 'lastRenewedActivityAt', 'token']);
   assert.equal(record.expiresAt, expiresAt);
   assert.equal(storage.readStoredAuth().credential.expiresAt, expiresAt);
+});
+test('recargar no reinicia actividad; una credencial inactiva o antigua se descarta', () => {
+  const area = memoryStorage(); globalThis.window = { sessionStorage: area };
+  const data = { token: 'simulado', expiresAt: Date.now() + 60000,
+    absoluteExpiresAt: Date.now() + 3600000, lastActivityAt: Date.now() - 10000, lastRenewedActivityAt: Date.now() - 10000 };
+  storage.writeStoredAuth(data);
+  assert.equal(storage.readStoredAuth().credential.lastActivityAt, data.lastActivityAt);
+  storage.writeStoredAuth({ ...data, lastActivityAt: Date.now() - 900000 });
+  assert.equal(storage.readStoredAuth().credential, null);
+  area.setItem(storage.AUTH_STORAGE_KEY, JSON.stringify({ token: 'anterior', expiresAt: data.expiresAt }));
+  assert.equal(storage.readStoredAuth().credential, null);
 });
 test('token vencido, datos corruptos o campos adicionales se eliminan y no se restauran', () => {
   const area = memoryStorage(); globalThis.window = { sessionStorage: area };

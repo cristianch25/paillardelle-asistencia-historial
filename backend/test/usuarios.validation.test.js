@@ -15,10 +15,10 @@ test('alta: valida obligatorios, tipos, longitudes y Unicode según VARCHAR', ()
   for (const body of [null, [], 'texto', 1]) assert.throws(() => validateNewUser(body), { status: 400 });
 });
 
-test('alta: no impone reglas nuevas sobre nombre de cuenta o complejidad de contraseña', () => {
-  assert.equal(validateNewUser({ ...valid, usuario: 'Nombre.con acento_ñ', password: 'x' }).usuario,
+test('alta: conserva nombre de cuenta y exige ocho caracteres sin reglas de composición', () => {
+  assert.equal(validateNewUser({ ...valid, usuario: 'Nombre.con acento_ñ', password: 'xxxxxxxx' }).usuario,
     'Nombre.con acento_ñ');
-  for (const password of [undefined, null, 123, '', 'a'.repeat(73), 'á'.repeat(37)]) {
+  for (const password of [undefined, null, 123, '', 'x', '1234567', '😀'.repeat(4), 'a'.repeat(73), 'á'.repeat(37)]) {
     assert.throws(() => validateNewUser({ ...valid, password }), { status: 400 });
   }
   assert.equal(validateNewUser({ ...valid, password: 'á'.repeat(36) }).rol, 'ADMIN');

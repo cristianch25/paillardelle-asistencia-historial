@@ -3,8 +3,12 @@ import { PASSWORD_CHANGE_REQUIRED } from '../modules/auth/auth.access.js';
 
 export function errorHandler(error, _req, res, _next) {
   if (error instanceof HttpError) {
+    const loginFeedback = ['LOGIN_FAILED', 'LOGIN_RATE_LIMIT'].includes(error.code);
+    if (loginFeedback && error.retryAfter > 0) res.set('Retry-After', String(error.retryAfter));
     if (error.status === 401) res.set('WWW-Authenticate', 'Bearer');
     return res.status(error.status).json({ error: error.message,
+      ...(loginFeedback ? { intentos_restantes: error.remainingAttempts,
+        reintentar_en_segundos: error.retryAfter } : {}),
       ...(error.code === PASSWORD_CHANGE_REQUIRED ? { code: PASSWORD_CHANGE_REQUIRED } : {}) });
   }
   if (error.type === 'entity.parse.failed') {

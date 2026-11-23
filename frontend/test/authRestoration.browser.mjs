@@ -11,7 +11,7 @@ test('autenticación real del frontend: restauración por F5, vencimiento y logo
     try {
       await ui.navigate('/login'); await ui.login();
       await t.test('solo persiste JWT y vencimiento; perfil reconstruido con /me', async () => {
-        assert.deepEqual(await evaluate(`Object.keys(JSON.parse(${stored})).sort()`), ['expiresAt', 'token']);
+        assert.deepEqual(await evaluate(`Object.keys(JSON.parse(${stored})).sort()`), ['absoluteExpiresAt', 'expiresAt', 'lastActivityAt', 'lastRenewedActivityAt', 'token']);
         assert.match(await evaluate('document.body.textContent'), /Perfil validado/);
         assert.ok(await evaluate('authTest.calls.some(call => call.url === "/auth/me" && call.bearer)'));
       });

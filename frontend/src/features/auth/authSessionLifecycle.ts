@@ -1,24 +1,32 @@
 import axios, { CanceledError } from 'axios';
 import { connectHttpSession } from '../../shared/api/httpClient';
-import { getCurrentUser, login } from './auth.api';
-import { clearStoredAuth, readStoredAuth, writeStoredAuth } from './authStorage';
+import { getCurrentUser, login, renewSession, validatedUser } from './auth.api';
+import { clearStoredAuth, readStoredAuth, writeStoredAuth, INACTIVITY_MS, type StoredAuth } from './authStorage';
 import { watchAuthExpiration } from './authExpiration';
+import { watchAuthActivity } from './authActivity';
+import { tokenResponse } from './authTokenResponse';
 import type { AuthSession, LoginCredentials } from './auth.types';
 
-type Request = { token: string | null; controller: AbortController; expiresAt: number | null };
+type Request = { token: string | null; controller: AbortController; expiresAt: number | null;
+  absoluteExpiresAt: number; lastActivityAt: number; lastRenewedActivityAt: number };
 export type AuthSnapshot = { session: AuthSession | null; notice: string;
   initialization: 'checking' | 'ready' | 'error'; restoreError: string };
 const expiredNotice = 'Tu sesión ha vencido. Inicia sesión nuevamente.';
 
 export function createAuthSessionLifecycle() {
   let state: AuthSnapshot = { session: null, notice: '', initialization: 'checking', restoreError: '' };
-  let active: Request | null = null, stopExpiration = () => {};
+  let active: Request | null = null, stopExpiration = () => {}, stopActivity = () => {};
   let latestProfileCheck: object | null = null;
   const listeners = new Set<() => void>();
   function publish(next: Partial<AuthSnapshot>) {
     state = { ...state, ...next }; listeners.forEach(listener => listener());
   }
-  function cancel() { active?.controller.abort(); active = null; stopExpiration(); }
+  function cancel() { active?.controller.abort(); active = null; stopExpiration(); stopActivity(); latestProfileCheck = null; }
+  const deadline = (request: Request) => Math.min(request.expiresAt!, request.absoluteExpiresAt, request.lastActivityAt + INACTIVITY_MS);
+  function credential(request: Request): StoredAuth {
+    return { token: request.token!, expiresAt: request.expiresAt!, absoluteExpiresAt: request.absoluteExpiresAt,
+      lastActivityAt: request.lastActivityAt, lastRenewedActivityAt: request.lastRenewedActivityAt };
+  }
   function endSession(notice = '') {
     cancel();
     const cleared = clearStoredAuth();
@@ -28,16 +36,36 @@ export function createAuthSessionLifecycle() {
   }
   function checkCurrent(request: Request) {
     if (active !== request) throw new CanceledError();
-    if (request.expiresAt !== null && request.expiresAt <= Date.now()) {
+    if (request.expiresAt !== null && deadline(request) <= Date.now()) {
       endSession(expiredNotice); throw new CanceledError();
     }
   }
   function armExpiration(request: Request) {
     stopExpiration();
-    stopExpiration = watchAuthExpiration(request.expiresAt!, () => {
+    stopExpiration = watchAuthExpiration(deadline(request), () => {
       if (active === request) endSession(expiredNotice);
     });
     if (active !== request) stopExpiration();
+  }
+  function track(request: Request) {
+    stopActivity();
+    stopActivity = watchAuthActivity({
+      current: () => active === request && state.session && !state.session.user.debe_cambiar_password ? credential(request) : null,
+      changed: time => { request.lastActivityAt = time; writeStoredAuth(credential(request)); armExpiration(request); },
+      expired: () => { if (active === request) endSession(expiredNotice); },
+      async renew() {
+        const token = request.token, activity = request.lastActivityAt, check = {}; latestProfileCheck = check;
+        const result = await renewSession(request.controller.signal);
+        checkCurrent(request);
+        if (request.token !== token || latestProfileCheck !== check) return;
+        const next = tokenResponse(result), user = validatedUser(result.user);
+        if (next.absoluteExpiresAt !== request.absoluteExpiresAt) throw new Error('Límite de sesión inválido.');
+        Object.assign(request, next);
+        request.lastRenewedActivityAt = activity;
+        writeStoredAuth(credential(request)); armExpiration(request);
+        publish({ session: { user, expiresAt: request.expiresAt! } });
+      },
+    });
   }
   async function restore() {
     if (active && state.initialization === 'checking') return;
@@ -54,6 +82,7 @@ export function createAuthSessionLifecycle() {
       const user = await getCurrentUser(request.controller.signal);
       checkCurrent(request);
       publish({ session: { user, expiresAt: credential.expiresAt }, initialization: 'ready' });
+      track(request);
     } catch (error) {
       if (active !== request) return;
       if (axios.isAxiosError(error) && error.response?.status === 401) endSession('La sesión ya no es válida. Inicia sesión nuevamente.');
@@ -65,22 +94,20 @@ export function createAuthSessionLifecycle() {
   }
   async function signIn(credentials: LoginCredentials) {
     const cleared = endSession();
-    const request: Request = { token: null, expiresAt: null, controller: new AbortController() }; active = request;
-    const startedAt = Date.now();
+    const request: Request = { token: null, expiresAt: null, absoluteExpiresAt: 0,
+      lastActivityAt: Date.now(), lastRenewedActivityAt: Date.now(), controller: new AbortController() }; active = request;
     try {
       const result = await login(credentials, request.controller.signal);
       checkCurrent(request);
-      if (typeof result.access_token !== 'string' || !result.access_token.trim() || result.token_type !== 'Bearer'
-        || !Number.isSafeInteger(result.expires_in) || result.expires_in < 1) throw new Error('Respuesta de autenticación inválida.');
-      request.token = result.access_token; request.expiresAt = startedAt + result.expires_in * 1000;
-      if (!Number.isSafeInteger(request.expiresAt)) throw new Error('Vencimiento inválido.');
+      Object.assign(request, tokenResponse(result));
       checkCurrent(request); armExpiration(request);
       const user = await getCurrentUser(request.controller.signal);
       checkCurrent(request);
-      const stored = writeStoredAuth({ token: request.token, expiresAt: request.expiresAt });
-      publish({ session: { user, expiresAt: request.expiresAt }, initialization: 'ready',
+      const stored = writeStoredAuth(credential(request));
+      publish({ session: { user, expiresAt: request.expiresAt! }, initialization: 'ready',
         notice: stored ? '' : 'La sesión está activa solo en esta página. El navegador no permite conservarla al recargar.'
           + (cleared ? '' : ' Tampoco se pudo limpiar el acceso guardado; cierra esta pestaña al terminar.') });
+      track(request);
     } catch (error) { if (active === request) endSession(); throw error; }
   }
   async function verifySession() {

@@ -76,7 +76,8 @@ test('ADMIN obtiene listado paginado y detalle sin campos sensibles', async () =
 });
 
 test('sin JWT válido ambos endpoints devuelven 401 antes de consultar usuarios', async () => {
-  const expired = createTokenService(() => ({ secret, expiresIn: -1 })).issue('1').access_token;
+  const expired = createTokenService(() => ({ secret, expiresIn: 900 }),
+    () => Math.floor(Date.now() / 1000) - 1000).issue('1').access_token;
   const prior = queries;
   for (const token of ['', 'invalido', `${tokens.issue('1').access_token}x`, expired, tokens.issue('4').access_token]) {
     for (const path of ['', '/1']) {

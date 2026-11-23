@@ -1,5 +1,48 @@
 # Backend de Paillardelle
 
+## Autenticación: renovación, intentos y nuevas contraseñas
+
+La renovación autorizada conserva JWT de 900 segundos y `sessionStorage`.
+`POST /api/auth/renovar` exige un Bearer vigente, cuenta activa, rol actual
+implementado y ausencia de cambio obligatorio ADMIN. Conserva `auth_time` firmado
+del login original; ninguna renovación supera ocho horas desde ese instante.
+Login y renovación devuelven `expires_at` y `session_expires_at` en segundos Unix.
+JWT anteriores sin `auth_time` siguen válidos hasta exp, pero no se renuevan.
+El formato previo de sessionStorage requiere iniciar sesión una vez de nuevo.
+
+El navegador cuenta únicamente eventos `isTrusted` de teclado, puntero, rueda o
+toque en pestaña visible. Guarda última actividad sin reiniciarla al recargar;
+cierra a los quince minutos de inactividad y al vencer token o límite absoluto.
+Polling, focus y eventos sintéticos no cuentan. Hay una sola renovación pendiente
+y un intervalo mínimo de treinta segundos entre intentos. Los eventos reales se
+verifican en el navegador: una API no puede demostrar actividad humana frente a
+un cliente manipulado que ya posee el Bearer. El máximo firmado sigue en servidor.
+
+Login sigue fallos en una ventana móvil de quince minutos: cinco por cuenta
+normalizada y treinta por dirección de conexión. Al alcanzar un límite devuelve
+429 genérico y Retry-After con una espera de 60 segundos. Terminar la espera no
+borra el historial: si sigue saturado, permite una sola comprobación; un nuevo
+fallo exige otros 60 segundos. No concede cinco intentos nuevos por minuto.
+Un acceso válido limpia fallos de su cuenta, pero conserva los del origen.
+Las reservas incluyen intentos pendientes; el mapa admite como
+máximo 10.000 entradas y rechaza nuevas claves si está lleno. No usa cabeceras
+reenviadas directamente. Este control es por proceso y se pierde al reiniciar;
+en AWS con varias instancias requiere además protección compartida del proxy y
+configuración explícita de proxies confiables. No activar `trust proxy` global.
+
+Un rechazo de login informa `intentos_restantes` y `reintentar_en_segundos`,
+calculados del menor margen disponible entre cuenta y origen, también para
+cuentas inexistentes. Un bloqueo simultáneo informa la mayor espera efectiva.
+Es una instantánea al responder; otras peticiones pueden consumir ese margen.
+La interfaz bloquea el envío y muestra cuenta regresiva local sin peticiones
+automáticas. Cambiar el usuario no retira una espera vigente; la interfaz no
+inventa un contador ni reinicia los límites del servidor.
+
+Nuevas contraseñas de las APIs de cuentas, cambio propio y secretos generados en
+restablecimientos exigen ocho caracteres Unicode válidos y hasta 72 bytes UTF-8.
+Login conserva contraseñas históricas; no se modifican hashes existentes.
+No hay refresh tokens persistentes, tablas, migraciones ni dependencias nuevas.
+
 JavaScript con módulos ES, Node.js 22 o superior, Express, mysql2, dotenv,
 bcrypt y jsonwebtoken.
 El modo de desarrollo y las pruebas usan herramientas nativas

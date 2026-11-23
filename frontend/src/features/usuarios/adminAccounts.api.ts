@@ -21,7 +21,7 @@ export function adminRequest(draft: AdminDraft) {
     if (!basic[key] || /[\uD800-\uDFFF]/u.test(basic[key]) || [...basic[key]].length > max) throw new Error(`Revisa ${key}: máximo ${max} caracteres.`);
   }
   const bytes = new TextEncoder().encode(draft.password).length;
-  if (bytes < 1 || bytes > 72 || /[\uD800-\uDFFF]/u.test(draft.password)) throw new Error('La contraseña inicial debe ocupar entre 1 y 72 bytes UTF-8.');
+  if ([...draft.password].length < 8 || bytes > 72 || /[\uD800-\uDFFF]/u.test(draft.password)) throw new Error('La contraseña inicial requiere al menos 8 caracteres y hasta 72 bytes UTF-8.');
   return { ...basic, password: draft.password, rol: 'ADMIN' as const };
 }
 

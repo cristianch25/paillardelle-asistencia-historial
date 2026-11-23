@@ -30,7 +30,7 @@ export function userRequest(draft: UserDraft, original?: ManagedUser) {
   if (draft.nivel_asignado && !['INICIAL', 'PRIMARIA', 'SECUNDARIA'].includes(draft.nivel_asignado)) throw new Error('Nivel no válido.');
   if (!wellFormed(draft.cargo) || [...draft.cargo].length > 30) throw new Error('El cargo admite hasta 30 caracteres.');
   const passwordBytes = new TextEncoder().encode(draft.password).length;
-  if (!original && (!wellFormed(draft.password) || passwordBytes < 1 || passwordBytes > 72)) throw new Error('La contraseña inicial debe ocupar entre 1 y 72 bytes UTF-8.');
+  if (!original && (!wellFormed(draft.password) || [...draft.password].length < 8 || passwordBytes > 72)) throw new Error('La contraseña inicial requiere al menos 8 caracteres y hasta 72 bytes UTF-8.');
   return { ...basic, rol: draft.rol, cargo: draft.cargo.trim() || null, nivel_asignado: draft.nivel_asignado || null,
     ...(!original ? { password: draft.password } : {}) };
 }

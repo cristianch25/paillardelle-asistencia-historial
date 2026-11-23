@@ -17,32 +17,41 @@ export function readAuthConfig(env = process.env) {
   return { secret, expiresIn };
 }
 
-export function createTokenService(getConfig = readAuthConfig) {
+export function createTokenService(getConfig = readAuthConfig, now = () => Math.floor(Date.now() / 1000)) {
+  function claims(token) {
+    const { secret } = getConfig();
+    let payload;
+    try {
+      payload = jwt.verify(token, secret, { algorithms: ['HS256'], issuer, audience, clockTimestamp: now() });
+    } catch { throw unauthorized(); }
+    if (typeof payload.sub !== 'string' || !/^[1-9]\d{0,19}$/.test(payload.sub)
+      || !Number.isInteger(payload.exp)) throw unauthorized();
+    if (payload.auth_time !== undefined && (!Number.isInteger(payload.auth_time)
+      || payload.auth_time > now() || payload.exp > payload.auth_time + 28800
+      || now() >= payload.auth_time + 28800)) throw unauthorized();
+    return payload;
+  }
+  function issue(userId, startedAt = now()) {
+    const { secret, expiresIn } = getConfig(), issuedAt = now();
+    const expiresAt = Math.min(issuedAt + expiresIn, startedAt + 28800);
+    if (expiresAt <= issuedAt) throw unauthorized();
+    return {
+      access_token: jwt.sign({ auth_time: startedAt, iat: issuedAt, exp: expiresAt }, secret, {
+        algorithm: 'HS256', subject: String(userId), issuer, audience,
+      }),
+      token_type: 'Bearer', expires_in: expiresAt - issuedAt,
+      expires_at: expiresAt, session_expires_at: startedAt + 28800,
+    };
+  }
   return {
     assertConfigured() { getConfig(); },
-    issue(userId) {
-      const { secret, expiresIn } = getConfig();
-      return {
-        access_token: jwt.sign({}, secret, {
-          algorithm: 'HS256', subject: String(userId), expiresIn, issuer, audience,
-        }),
-        token_type: 'Bearer',
-        expires_in: expiresIn,
-      };
-    },
-    verify(token) {
-      const { secret } = getConfig();
-      let payload;
-      try {
-        payload = jwt.verify(token, secret, { algorithms: ['HS256'], issuer, audience });
-      } catch {
-        throw unauthorized();
-      }
-      if (typeof payload.sub !== 'string' || !/^[1-9]\d{0,19}$/.test(payload.sub)
-        || !Number.isInteger(payload.exp)) {
-        throw unauthorized();
-      }
-      return payload.sub;
+    issue,
+    verify: token => claims(token).sub,
+    renew(token) {
+      const payload = claims(token);
+      // Los JWT anteriores a esta etapa siguen válidos hasta exp, sin renovación.
+      if (!Number.isInteger(payload.auth_time)) throw unauthorized();
+      return issue(payload.sub, payload.auth_time);
     },
   };
 }

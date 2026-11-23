@@ -1,5 +1,5 @@
 import { HttpError } from '../../shared/http-error.js';
-import { isValidPassword } from '../../shared/passwords.js';
+import { isValidNewPassword } from '../../shared/passwords.js';
 import { educationLevels as levels } from '../../shared/education-levels.js';
 export { validateId as validateUserId } from '../../shared/query-validation.js';
 
@@ -38,7 +38,7 @@ function validateFields(body, partial = false) {
     if (!roles.includes(body.rol)) invalid('rol debe ser ADMIN, SUBDIRECCION o REGISTRADOR.');
     user.rol = body.rol;
   }
-  if (!partial && !isValidPassword(body.password)) invalid('password debe ocupar entre 1 y 72 bytes UTF-8.');
+  if (!partial && !isValidNewPassword(body.password)) invalid('password requiere al menos 8 caracteres y hasta 72 bytes UTF-8.');
   if (Object.hasOwn(body, 'cargo')) {
     user.cargo = body.cargo === null ? null : text(body.cargo, 'cargo', 30, false);
   }

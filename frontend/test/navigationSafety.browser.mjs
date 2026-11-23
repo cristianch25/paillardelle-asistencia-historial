@@ -80,7 +80,7 @@ test('6B.2C: guardado en curso, pérdida de acceso y beforeunload nativo',
         await wait('Boolean(document.querySelector("#main-content")) && document.body.textContent.includes("Selecciona una sección")');
         assert.equal(await evaluate('location.pathname'), '/asistencias/diaria');
         assert.equal(await evaluate(`${rows}.length`), 0);
-        assert.deepEqual(await evaluate('Object.keys(JSON.parse(sessionStorage.getItem("paillardelle.auth"))).sort()'), ['expiresAt', 'token']);
+        assert.deepEqual(await evaluate('Object.keys(JSON.parse(sessionStorage.getItem("paillardelle.auth"))).sort()'), ['absoluteExpiresAt', 'expiresAt', 'lastActivityAt', 'lastRenewedActivityAt', 'token']);
         assert.equal(await evaluate('navigationTest.calls.filter(c => c.method === "patch").length'), 0);
         assert.equal(await evaluate('(() => { const event = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(event); return event.defaultPrevented; })()'), false);
         off();

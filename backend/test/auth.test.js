@@ -78,7 +78,9 @@ test('login correcto emite JWT y datos básicos sin password ni hash', async () 
   const payload = jwt.verify(accessToken, secret, { algorithms: ['HS256'] });
   assert.equal(payload.sub, body.user.id);
   assert.equal(payload.exp - payload.iat, 900);
-  assert.deepEqual(Object.keys(payload).sort(), ['aud', 'exp', 'iat', 'iss', 'sub']);
+  assert.deepEqual(Object.keys(payload).sort(), ['aud', 'auth_time', 'exp', 'iat', 'iss', 'sub']);
+  assert.equal(body.expires_at, payload.exp);
+  assert.equal(body.session_expires_at, payload.auth_time + 28800);
 });
 
 test('contraseña incorrecta, usuario inexistente e inactivo comparten respuesta 401', async () => {

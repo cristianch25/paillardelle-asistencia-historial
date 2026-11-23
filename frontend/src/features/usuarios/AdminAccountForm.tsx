@@ -32,7 +32,7 @@ export default function AdminAccountForm({ busy, onSave, onCancel }: Props) {
         required maxLength={key === 'nombres' ? 100 : key === 'apellidos' ? 120 : 60} autoComplete="off"
         value={draft[key]} onChange={e => setDraft(current => ({ ...current, [key]: e.target.value }))} />)}
       <FormField label="Contraseña inicial" type="password" required autoComplete="new-password" value={draft.password}
-        hint="Entre 1 y 72 bytes UTF-8." onChange={e => setDraft(current => ({ ...current, password: e.target.value }))} />
+        hint="Mínimo 8 caracteres y máximo 72 bytes UTF-8." onChange={e => setDraft(current => ({ ...current, password: e.target.value }))} />
       <FormField label="Confirmar contraseña inicial" type="password" required autoComplete="new-password" value={confirmation} onChange={e => setConfirmation(e.target.value)} />
       <p className="self-center text-sm">Rol de la nueva cuenta: ADMIN</p>
     </fieldset>}

@@ -6,9 +6,17 @@ export async function login(credentials: LoginCredentials, signal: AbortSignal) 
   return response.data;
 }
 
+export async function renewSession(signal: AbortSignal) {
+  const response = await httpClient.post<LoginResponse>('/auth/renovar', undefined, { signal });
+  return response.data;
+}
+
 export async function getCurrentUser(signal: AbortSignal) {
   const response = await httpClient.get<{ user: AuthUser }>('/auth/me', { signal });
-  const user = response.data.user;
+  return validatedUser(response.data.user);
+}
+
+export function validatedUser(user: AuthUser) {
   if (!user || typeof user.id !== 'string' || !['ADMIN', 'SUBDIRECCION', 'REGISTRADOR', 'SUPERUSUARIO'].includes(user.rol)) {
     throw new Error('Perfil de autenticación inválido.');
   }

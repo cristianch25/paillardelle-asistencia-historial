@@ -68,7 +68,8 @@ test('una respuesta antigua de /me no retira una restricción recibida después;
   const profile = config => response(config, { user: { id: '1', rol: 'ADMIN', debe_cambiar_password: false } });
   try {
     http.httpClient.defaults.adapter = async config => config.url === '/auth/login'
-      ? response(config, { access_token: 'FICTICIO', token_type: 'Bearer', expires_in: 900 }) : profile(config);
+      ? response(config, { access_token: 'FICTICIO', token_type: 'Bearer', expires_in: 900,
+        expires_at: Math.floor(Date.now() / 1000) + 900, session_expires_at: Math.floor(Date.now() / 1000) + 28800 }) : profile(config);
     await lifecycle.signIn({ usuario: 'ficticio', password: 'ficticia' });
     const pending = Promise.withResolvers(), started = Promise.withResolvers();
     http.httpClient.defaults.adapter = async config => {

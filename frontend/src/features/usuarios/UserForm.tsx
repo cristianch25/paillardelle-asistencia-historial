@@ -29,7 +29,7 @@ export default function UserForm({ user, busy, onSave, onCancel }: Props) {
       <FormField label="Apellidos" required maxLength={120} value={draft.apellidos} onChange={e => update('apellidos', e.target.value)} />
       <FormField label="Identificador de usuario" required autoComplete="off" maxLength={60} value={draft.usuario} onChange={e => update('usuario', e.target.value)} />
       {!user && <FormField label="Contraseña inicial" type="password" required autoComplete="new-password" value={draft.password}
-        hint="Entre 1 y 72 bytes UTF-8. Comunícala al titular por un medio seguro." onChange={e => update('password', e.target.value)} />}
+        hint="Mínimo 8 caracteres y máximo 72 bytes UTF-8. Comunícala al titular por un medio seguro." onChange={e => update('password', e.target.value)} />}
       {admin ? <p className="self-center text-sm">Cuenta administrativa: se conservan su rol, cargo y nivel.</p> : <>
         <label className="text-sm font-semibold" htmlFor={`${id}-role`}>Rol
           <select id={`${id}-role`} className={control} value={draft.rol} onChange={e => setDraft(current => ({ ...current,

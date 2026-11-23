@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { HttpError } from '../../shared/http-error.js';
-import { hashPassword } from '../../shared/passwords.js';
+import { hashPassword, isValidNewPassword } from '../../shared/passwords.js';
 import { validateId } from '../../shared/query-validation.js';
 import { authorizeAccountActor, authorizeAccountOperation } from './usuarios.authorization.js';
 import { createPasswordResetRepository } from './usuarios.password.repository.js';
@@ -13,7 +13,9 @@ export function createPasswordResetService({ repository = createPasswordResetRep
       if (body !== undefined && (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length)) {
         throw new HttpError(400, 'El restablecimiento no admite campos; confirma con un objeto vacío.');
       }
-      const temporary = generate(), passwordHash = await hash(temporary);
+      const temporary = generate();
+      if (!isValidNewPassword(temporary)) throw new Error('No se pudo generar una contraseña temporal válida.');
+      const passwordHash = await hash(temporary);
       try {
         let lockedActor;
         await repository.reset(id, passwordHash, actorId, actor => {

@@ -19,11 +19,15 @@ export function errorEscritura(error: unknown): { mensaje: string; incierto: boo
 export function apiErrorMessage(error: unknown, login = false): string {
   if (!axios.isAxiosError(error)) return 'No se pudo completar la solicitud. Intenta nuevamente.';
   const status = error.response?.status;
-  if (status === 401) return login
-    ? 'No se pudo iniciar sesión. Verifica tus credenciales o consulta al administrador.'
-    : 'La sesión ya no es válida. Inicia sesión nuevamente.';
+  if (status === 429 && login) return 'Demasiados intentos. Inténtalo nuevamente cuando termine la espera';
+  if (status === 401) {
+    if (!login) return 'La sesión ya no es válida. Inicia sesión nuevamente.';
+    return error.config?.url === '/auth/me' ? 'No se pudo validar la sesión. Vuelve a iniciar sesión.'
+      : 'Usuario o contraseña incorrectos';
+  }
   if (status === 403) return 'No tienes permiso para realizar esta acción.';
   if (status === 503) return 'El servicio de autenticación no está disponible en este momento.';
-  if (!error.response) return 'No se pudo conectar con el servidor. Comprueba tu conexión e intenta nuevamente.';
+  if (!error.response) return login ? 'No se pudo conectar con el sistema. Inténtalo nuevamente'
+    : 'No se pudo conectar con el servidor. Comprueba tu conexión e intenta nuevamente.';
   return 'No se pudo completar la solicitud. Intenta nuevamente.';
 }
