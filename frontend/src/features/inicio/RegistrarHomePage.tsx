@@ -28,10 +28,9 @@ export default function RegistrarHomePage() {
             <div className="rounded-lg bg-emerald-50 p-3"><dt className="text-sm">Secciones con lista completa</dt><dd className="text-2xl font-bold tabular-nums">{lective.length - pending.length}</dd></div>
             <div className="rounded-lg bg-slate-50 p-3"><dt className="text-sm">Secciones por completar</dt><dd className="text-2xl font-bold tabular-nums">{pending.length}</dd></div>
           </dl>
-          {pending.length ? <ul className="divide-y divide-slate-100">{pending.slice(0, 5).map(row => <li key={row.seccion.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+          {pending.length ? <ul aria-label="Secciones pendientes" className="max-h-64 overflow-y-auto divide-y divide-slate-100">{pending.map(row => <li key={row.seccion.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
             <span className="break-words font-semibold">{educationLevelLabels[row.seccion.nivel]} · {formatRegistrarSectionName(row.seccion)}</span>
             <span className="text-slate-600">{registrarDayStatus(row) === 'Sin registro' ? 'Lista sin registrar' : 'Lista incompleta'}</span></li>)}</ul> : <p>Asistencia registrada en todas tus secciones lectivas.</p>}
-          {pending.length > 5 && <p className="text-sm text-slate-600">Y {pending.length - 5} secciones más.</p>}
         </>)}
       <Button onClick={() => void navigate('/secciones')}>Ir a mis secciones</Button>
     </section>

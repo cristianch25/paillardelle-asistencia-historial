@@ -66,7 +66,9 @@ Indicadores mensuales, reportes y gráficos quedan fuera de esta entrega.
 ## Precisión de REGISTRADOR — 21/11/2026
 
 Inicio muestra «Registro de asistencia de hoy» para la fecha civil de Lima, con dos contadores
-compactos y hasta cinco secciones pendientes. Reutiliza el listado paginado
+compactos y todas las secciones pendientes en una lista con altura limitada y
+desplazamiento vertical cuando sea necesario. Cada fila identifica nivel, grado
+y letra, sin ocultar secciones tras «Y otras más». Reutiliza el listado paginado
 `GET /api/asistencias/sesiones`: el servidor exige asignación vigente hoy y en
 la fecha consultada (RN-06 V8). `registrarDay.ts` valida el conjunto completo
 con las comprobaciones existentes; no consulta historiales ni estudiantes por fila.
@@ -76,6 +78,14 @@ y «Secciones por completar». El estado ABIERTA/CERRADA por sí solo
 no completa el trabajo. Se excluyen días no lectivos de los pendientes y se
 distinguen ausencia de secciones, carga y errores. Se actualiza al montar,
 recuperar foco/visibilidad y cambiar el día; un error permite reintentar.
+
+Verificación de la lista completa: `registrarHome.pending.test.mjs` simula el
+estado de las consultas existentes y renderiza el componente real. Cubre una
+pendiente, ocho pendientes para AUXILIAR, ausencia de sesión frente a marcas
+parciales, todas completas, fecha no lectiva/niveles mixtos y distintas
+asignaciones recibidas. Las seis pruebas nuevas y quince regresiones de Inicio
+y registrarDay pasan; TypeScript y build correctos. Sin cambios de API,
+consultas adicionales, permisos, cálculo de avance ni acceso a MySQL.
 
 Seguimiento aprobado y preparado el 22/11/2026: «Estudiantes en seguimiento»
 reutiliza `getMonthlyFollowup`, su contrato validado y las agregaciones existentes.
