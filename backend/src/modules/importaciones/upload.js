@@ -9,7 +9,7 @@ const cancelled = () => new HttpError(400, 'Recepción de archivo cancelada.');
 
 /**
  * Consume un Readable binario exclusivo con headers HTTP; lo destruye al rechazar.
- * El futuro adaptador HTTP debe contemplar que el transporte puede estar cerrado.
+ * El adaptador HTTP debe contemplar que el transporte puede estar cerrado.
  * Devuelve bytes NO validados como XLSX: nombre/MIME no acreditan su contenido.
  * Reserva un único Buffer de 5 MB al recibir el archivo, sin lista de chunks/copias.
  * La vista devuelta retiene esa reserva: el llamador debe soltarla al terminar.

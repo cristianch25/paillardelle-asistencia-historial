@@ -1,3 +1,4 @@
+// Reúne las secciones autorizadas para una fecha y determina su avance de asistencia.
 import { getAttendanceSupervision } from '../asistencias/supervision/supervision.api';
 import type { SupervisionSection } from '../asistencias/supervision/supervision.types';
 import type { SchoolYear } from '../organizacion-escolar/anios-escolares/aniosEscolares.types';
@@ -32,6 +33,7 @@ export async function getRegistrarDay(years: SchoolYear[], date: string, current
   return result;
 }
 
+// Abrir o cerrar una sesión no completa la asistencia si todavía faltan marcas efectivas.
 export function registrarDayStatus(row: SupervisionSection): 'Sin registro' | 'Con pendientes' | 'Registrada' {
   const counts = row.resumen;
   if (!counts || counts.presentes + counts.tardanzas + counts.faltas === 0) return 'Sin registro';

@@ -1,3 +1,4 @@
+// Gestiona matrículas y padrones por fecha, respetando permisos y vigencias.
 import { HttpError } from '../../shared/http-error.js';
 import { peruDate } from '../../shared/peru-date.js';
 import { validateId } from '../../shared/query-validation.js';
@@ -14,7 +15,7 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
     if (actor.rol === 'ADMIN') return {};
     if (actor.rol === 'SUBDIRECCION') {
       let levels = await usuariosService.supervisionLevels(actor, connection);
-      // Decisión de esta etapa: Secundaria solo opera su propio nivel.
+      // En matrículas, SUBDIRECCION de SECUNDARIA solo opera en su propio nivel.
       if (actor.nivel_asignado === 'SECUNDARIA') levels = levels.filter(level => level === 'SECUNDARIA');
       return { levels };
     }
@@ -102,6 +103,7 @@ export function createEnrollmentService({ repository = createEnrollmentRepositor
       const rows = await repository.list({ filters, access, date, limit: limit + 1, offset });
       return { matriculas: rows.slice(0, limit), pagination: { page, limit, has_more: rows.length > limit } };
     },
+    // La consulta exige vigencias de asignación y matrícula, sin exigir un día lectivo.
     async padron(id, query, actor) {
       const fecha = padronQuery(id, query), access = await accessFor(actor, fecha);
       const section = await seccionesService.findById(id, actor);

@@ -1,3 +1,4 @@
+// Guarda vistas previas temporales en memoria, con caducidad y cupos por usuario y proceso.
 import { randomBytes } from 'node:crypto';
 import { HttpError } from '../../shared/http-error.js';
 
@@ -8,6 +9,7 @@ export function createPreviewStore({ now = Date.now } = {}) {
   function clean() {
     for (const [id, value] of previews) if (value.expires <= now()) remove(id);
   }
+  // Solo pueden sustituirse vistas cargadas del mismo dueño que no estén confirmándose.
   function replaceable(actorId, exceptId) {
     return [...previews].filter(([id, row]) => id !== exceptId && row.actorId === actorId && row.ready && !row.confirming);
   }

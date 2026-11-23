@@ -1,7 +1,9 @@
+// Comprueba los permisos para consultar y administrar cuentas según el rol y el destinatario.
 import { HttpError } from '../../shared/http-error.js';
 import { unauthorized } from '../auth/auth.errors.js';
 
 // D48 / RN-48 / RF-23 V8: permisos por operación y destinatario, sin herencia.
+// Poder consultar un rol no implica poder crear o modificar sus cuentas.
 export function accountRoles(actor) {
   if (actor?.rol === 'ADMIN') return ['ADMIN', 'SUBDIRECCION', 'REGISTRADOR'];
   if (actor?.rol === 'SUPERUSUARIO') return ['ADMIN'];
@@ -19,6 +21,7 @@ export function authorizeAccountCreation(actor, role) {
   if (!allowed.includes(role)) throw new HttpError(403, 'Sin permiso para crear este rol.');
 }
 
+// Separa la gestión técnica de ADMIN de la gestión de SUBDIRECCION y REGISTRADOR.
 export function authorizeAccountOperation(actor, target, operation, nextRole) {
   authorizeAccountActor(actor);
   if (!target) throw new HttpError(404, 'Usuario no encontrado.');

@@ -1,7 +1,7 @@
 import { HttpError } from '../../shared/http-error.js';
 import { unauthorized } from '../auth/auth.errors.js';
 
-// Matriz exclusiva de asignaciones docentes, aprobada por el usuario.
+// Permisos exclusivos de gestión de asignaciones docentes; no conceden acceso a otros módulos.
 const levels = { INICIAL: ['INICIAL'], PRIMARIA: ['INICIAL', 'PRIMARIA'], SECUNDARIA: ['SECUNDARIA'] };
 export function assignmentLevels(actor, locked = false) {
   if (!actor || ((locked || Object.hasOwn(actor, 'activo')) && ![1, true].includes(actor.activo))) throw unauthorized();

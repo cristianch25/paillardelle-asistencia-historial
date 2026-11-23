@@ -1,3 +1,5 @@
+// Maneja fechas civiles sin desplazar el día por la zona horaria del dispositivo.
+// La fecha institucional siempre se obtiene según America/Lima.
 export function peruToday(now = new Date()): string {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit',

@@ -1,3 +1,4 @@
+// Confirma el plan SIAGIE revisado y permite recuperar el resultado mediante su recibo.
 import { HttpError } from '../../shared/http-error.js';
 import { requireActor } from '../matriculas/access.js';
 import { confirmationContext } from './confirmation-context.js';
@@ -36,6 +37,7 @@ export function createImportConfirmationService({ repository = createConfirmatio
         return await repository.transact(actor.id, async (connection, current) => {
           const context = contextFor(connection);
           await authorize(context, current);
+          // Recuperar primero el recibo evita repetir altas aunque la vista previa ya haya caducado.
           const receipt = await repository.receipt(connection, actor.id, input.clave_operacion);
           if (receipt) {
             await authorize(context, current, receipt.nivel);
@@ -55,6 +57,7 @@ export function createImportConfirmationService({ repository = createConfirmatio
             || phones.some(phone => !input.decisiones_telefono.some(item => item.id_propuesta === phone.id_propuesta))) conflict();
           snapshot.assertFresh();
           if (getToday() !== today) conflict();
+          // Los cambios y el recibo se guardan en la misma transacción.
           const resultado = await apply(connection, current, plan, input, context);
           snapshot.assertFresh();
           if (getToday() !== today) conflict();

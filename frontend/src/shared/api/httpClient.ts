@@ -1,3 +1,4 @@
+// Comparte el cliente HTTP y vincula sus peticiones con la sesión autenticada.
 import axios from 'axios';
 
 type HttpSession = { token: string; signal: AbortSignal };
@@ -24,6 +25,7 @@ httpClient.interceptors.request.use(config => {
   return config;
 });
 
+// Solo una respuesta de la sesión vigente puede restringirla o invalidarla.
 httpClient.interceptors.response.use(response => response, (error: unknown) => {
   if (axios.isAxiosError(error) && error.response?.status === 403 && error.response.data?.code === 'PASSWORD_CHANGE_REQUIRED') {
     const session = sessionAccess?.current();

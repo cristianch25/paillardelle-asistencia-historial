@@ -1,3 +1,4 @@
+// Emite y verifica tokens de acceso y conserva el límite original al renovarlos.
 import '../../config/env.js';
 import jwt from 'jsonwebtoken';
 import { AuthError, unauthorized } from './auth.errors.js';
@@ -49,7 +50,7 @@ export function createTokenService(getConfig = readAuthConfig, now = () => Math.
     verify: token => claims(token).sub,
     renew(token) {
       const payload = claims(token);
-      // Los JWT anteriores a esta etapa siguen válidos hasta exp, sin renovación.
+      // Los JWT sin auth_time conservan su validez hasta exp, pero no pueden renovarse.
       if (!Number.isInteger(payload.auth_time)) throw unauthorized();
       return issue(payload.sub, payload.auth_time);
     },

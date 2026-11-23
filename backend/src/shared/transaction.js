@@ -1,7 +1,9 @@
+// Ejecuta una operación en una transacción y libera o descarta su conexión.
 function discard(connection) {
   try { connection.destroy(); } catch { /* La limpieza no debe ocultar el error principal. */ }
 }
 
+// Confirma todos los cambios juntos y conserva el error original si la operación falla.
 export async function inTransaction(pool, work) {
   const connection = await pool.getConnection();
   let reusable = true;
